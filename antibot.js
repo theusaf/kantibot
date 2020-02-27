@@ -1,37 +1,4 @@
-// ==UserScript==
-// @name         Kahoot AntiBot
-// @namespace    http://tampermonkey.net/
-// @version      2.6.7
-// @description  Remove all bots from a kahoot game.
-// @author       theusaf
-// @match        *://play.kahoot.it/*
-// @exclude      *://play.kahoot.it/v2/assets/*
-// @grant        none
-// @run-at       document-start
-// ==/UserScript==
-
-if(window.fireLoaded){
-  throw "[ANTIBOT] - page is loaded";
-}
-if(window.localStorage.extraCheck){
-  console.log("[ANTIBOT] - Detected PIN Checker");
-}
-document.write("");
-window.url = window.location.href;
-window.page = new XMLHttpRequest();
-window.page.open("GET",window.url);
-window.page.send();
-window.page.onload = ()=>{
-  let scriptURL = window.page.response.match(/<\/script><script\ .*?vendors.*?><\/script>/mg)[0].substr(9).split("src=\"")[1].split("\"")[0];
-  let script2 = window.page.response.match(/<\/script><script src=\"\/v2\/assets\/js\/main.*?(?=\")/mg)[0].substr(22);
-  let originalPage = window.page.response.replace(/<\/script><script\ .*?vendors.*?><\/script>/mg,"</script>");
-  originalPage = originalPage.replace(/<\/script><script src=\"\/v2\/assets\/js\/main.*?(?=\")/mg,"</script><script src=\"data:text/javascript,");
-  let script = new XMLHttpRequest();
-  script.open("GET","https://play.kahoot.it/"+scriptURL);
-  script.send();
-  script.onload = ()=>{
-    let patchedScript =script.response.replace(".onMessage=function(t,n){",".onMessage=function(t,n){window.globalMessageListener(t,n);");
-    const code = ()=>{
+const code = ()=>{
       const percent = 0.6;
       // create watermark
       const container = document.createElement("div");
@@ -538,18 +505,3 @@ window.page.onload = ()=>{
         }
       };
     };
-    let mainScript = new XMLHttpRequest();
-    mainScript.open("GET","https://play.kahoot.it/"+script2);
-    mainScript.send();
-    mainScript.onload = ()=>{
-      let sc = mainScript.response;
-      sc = sc.replace("o.namerator","(()=>{console.log(o.namerator);window.isUsingNamerator = o.namerator;return o.namerator})()");
-      let changed = originalPage.split("</body>");
-      changed = `${changed[0]}<script>${patchedScript}</script><script>${sc}</script><script>try{(${window.localStorage.extraCheck})();}catch(err){}window.setupAntibot = ${code.toString()};window.fireLoaded = true;window.setupAntibot();</script></body>${changed[1]}`;
-      console.log("[ANTIBOT] - loaded");
-      document.open();
-      document.write(changed);
-      document.close();
-    };
-  };
-};
