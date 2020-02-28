@@ -27,7 +27,7 @@ function editDistance(s1, s2) {
   return costs[s2.length];
 }
 module.exports = class{
-    constructor(message,options){
+  constructor(message,options){
     this.percent = (options && options.per) || 0.6;
     this.isUsingNamerator = (options && options.namerator) || false;
     this.cachedUsernames = [];
@@ -66,11 +66,57 @@ module.exports = class{
       }
     },10000);
   }
-  handle(message,type){
+  handle(message,type,socket){
+    const data = JSON.parse(message.data)[0];
+    this.messageId = data.id || messageId;
     if(type == "send"){
-
+      const data = JSON.parse(message)[0];
+      if(!data.data.id){
+        return false;
+      }
+      if(data.data.id  == 2){
+        this.specialData.startTime = Date.now();
+      }
     }else{
-
+      if(data.id == 1){
+        clientId = data.clientId;
+      }
+      if(data.data && data.data.type == "joined"){
+        this.determineEvil(data.data,socket);
+        this.specialBotDetector(data.data.type,data.data,socket);
+      }
+      if(data.data && data.data.id == 45){
+        if(Date.now() - this.specialData.startTime < 500 && this.specialData.config.timeout){
+          return true;
+        }
+        // if player just recently joined (within 1 second)
+        if(this.cachedData[data.data.cid] && Date.now() - this.cachedData[data.data.cid].loginTime < 1000){
+          const packet = this.createKickPacket(data.data.cid);
+          socket.send(JSON.stringify(packet));
+          delete this.cachedData[data.data.cid];
+          return true;
+        }
+      }
+      if(data.data && data.data.id == 50){
+        this.cachedData[data.data.cid].tries++;
+        if(this.cachedData[data.data.cid].tries > 3){
+          const kicker = this.createKickPacket(data.data.cid);
+          socket.send(JSON.stringify(kicker));
+          const name = this.cachedUsernames.filter(o=>{
+            return o.id == data.data.cid
+          }).length ? this.cachedUsernames.filter(o=>{
+            return o.id == data.data.cid
+          })[0].name : "bot";
+          this.cachedUsernames.forEach(o=>{
+            if(o.id == this.specialData.lastFakeUserID){
+              o.banned = true;
+              o.time = 10;
+              return;
+            }
+          });
+          delete this.cachedData[data.data.cid];
+        }
+      }
     }
   }
   // for names like KaHOotSmaSH
@@ -151,7 +197,7 @@ module.exports = class{
     s2 = s2.toLowerCase();
     var longer = s1;
     var shorter = s2;
-    // begin math to determine similarity
+    // begin math to determine this.similarity
     if (s1.length < s2.length) {
       longer = s2;
       shorter = s1;
@@ -163,18 +209,18 @@ module.exports = class{
     return (longerLength - editDistance(longer, shorter)) / parseFloat(longerLength);
   }
   createKickPacket(id){
-    messageId++;
+    this.messageId++;
     return [{
       channel: "/service/player",
-      clientId: clientId,
-      id: String(Number(messageId)),
+      clientId: this.clientId,
+      id: String(Number(this.messageId)),
       data: {
         cid: String(id),
         content: JSON.stringify({
           kickCode: 1,
           quizType: "quiz"
         }),
-        gameid: pin,
+        gameid: this.pin,
         host: "play.kahoot.it",
         id: 10,
         type: "message"
@@ -184,16 +230,11 @@ module.exports = class{
   }
   determineEvil(player,socket){
     if(this.cachedUsernames.length == 0){
-      if(similarity(null,player.name) == -1){
-        var packet = createKickPacket(player.cid);
+      if(this.similarity(null,player.name) == -1){
+        var packet = this.createKickPacket(player.cid);
         socket.send(JSON.stringify(packet));
-        console.warn(`[ANTIBOT] - Bot ${player.name} has been banished`);
-        const c = document.getElementById("killcount");
-        if(c){
-          c.innerHTML = Number(c.innerHTML) + 1;
-        }
         delete this.cachedData[player.cid];
-        throw "[ANTIBOT] - Bot banned. Dont add";
+        return true;
       }
       this.cachedUsernames.push({name: player.name, id:player.cid, time: 10, banned: false});
       this.loggedPlayers[player.cid] = true;
@@ -203,41 +244,26 @@ module.exports = class{
         if(this.confirmedPlayers.includes(this.cachedUsernames[i].name)){
           continue;
         }
-        if(similarity(this.cachedUsernames[i].name,player.name) == -1){
+        if(this.similarity(this.cachedUsernames[i].name,player.name) == -1){
           removed = true;
-          var packet1 = createKickPacket(player.cid);
+          var packet1 = this.createKickPacket(player.cid);
           socket.send(JSON.stringify(packet1));
-          console.warn(`[ANTIBOT] - Bot ${player.name} has been banished`);
-          const c = document.getElementById("killcount");
-          if(c){
-            c.innerHTML = Number(c.innerHTML) + 1;
-          }
           delete this.cachedData[player.cid];
-          throw "[ANTIBOT] - Bot banned. Dont add";
+          return true;
         }
-        if(similarity(this.cachedUsernames[i].name,player.name) >= percent){
+        if(this.similarity(this.cachedUsernames[i].name,player.name) >= percent){
           removed = true;
-          let packet1 = createKickPacket(player.cid);
+          let packet1 = this.createKickPacket(player.cid);
           socket.send(JSON.stringify(packet1));
           if(!this.cachedUsernames[i].banned){
-            var packet2 =createKickPacket(this.cachedUsernames[i].id);
+            var packet2 = this.createKickPacket(this.cachedUsernames[i].id);
             this.cachedUsernames[i].banned = true;
             socket.send(JSON.stringify(packet2));
-            clickName(this.cachedUsernames[i].name);
-            const c = document.getElementById("killcount");
-            if(c){
-              c.innerHTML = Number(c.innerHTML) + 1;
-            }
           }
           this.cachedUsernames[i].time = 10;
-          console.warn(`[ANTIBOT] - Bots ${player.name} and ${this.cachedUsernames[i].name} have been banished`);
-          const c = document.getElementById("killcount");
-          if(c){
-            c.innerHTML = Number(c.innerHTML) + 1;
-          }
           delete this.cachedData[player.cid];
           delete this.cachedData[this.cachedUsernames[i].id];
-          throw "[ANTIBOT] - Bot banned. Dont add";
+          return true;
         }
       }
       if(!removed){
@@ -252,12 +278,8 @@ module.exports = class{
       // if looks random
       if(this.specialData.config.looksRandom){
         if(looksRandom(data.name)){
-          const packet = createKickPacket(data.cid);
+          const packet = this.createKickPacket(data.cid);
           socket.send(JSON.stringify(packet));
-          const c = document.getElementById("killcount");
-          if(c){
-            c.innerHTML = Number(c.innerHTML) + 1;
-          }
           this.cachedUsernames.forEach(o=>{
             if(o.id == data.cid){
               o.banned = true;
@@ -265,7 +287,7 @@ module.exports = class{
               return;
             }
           });
-          throw `[ANTIBOT] - Bot ${data.name} banned; name too random.`;
+          return true;
         }
       }
       if(!this.cachedData[data.cid] && !isNaN(data.cid) && Object.keys(data).length <= 5 && data.name.length < 16){ //if the id has not been cached yet or is an invalid id, and they are not a bot :p
@@ -274,9 +296,8 @@ module.exports = class{
           loginTime: Date.now()
         };
       }else{
-        const packet = createKickPacket(data.cid);
+        const packet = this.createKickPacket(data.cid);
         socket.send(JSON.stringify(packet));
-        console.warn(`[ANTIBOT] - Bot ${data.name} has been banished, clearly a bot from kahootsmash or something`);
         this.cachedUsernames.forEach(o=>{
           if(o.id == data.cid){
             o.banned = true;
@@ -284,19 +305,14 @@ module.exports = class{
             return;
           }
         });
-        const c = document.getElementById("killcount");
-        if(c){
-          c.innerHTML = Number(c.innerHTML) + 1;
-        }
-        throw "[ANTIBOT] - Bot banned. Dont add";
+        return true;
       }
       if(!this.isUsingNamerator){
         if(isFakeValid(data.name)){
           if(Date.now() - this.specialData.lastFakeLogin < 5000){
             if(this.cachedData[this.specialData.lastFakeUserID]){ // to get the first guy
-              const packet = createKickPacket(this.specialData.lastFakeUserID);
+              const packet = this.createKickPacket(this.specialData.lastFakeUserID);
               socket.send(JSON.stringify(packet));
-              clickName(this.specialData.lastFakeUserName);
               delete this.cachedData[this.specialData.lastFakeUserID]; this.cachedUsernames.forEach(o=>{
                 if(o.id == this.specialData.lastFakeUserID){
                   o.banned = true;
@@ -305,7 +321,7 @@ module.exports = class{
                 }
               });
             }
-            const packet = createKickPacket(data.cid);
+            const packet = this.createKickPacket(data.cid);
             socket.send(JSON.stringify(packet));
             delete this.cachedData[data.cid];
             this.cachedUsernames.forEach(o=>{
@@ -314,14 +330,10 @@ module.exports = class{
                 return;
               }
             });
-            const c = document.getElementById("killcount");
-            if(c){
-              c.innerHTML = Number(c.innerHTML) + 1;
-            }
             this.specialData.lastFakeLogin = Date.now();
             this.specialData.lastFakeUserID = data.cid;
             this.specialData.lastFakeUserName = data.name;
-            throw `[ANTIBOT] - Banned bot ${data.name}; their name is suspicious, likely a bot.`;
+            return true;
           }
           this.specialData.lastFakeLogin = Date.now();
           this.specialData.lastFakeUserID = data.cid;
@@ -331,88 +343,4 @@ module.exports = class{
       break;
     }
   }
-  this.sendHandler = function(data){
-    data = JSON.parse(data)[0];
-    if(data.data){
-      if(!data.data.id){
-        return;
-      }
-      switch (data.data.id) {
-        case 2:
-        this.specialData.startTime = Date.now();
-        break;
-      }
-    }
-  }
-  this.globalMessageListener = function(e,t){
-    this.e = e;
-    if(!this.e.webSocket.oldSend){
-      this.e.webSocket.oldSend = this.e.webSocket.send;
-      this.e.webSocket.send = function(data){
-        this.sendHandler(data);
-        this.e.webSocket.oldSend(data);
-      }
-    }
-    /*console.log(e); from testing: e[.webSocket] is the websocket*/
-    var data = JSON.parse(t.data)[0];
-    /*console.log(data);*/
-    messageId = data.id ? data.id : messageId;
-    /*if the message is the first message, which contains important clientid data*/
-    if(data.id == 1){
-      clientId = data.clientId;
-    }
-    try{
-      pin = pin ? pin : Number(document.querySelector("[data-functional-selector=\"game-pin\"]").innerHTML);
-      if(Number(document.querySelector("[data-functional-selector=\"game-pin\"]").innerHTML) != pin){
-        pin = Number(document.querySelector("[data-functional-selector=\"game-pin\"]").innerHTML);
-      }
-    }catch(err){}
-    /*if the message is a player join message*/
-    if(data.data ? data.data.type == "joined" : false){
-      console.warn("[ANTIBOT] - determining evil...");
-      determineEvil(data.data,e.webSocket);
-      specialBotDetector(data.data.type,data.data,e.webSocket);
-    }
-    /*if the message is a player leave message*/
-    if(data.data ? data.data.type == "left" : false){
-    }
-    if(data.data ? data.data.id == 45 : false){
-      // if player answers
-      if(Date.now() - this.specialData.startTime < 500 && this.specialData.config.timeout){
-        throw "[ANTIBOT] - Answer was too quick!";
-      }
-      // if player just recently joined (within 1 second)
-      if(this.cachedData[data.data.cid] && Date.now() - this.cachedData[data.data.cid].loginTime < 1000){
-        const packet = createKickPacket(data.data.cid);
-        this.e.webSocket.send(JSON.stringify(packet));
-        const c = document.getElementById("killcount");
-        if(c){
-          c.innerHTML = Number(c.innerHTML) + 1;
-        }
-        delete this.cachedData[data.data.cid];
-        throw `[ANTIBOT] - Bot with id ${data.data.cid} banned. Answered too quickly after joining.`;
-      }
-    }
-    if(data.data ? data.data.id == 50 : false){
-      this.cachedData[data.data.cid].tries++;
-      if(this.cachedData[data.data.cid].tries > 3){
-        const kicker = createKickPacket(data.data.cid);
-        e.webSocket.send(JSON.stringify(kicker));
-        const name = this.cachedUsernames.filter(o=>{return o.id == data.data.cid}).length ? this.cachedUsernames.filter(o=>{return o.id == data.data.cid})[0].name : "bot";
-        console.warn(`[ANTIBOT] - Bot ${name} banished. Seen spamming 2FA`);
-        this.cachedUsernames.forEach(o=>{
-          if(o.id == this.specialData.lastFakeUserID){
-            o.banned = true;
-            o.time = 10;
-            return;
-          }
-        });
-        delete this.cachedData[data.data.cid];
-        const c = document.getElementById("killcount");
-        if(c){
-          c.innerHTML = Number(c.innerHTML) + 1;
-        }
-      }
-    }
-  };
 };
