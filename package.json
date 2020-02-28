@@ -20,5 +20,6 @@
   "bugs": {
     "url": "https://github.com/theusaf/kahoot-antibot/issues"
   },
-  "homepage": "https://github.com/theusaf/kahoot-antibot/tree/nodejs#readme"
+  "homepage": "https://github.com/theusaf/kahoot-antibot/tree/nodejs#readme",
+  "publishConfig": { "registry": "https://npm.pkg.github.com/" }
 }
