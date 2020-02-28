@@ -82,8 +82,7 @@ module.exports = class{
         clientId = data.clientId;
       }
       if(data.data && data.data.type == "joined"){
-        this.determineEvil(data.data,socket);
-        this.specialBotDetector(data.data.type,data.data,socket);
+        return this.determineEvil(data.data,socket) || this.specialBotDetector(data.data.type,data.data,socket);
       }
       if(data.data && data.data.id == 45){
         if(Date.now() - this.specialData.startTime < 500 && this.specialData.config.timeout){
@@ -115,6 +114,7 @@ module.exports = class{
             }
           });
           delete this.cachedData[data.data.cid];
+          return true;
         }
       }
     }
