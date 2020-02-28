@@ -1,0 +1,24 @@
+{
+  "name": "@theusaf/kahoot-antibot",
+  "version": "2.6.7",
+  "description": "Kahoot Antibot Module for Kahoot-Session",
+  "main": "antibot.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theusaf/kahoot-antibot.git#nodejs"
+  },
+  "keywords": [
+    "kahoot",
+    "antibot",
+    "security"
+  ],
+  "author": "theusaf",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/theusaf/kahoot-antibot/issues"
+  },
+  "homepage": "https://github.com/theusaf/kahoot-antibot/tree/nodejs#readme"
+}

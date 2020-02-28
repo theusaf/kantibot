@@ -1,106 +1,80 @@
-const code = ()=>{
-  const percent = 0.6;
-  // create watermark
-  const container = document.createElement("div");
-  container.id = "antibotwtr";
-  const waterMark = document.createElement("p");
-  waterMark.innerHTML = "v2.6.7 @theusaf";
-  const botText = document.createElement("p");
-  botText.innerHTML = "0";
-  botText.id = "killcount";
-  const menu = document.createElement("details");
-  menu.innerHTML = `<summary>config</summary>
-  <input type="checkbox" id="antibot.config.timeout"></input>
-  <label id="antibot.config.timeoutlbl" onclick="window.specialData.config.timeout = !window.specialData.config.timeout;if(!localStorage.antibotConfig){localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(localStorage.antibotConfig);a.timeout = window.specialData.config.timeout;localStorage.antibotConfig = JSON.stringify(a);" for="antibot.config.timeout" title="Blocks answers that are sent before 0.5 seconds after the question starts">Min Answer Timeout</label>
-  <input type="checkbox" id="antibot.config.looksRandom" checked="checked"></input>
-  <label id="antibot.config.lookrandlbl" onclick="window.specialData.config.looksRandom = !window.specialData.config.looksRandom;if(!localStorage.antibotConfig){localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(localStorage.antibotConfig);a.looksRandom = window.specialData.config.looksRandom;localStorage.antibotConfig = JSON.stringify(a);" for="antibot.config.looksRandom" title="Blocks names that seem 'random', such as 'OmEGaboOt'">Block Random Names</label>`;
-  const styles = document.createElement("style");
-  styles.type = "text/css";
-  styles.innerHTML = `#antibotwtr{
-    position: fixed;
-    bottom: 100px;
-    right: 100px;
-    font-size: 1rem;
-    opacity: 0.4;
-    transition: opacity 0.4s;
-  }
-  #antibotwtr:hover{
-    opacity: 1;
-  }
-  #antibotwtr p{
-    display: inline-block;
-  }
-  #killcount{
-    margin-left: 0.25rem;
-    background: black;
-    border-radius: 0.5rem;
-    color: white;
-  }
-  #antibotwtr details{
-    background: grey;
-  }
-  #antibotwtr input{
-    display: none;
-  }
-  #antibotwtr label{
-    color: red;
-    display: block;
-  }
-  #antibotwtr input:checked+label{
-    color: green;
-  }`;
-  container.append(waterMark,botText,menu);
-  setTimeout(function(){
-    if(document.body.innerText.split("\n").length < 8){ // assume broken. (just the water mark)
-      const temp = document.createElement("template");
-      temp.innerHTML = `<div style="color: red; position: fixed; left: 0; top: 0; font-size: 2rem;line-height:2rem">
-      <h1>[ANTIBOT] - Detected broken page. I haven't actually foud a way to fix this issue completely yet, so do one of the following:</h1>
-      <hr/>
-      <h1>Go back to <a href="https://create.kahoot.it/details/${location.search.split("quizId=")[1].split("&")[0]}">the kahoot launch screen</a>.</h1><br/>
-      <h1>Clear the cache of this page and then reload.</h1><br/>
-      <h1>Disable Kahoot AntiBot, reload the page, then re-enable Kahoot Antibot and reload the page again</h1>
-      </div>`;
-      document.body.append(temp.content.cloneNode(true));
-      delete localStorage["kahoot-quizPins"];
-    }
-  },2000);
-  document.body.append(container,styles);
-  window.isUsingNamerator = false;
-  window.cachedUsernames = [];
-  window.confirmedPlayers = [];
-  window.cachedData = {};
-  window.loggedPlayers = {};
-  window.specialData = {
-    startTime: 0,
-    lastFakeLogin: 0,
-    lastFakeUserID: 0,
-    lastFakeUserName: "",
-    config:{
-      timeout: false,
-      looksRandom: true
-    }
-  };
-  // loading localStorage info
-  if(localStorage.antibotConfig){
-    const a = JSON.parse(localStorage.antibotConfig);
-    if(a.timeout){
-      const t = document.getElementById("antibot.config.timeoutlbl");
-      if(t){
-        t.click();
+function editDistance(s1, s2) {
+  s1 = s1.toLowerCase();
+  s2 = s2.toLowerCase();
+
+  var costs = new Array();
+  for (var i = 0; i <= s1.length; i++) {
+    var lastValue = i;
+    for (var j = 0; j <= s2.length; j++) {
+      if (i == 0){
+        costs[j] = j;
+      }
+      else {
+        if (j > 0) {
+          var newValue = costs[j - 1];
+          if (s1.charAt(i - 1) != s2.charAt(j - 1)){
+            newValue = Math.min(Math.min(newValue,lastValue),costs[j]) + 1;
+          }
+          costs[j - 1] = lastValue;
+          lastValue = newValue;
+        }
       }
     }
-    if(!a.looksRandom){
-      const t = document.getElementById("antibot.config.lookrandlbl");
-      if(t){
-        t.click();
-      }
+    if (i > 0){
+      costs[s2.length] = lastValue;
     }
   }
-  var messageId = 0;
-  var clientId = null;
-  var pin = null;
+  return costs[s2.length];
+}
+module.exports = class{
+    constructor(message,options){
+    this.percent = (options && options.per) || 0.6;
+    this.isUsingNamerator = (options && options.namerator) || false;
+    this.cachedUsernames = [];
+    this.confirmedPlayers = [];
+    this.cachedData = {};
+    this.loggedPlayers = {};
+    this.specialData = {
+      startTime: 0,
+      lastFakeLogin: 0,
+      lastFakeUserID: 0,
+      lastFakeUserName: "",
+      config:{
+        timeout: false,
+        looksRandom: true
+      }
+    };
+    this.messageId = (options && options.mid) || 0;
+    this.clientId = (options && options.clientId) || null;
+    this.pin = (options && options.pin) || null;
+    this.timer = setInterval(()=>{
+      for(let i in this.cachedUsernames){
+        if(this.cachedUsernames[i].time <= 0 && !this.cachedUsernames[i].banned && !this.confirmedPlayers.includes(this.cachedUsernames[i].name)){
+          this.confirmedPlayers.push(this.cachedUsernames[i].name);
+          continue;
+        }
+        if(this.cachedUsernames[i].time <= -20){
+          this.cachedUsernames.splice(i,1);
+          continue;
+        }
+        this.cachedUsernames[i].time--;
+      }
+    },1000);
+    this.TFATimer = setInterval(()=>{
+      for(let i in this.cachedData){
+        this.cachedData[i].tries = 0;
+      }
+    },10000);
+  }
+  handle(message,type){
+    if(type == "send"){
+
+    }else{
+
+    }
+  }
   // for names like KaHOotSmaSH
-  function looksRandom(name){
+  looksRandom(name){
     // assumes player names have either all caps, no caps, or up to 3 capital letters
     if(name.replace(/[A-Z]/gm,"").length == 0){
       return false;
@@ -114,7 +88,7 @@ const code = ()=>{
     return true;
   }
   // for names like AmazingRobot32
-  function isFakeValid(name){
+  isFakeValid(name){
     let caps = name.length - name.replace(/[A-Z]/g, '').length;
     if(caps !== 2){ /*has less than 2 or more than 2 capitals*/
       return false;
@@ -133,12 +107,12 @@ const code = ()=>{
     }
     return true;
   }
-  function similarity(s1, s2) {
+  similarity(s1, s2) {
     // remove numbers from name if name is not only a number
-    if(!isNaN(s1) && typeof(s1) != "object" && !window.isUsingNamerator){
+    if(!isNaN(s1) && typeof(s1) != "object" && !this.isUsingNamerator){
       s1 = s1.replace(/[0-9]/mg,"");
     }
-    if(!isNaN(s2) && typeof(s2) != "object" && !window.isUsingNamerator){
+    if(!isNaN(s2) && typeof(s2) != "object" && !this.isUsingNamerator){
       s2 = s2.replace(/[0-9]/mg,"");
     }
     if(!s2){
@@ -151,7 +125,7 @@ const code = ()=>{
       }
     }
     // apply namerator rules
-    if(window.isUsingNamerator){
+    if(this.isUsingNamerator){
       let caps = s2.length - s2.replace(/[A-Z]/g, '').length;
       if(caps !== 2){ /*has less than 2 or more than 2 capitals*/
         return -1;
@@ -188,52 +162,7 @@ const code = ()=>{
     }
     return (longerLength - editDistance(longer, shorter)) / parseFloat(longerLength);
   }
-  function editDistance(s1, s2) {
-    s1 = s1.toLowerCase();
-    s2 = s2.toLowerCase();
-
-    var costs = new Array();
-    for (var i = 0; i <= s1.length; i++) {
-      var lastValue = i;
-      for (var j = 0; j <= s2.length; j++) {
-        if (i == 0){
-          costs[j] = j;
-        }
-        else {
-          if (j > 0) {
-            var newValue = costs[j - 1];
-            if (s1.charAt(i - 1) != s2.charAt(j - 1)){
-              newValue = Math.min(Math.min(newValue,lastValue),costs[j]) + 1;
-            }
-            costs[j - 1] = lastValue;
-            lastValue = newValue;
-          }
-        }
-      }
-      if (i > 0){
-        costs[s2.length] = lastValue;
-      }
-    }
-    return costs[s2.length];
-  }
-  function setup(){
-    var launch_button =document.querySelectorAll("[data-functional-selector=\"launch-button\"]")[0];
-    if(launch_button){
-      console.warn("[ANTIBOT] - launch button found!");
-    }else{
-      setTimeout(setup,1000);
-    }
-  }
-  setup();
-  function clickName(name){
-    const names = document.querySelectorAll("[data-functional-selector=player-name]");
-    names.forEach(o=>{
-      if(o.innerText == name){
-        return o.click();
-      }
-    });
-  }
-  function createKickPacket(id){
+  createKickPacket(id){
     messageId++;
     return [{
       channel: "/service/player",
@@ -253,8 +182,8 @@ const code = ()=>{
       ext: {}
     }];
   }
-  function determineEvil(player,socket){
-    if(window.cachedUsernames.length == 0){
+  determineEvil(player,socket){
+    if(this.cachedUsernames.length == 0){
       if(similarity(null,player.name) == -1){
         var packet = createKickPacket(player.cid);
         socket.send(JSON.stringify(packet));
@@ -263,18 +192,18 @@ const code = ()=>{
         if(c){
           c.innerHTML = Number(c.innerHTML) + 1;
         }
-        delete window.cachedData[player.cid];
+        delete this.cachedData[player.cid];
         throw "[ANTIBOT] - Bot banned. Dont add";
       }
-      window.cachedUsernames.push({name: player.name, id:player.cid, time: 10, banned: false});
-      window.loggedPlayers[player.cid] = true;
+      this.cachedUsernames.push({name: player.name, id:player.cid, time: 10, banned: false});
+      this.loggedPlayers[player.cid] = true;
     }else{
       var removed = false;
-      for(var i in window.cachedUsernames){
-        if(window.confirmedPlayers.includes(window.cachedUsernames[i].name)){
+      for(var i in this.cachedUsernames){
+        if(this.confirmedPlayers.includes(this.cachedUsernames[i].name)){
           continue;
         }
-        if(similarity(window.cachedUsernames[i].name,player.name) == -1){
+        if(similarity(this.cachedUsernames[i].name,player.name) == -1){
           removed = true;
           var packet1 = createKickPacket(player.cid);
           socket.send(JSON.stringify(packet1));
@@ -283,45 +212,45 @@ const code = ()=>{
           if(c){
             c.innerHTML = Number(c.innerHTML) + 1;
           }
-          delete window.cachedData[player.cid];
+          delete this.cachedData[player.cid];
           throw "[ANTIBOT] - Bot banned. Dont add";
         }
-        if(similarity(window.cachedUsernames[i].name,player.name) >= percent){
+        if(similarity(this.cachedUsernames[i].name,player.name) >= percent){
           removed = true;
           let packet1 = createKickPacket(player.cid);
           socket.send(JSON.stringify(packet1));
-          if(!window.cachedUsernames[i].banned){
-            var packet2 =createKickPacket(window.cachedUsernames[i].id);
-            window.cachedUsernames[i].banned = true;
+          if(!this.cachedUsernames[i].banned){
+            var packet2 =createKickPacket(this.cachedUsernames[i].id);
+            this.cachedUsernames[i].banned = true;
             socket.send(JSON.stringify(packet2));
-            clickName(window.cachedUsernames[i].name);
+            clickName(this.cachedUsernames[i].name);
             const c = document.getElementById("killcount");
             if(c){
               c.innerHTML = Number(c.innerHTML) + 1;
             }
           }
-          window.cachedUsernames[i].time = 10;
-          console.warn(`[ANTIBOT] - Bots ${player.name} and ${window.cachedUsernames[i].name} have been banished`);
+          this.cachedUsernames[i].time = 10;
+          console.warn(`[ANTIBOT] - Bots ${player.name} and ${this.cachedUsernames[i].name} have been banished`);
           const c = document.getElementById("killcount");
           if(c){
             c.innerHTML = Number(c.innerHTML) + 1;
           }
-          delete window.cachedData[player.cid];
-          delete window.cachedData[window.cachedUsernames[i].id];
+          delete this.cachedData[player.cid];
+          delete this.cachedData[this.cachedUsernames[i].id];
           throw "[ANTIBOT] - Bot banned. Dont add";
         }
       }
       if(!removed){
-        window.cachedUsernames.push({name: player.name,id: player.cid, time: 10, banned: false});
-        window.loggedPlayers[player.cid] = true;
+        this.cachedUsernames.push({name: player.name,id: player.cid, time: 10, banned: false});
+        this.loggedPlayers[player.cid] = true;
       }
     }
   }
-  function specialBotDetector(type,data,socket){
+  specialBotDetector(type,data,socket){
     switch (type) {
       case 'joined':
       // if looks random
-      if(window.specialData.config.looksRandom){
+      if(this.specialData.config.looksRandom){
         if(looksRandom(data.name)){
           const packet = createKickPacket(data.cid);
           socket.send(JSON.stringify(packet));
@@ -329,7 +258,7 @@ const code = ()=>{
           if(c){
             c.innerHTML = Number(c.innerHTML) + 1;
           }
-          window.cachedUsernames.forEach(o=>{
+          this.cachedUsernames.forEach(o=>{
             if(o.id == data.cid){
               o.banned = true;
               o.time = 10;
@@ -339,8 +268,8 @@ const code = ()=>{
           throw `[ANTIBOT] - Bot ${data.name} banned; name too random.`;
         }
       }
-      if(!window.cachedData[data.cid] && !isNaN(data.cid) && Object.keys(data).length <= 5 && data.name.length < 16){ //if the id has not been cached yet or is an invalid id, and they are not a bot :p
-        window.cachedData[data.cid] = {
+      if(!this.cachedData[data.cid] && !isNaN(data.cid) && Object.keys(data).length <= 5 && data.name.length < 16){ //if the id has not been cached yet or is an invalid id, and they are not a bot :p
+        this.cachedData[data.cid] = {
           tries: 0,
           loginTime: Date.now()
         };
@@ -348,7 +277,7 @@ const code = ()=>{
         const packet = createKickPacket(data.cid);
         socket.send(JSON.stringify(packet));
         console.warn(`[ANTIBOT] - Bot ${data.name} has been banished, clearly a bot from kahootsmash or something`);
-        window.cachedUsernames.forEach(o=>{
+        this.cachedUsernames.forEach(o=>{
           if(o.id == data.cid){
             o.banned = true;
             o.time = 10;
@@ -361,15 +290,15 @@ const code = ()=>{
         }
         throw "[ANTIBOT] - Bot banned. Dont add";
       }
-      if(!window.isUsingNamerator){
+      if(!this.isUsingNamerator){
         if(isFakeValid(data.name)){
-          if(Date.now() - window.specialData.lastFakeLogin < 5000){
-            if(window.cachedData[window.specialData.lastFakeUserID]){ // to get the first guy
-              const packet = createKickPacket(window.specialData.lastFakeUserID);
+          if(Date.now() - this.specialData.lastFakeLogin < 5000){
+            if(this.cachedData[this.specialData.lastFakeUserID]){ // to get the first guy
+              const packet = createKickPacket(this.specialData.lastFakeUserID);
               socket.send(JSON.stringify(packet));
-              clickName(window.specialData.lastFakeUserName);
-              delete window.cachedData[window.specialData.lastFakeUserID]; window.cachedUsernames.forEach(o=>{
-                if(o.id == window.specialData.lastFakeUserID){
+              clickName(this.specialData.lastFakeUserName);
+              delete this.cachedData[this.specialData.lastFakeUserID]; this.cachedUsernames.forEach(o=>{
+                if(o.id == this.specialData.lastFakeUserID){
                   o.banned = true;
                   o.time = 10;
                   return;
@@ -378,8 +307,8 @@ const code = ()=>{
             }
             const packet = createKickPacket(data.cid);
             socket.send(JSON.stringify(packet));
-            delete window.cachedData[data.cid];
-            window.cachedUsernames.forEach(o=>{
+            delete this.cachedData[data.cid];
+            this.cachedUsernames.forEach(o=>{
               if(o.id == data.cid){
                 o.banned = true;
                 return;
@@ -389,38 +318,20 @@ const code = ()=>{
             if(c){
               c.innerHTML = Number(c.innerHTML) + 1;
             }
-            window.specialData.lastFakeLogin = Date.now();
-            window.specialData.lastFakeUserID = data.cid;
-            window.specialData.lastFakeUserName = data.name;
+            this.specialData.lastFakeLogin = Date.now();
+            this.specialData.lastFakeUserID = data.cid;
+            this.specialData.lastFakeUserName = data.name;
             throw `[ANTIBOT] - Banned bot ${data.name}; their name is suspicious, likely a bot.`;
           }
-          window.specialData.lastFakeLogin = Date.now();
-          window.specialData.lastFakeUserID = data.cid;
-          window.specialData.lastFakeUserName = data.name;
+          this.specialData.lastFakeLogin = Date.now();
+          this.specialData.lastFakeUserID = data.cid;
+          this.specialData.lastFakeUserName = data.name;
         }
       }
       break;
     }
   }
-  var timer = setInterval(function(){
-    for(let i in window.cachedUsernames){
-      if(window.cachedUsernames[i].time <= 0 && !window.cachedUsernames[i].banned && !window.confirmedPlayers.includes(window.cachedUsernames[i].name)){
-        window.confirmedPlayers.push(window.cachedUsernames[i].name);
-        continue;
-      }
-      if(window.cachedUsernames[i].time <= -20){
-        window.cachedUsernames.splice(i,1);
-        continue;
-      }
-      window.cachedUsernames[i].time--;
-    }
-  },1000);
-  const TFATimer = setInterval(()=>{
-    for(let i in window.cachedData){
-      window.cachedData[i].tries = 0;
-    }
-  },10000);
-  window.sendHandler = function(data){
+  this.sendHandler = function(data){
     data = JSON.parse(data)[0];
     if(data.data){
       if(!data.data.id){
@@ -428,18 +339,18 @@ const code = ()=>{
       }
       switch (data.data.id) {
         case 2:
-        window.specialData.startTime = Date.now();
+        this.specialData.startTime = Date.now();
         break;
       }
     }
   }
-  window.globalMessageListener = function(e,t){
-    window.e = e;
-    if(!window.e.webSocket.oldSend){
-      window.e.webSocket.oldSend = window.e.webSocket.send;
-      window.e.webSocket.send = function(data){
-        window.sendHandler(data);
-        window.e.webSocket.oldSend(data);
+  this.globalMessageListener = function(e,t){
+    this.e = e;
+    if(!this.e.webSocket.oldSend){
+      this.e.webSocket.oldSend = this.e.webSocket.send;
+      this.e.webSocket.send = function(data){
+        this.sendHandler(data);
+        this.e.webSocket.oldSend(data);
       }
     }
     /*console.log(e); from testing: e[.webSocket] is the websocket*/
@@ -467,36 +378,36 @@ const code = ()=>{
     }
     if(data.data ? data.data.id == 45 : false){
       // if player answers
-      if(Date.now() - window.specialData.startTime < 500 && window.specialData.config.timeout){
+      if(Date.now() - this.specialData.startTime < 500 && this.specialData.config.timeout){
         throw "[ANTIBOT] - Answer was too quick!";
       }
       // if player just recently joined (within 1 second)
-      if(window.cachedData[data.data.cid] && Date.now() - window.cachedData[data.data.cid].loginTime < 1000){
+      if(this.cachedData[data.data.cid] && Date.now() - this.cachedData[data.data.cid].loginTime < 1000){
         const packet = createKickPacket(data.data.cid);
-        window.e.webSocket.send(JSON.stringify(packet));
+        this.e.webSocket.send(JSON.stringify(packet));
         const c = document.getElementById("killcount");
         if(c){
           c.innerHTML = Number(c.innerHTML) + 1;
         }
-        delete window.cachedData[data.data.cid];
+        delete this.cachedData[data.data.cid];
         throw `[ANTIBOT] - Bot with id ${data.data.cid} banned. Answered too quickly after joining.`;
       }
     }
     if(data.data ? data.data.id == 50 : false){
-      window.cachedData[data.data.cid].tries++;
-      if(window.cachedData[data.data.cid].tries > 3){
+      this.cachedData[data.data.cid].tries++;
+      if(this.cachedData[data.data.cid].tries > 3){
         const kicker = createKickPacket(data.data.cid);
         e.webSocket.send(JSON.stringify(kicker));
-        const name = window.cachedUsernames.filter(o=>{return o.id == data.data.cid}).length ? window.cachedUsernames.filter(o=>{return o.id == data.data.cid})[0].name : "bot";
+        const name = this.cachedUsernames.filter(o=>{return o.id == data.data.cid}).length ? this.cachedUsernames.filter(o=>{return o.id == data.data.cid})[0].name : "bot";
         console.warn(`[ANTIBOT] - Bot ${name} banished. Seen spamming 2FA`);
-        window.cachedUsernames.forEach(o=>{
-          if(o.id == window.specialData.lastFakeUserID){
+        this.cachedUsernames.forEach(o=>{
+          if(o.id == this.specialData.lastFakeUserID){
             o.banned = true;
             o.time = 10;
             return;
           }
         });
-        delete window.cachedData[data.data.cid];
+        delete this.cachedData[data.data.cid];
         const c = document.getElementById("killcount");
         if(c){
           c.innerHTML = Number(c.innerHTML) + 1;
