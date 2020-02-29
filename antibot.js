@@ -67,7 +67,7 @@ module.exports = class{
 		},10000);
 	}
 	handle(message,type,socket){
-		const data = JSON.parse(message.data)[0];
+		const data = JSON.parse(message)[0];
 		this.messageId = data.id || this.messageId;
 		if(type == "send"){
 			const data = JSON.parse(message)[0];
