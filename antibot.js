@@ -29,7 +29,7 @@ function editDistance(s1, s2) {
 module.exports = class{
   constructor(message,options){
     this.percent = (options && options.per) || 0.6;
-    this.isUsingNamerator = (options && options.namerator) || false;
+    this.isUsingNamerator = (options && options.namerator);
     this.cachedUsernames = [];
     this.confirmedPlayers = [];
     this.cachedData = {};
@@ -40,8 +40,8 @@ module.exports = class{
       lastFakeUserID: 0,
       lastFakeUserName: "",
       config:{
-        timeout: false,
-        looksRandom: true
+        timeout: options.timeout,
+        looksRandom: options.random
       }
     };
     this.messageId = (options && options.mid) || 0;

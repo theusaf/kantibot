@@ -20,4 +20,3 @@ The kahoot antibot found at https://greasyfork.org/en/scripts/374093-kahoot-anti
 <ul>
 <li>This script might kick actual players if their names are too similar to that of bots, or there is more than one player with a number name.</li>
 <li>This script might kick players if botters maliciously set the name of the bots to be similar to an existing player.</li>
-<li>
