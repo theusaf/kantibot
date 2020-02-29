@@ -71,10 +71,10 @@ module.exports = class{
 		this.messageId = data.id || this.messageId;
 		if(type == "send"){
 			const data = JSON.parse(message)[0];
-			if(!data.data.id){
+			if(data.data && !data.data.id){
 				return false;
 			}
-			if(data.data.id  == 2){
+			if(data.data && data.data.id  == 2){
 				this.specialData.startTime = Date.now();
 			}
 		}else{
