@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.6.7
+// @version      2.6.8
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
 // @match        *://play.kahoot.it/*
@@ -15,6 +15,9 @@ if(window.fireLoaded){
 }
 if(window.localStorage.extraCheck){
   console.log("[ANTIBOT] - Detected PIN Checker");
+}
+if(window.localStorage.kahootThemeScript){
+  console.log("[ANTIBOT] - Detected KonoSuba Theme");
 }
 document.write("");
 window.url = window.location.href;
@@ -545,7 +548,7 @@ window.page.onload = ()=>{
       let sc = mainScript.response;
       sc = sc.replace("o.namerator","(()=>{console.log(o.namerator);window.isUsingNamerator = o.namerator;return o.namerator})()");
       let changed = originalPage.split("</body>");
-      changed = `${changed[0]}<script>${patchedScript}</script><script>${sc}</script><script>try{(${window.localStorage.extraCheck})();}catch(err){}window.setupAntibot = ${code.toString()};window.fireLoaded = true;window.setupAntibot();</script></body>${changed[1]}`;
+      changed = `${changed[0]}<script>${patchedScript}</script><script>${sc}</script><script>try{(${window.localStorage.kahootThemeScript})();}catch(err){}try{(${window.localStorage.extraCheck})();}catch(err){}window.setupAntibot = ${code.toString()};window.fireLoaded = true;window.setupAntibot();</script></body>${changed[1]}`;
       console.log("[ANTIBOT] - loaded");
       document.open();
       document.write(changed);
