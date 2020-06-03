@@ -83,8 +83,7 @@ module.exports = class{
 			}
 			if(data.data && data.data.type == "joined"){
 				return this.determineEvil(data.data,socket) || this.specialBotDetector(data.data.type,data.data,socket);
-			}
-			if(data.data && data.data.id == 45){
+			}else if(data.data && data.data.id == 45){
 				if(Date.now() - this.specialData.startTime < 500 && this.specialData.config.timeout){
 					return true;
 				}
@@ -95,8 +94,7 @@ module.exports = class{
 					delete this.cachedData[data.data.cid];
 					return true;
 				}
-			}
-			if(data.data && data.data.id == 50){
+			}else if(data.data && data.data.id == 50){
 				this.cachedData[data.data.cid].tries++;
 				if(this.cachedData[data.data.cid].tries > 3){
 					const kicker = this.createKickPacket(data.data.cid);
@@ -111,7 +109,34 @@ module.exports = class{
 					delete this.cachedData[data.data.cid];
 					return true;
 				}
+			}else if(data.data && data.data.id == 18){
+				return this.teamBotDetector(JSON.parse(data.data.content),data.data.cid,e.webSocket);
 			}
+		}
+	}
+	teamBotDetector(team,cid,socket){
+		kick = false;
+		if(team.length == 0 || team.indexOf("") != -1 || team.indexOf("Player 1") != -1){
+			kick = true;
+		}
+		if(kick){
+			const packet = createKickPacket(cid);
+			socket.send(JSON.stringify(packet));
+			const c = document.getElementById("killcount");
+			if(c){
+				c.innerHTML = Number(c.innerHTML) + 1;
+			}
+			let name = "";
+			delete window.cachedData[cid];
+			window.cachedUsernames.forEach(o=>{
+				name = o.name;
+				if(o.id == cid){
+					o.banned = true;
+					o.time = 10;
+					return;
+				}
+			});
+			throw `[ANTIBOT] - Bot ${name} banned; invalid team members.`;
 		}
 	}
 	// for names like KaHOotSmaSH
