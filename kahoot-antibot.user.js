@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.6.8
+// @version      2.6.10
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
 // @match        *://play.kahoot.it/*
@@ -40,7 +40,7 @@ window.page.onload = ()=>{
       const container = document.createElement("div");
       container.id = "antibotwtr";
       const waterMark = document.createElement("p");
-      waterMark.innerHTML = "v2.6.7 @theusaf";
+      waterMark.innerHTML = "v2.6.10 @theusaf";
       const botText = document.createElement("p");
       botText.innerHTML = "0";
       botText.id = "killcount";
@@ -49,7 +49,9 @@ window.page.onload = ()=>{
       <input type="checkbox" id="antibot.config.timeout"></input>
       <label id="antibot.config.timeoutlbl" onclick="window.specialData.config.timeout = !window.specialData.config.timeout;if(!localStorage.antibotConfig){localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(localStorage.antibotConfig);a.timeout = window.specialData.config.timeout;localStorage.antibotConfig = JSON.stringify(a);" for="antibot.config.timeout" title="Blocks answers that are sent before 0.5 seconds after the question starts">Min Answer Timeout</label>
       <input type="checkbox" id="antibot.config.looksRandom" checked="checked"></input>
-      <label id="antibot.config.lookrandlbl" onclick="window.specialData.config.looksRandom = !window.specialData.config.looksRandom;if(!localStorage.antibotConfig){localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(localStorage.antibotConfig);a.looksRandom = window.specialData.config.looksRandom;localStorage.antibotConfig = JSON.stringify(a);" for="antibot.config.looksRandom" title="Blocks names that seem 'random', such as 'OmEGaboOt'">Block Random Names</label>`;
+      <label id="antibot.config.lookrandlbl" onclick="window.specialData.config.looksRandom = !window.specialData.config.looksRandom;if(!localStorage.antibotConfig){localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(localStorage.antibotConfig);a.looksRandom = window.specialData.config.looksRandom;localStorage.antibotConfig = JSON.stringify(a);" for="antibot.config.looksRandom" title="Blocks names that seem 'random', such as 'OmEGaboOt'">Block Random Names</label>
+      <label for="antibot.config.teamtimeout" title="Add extra seconds to the question.">Additional Question Time</label>
+      <input type="number" step="1" value="0" id="antibot.config.teamtimeout" onchange="window.specialData.config.additionalQuestionTime = Number(document.getElementById('antibot.config.teamtimeout').value);if(!localStorage.antibotConfig){localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(localStorage.antibotConfig);a.teamtime = window.specialData.config.additionalQuestionTime;localStorage.antibotConfig = JSON.stringify(a);">`;
       const styles = document.createElement("style");
       styles.type = "text/css";
       styles.innerHTML = `#antibotwtr{
@@ -59,6 +61,7 @@ window.page.onload = ()=>{
         font-size: 1rem;
         opacity: 0.4;
         transition: opacity 0.4s;
+        z-index: 5000;
       }
       #antibotwtr:hover{
         opacity: 1;
@@ -75,7 +78,7 @@ window.page.onload = ()=>{
       #antibotwtr details{
         background: grey;
       }
-      #antibotwtr input{
+      #antibotwtr input[type="checkbox"]{
         display: none;
       }
       #antibotwtr label{
@@ -89,7 +92,7 @@ window.page.onload = ()=>{
       setTimeout(function(){
         if(document.body.innerText.split("\n").length < 8){ // assume broken. (just the water mark)
           const temp = document.createElement("template");
-          temp.innerHTML = `<div style="color: red; position: fixed; left: 0; top: 0; font-size: 2rem;line-height:2rem">
+          temp.innerHTML = `<div style="color: red; position: fixed; left: 0; top: 0; font-size: 1.5rem;line-height:2rem">
             <h1>[ANTIBOT] - Detected broken page. I haven't actually foud a way to fix this issue completely yet, so do one of the following:</h1>
             <hr/>
             <h1>Go back to <a href="https://create.kahoot.it/details/${location.search.split("quizId=")[1].split("&")[0]}">the kahoot launch screen</a>.</h1><br/>
@@ -113,7 +116,8 @@ window.page.onload = ()=>{
         lastFakeUserName: "",
         config:{
           timeout: false,
-          looksRandom: true
+          looksRandom: true,
+          additionalQuestionTime: null
         }
       };
       // loading localStorage info
@@ -130,6 +134,10 @@ window.page.onload = ()=>{
           if(t){
             t.click();
           }
+        }
+        if(a.teamtime){
+          document.getElementById("antibot.config.teamtimeout").value = Number(a.teamtime);
+          window.specialData.config.additionalQuestionTime = Number(a.teamtime);
         }
       }
       var messageId = 0;
@@ -438,6 +446,31 @@ window.page.onload = ()=>{
           break;
         }
       }
+      function teamBotDetector(team,cid,socket){
+        kick = false;
+        if(team.length == 0 || team.indexOf("") != -1 || team.indexOf("Player 1") != -1){
+          kick = true;
+        }
+        if(kick){
+          const packet = createKickPacket(cid);
+          socket.send(JSON.stringify(packet));
+          const c = document.getElementById("killcount");
+          if(c){
+            c.innerHTML = Number(c.innerHTML) + 1;
+          }
+          let name = "";
+          delete window.cachedData[cid];
+          window.cachedUsernames.forEach(o=>{
+            name = o.name;
+            if(o.id == cid){
+              o.banned = true;
+              o.time = 10;
+              return;
+            }
+          });
+          throw `[ANTIBOT] - Bot ${name} banned; invalid team members.`;
+        }
+      }
       var timer = setInterval(function(){
         for(let i in window.cachedUsernames){
           if(window.cachedUsernames[i].time <= 0 && !window.cachedUsernames[i].banned && !window.confirmedPlayers.includes(window.cachedUsernames[i].name)){
@@ -497,10 +530,10 @@ window.page.onload = ()=>{
           console.warn("[ANTIBOT] - determining evil...");
           determineEvil(data.data,e.webSocket);
           specialBotDetector(data.data.type,data.data,e.webSocket);
-        }
+        }else
         /*if the message is a player leave message*/
         if(data.data ? data.data.type == "left" : false){
-        }
+        }else
         if(data.data ? data.data.id == 45 : false){
           // if player answers
           if(Date.now() - window.specialData.startTime < 500 && window.specialData.config.timeout){
@@ -517,7 +550,7 @@ window.page.onload = ()=>{
             delete window.cachedData[data.data.cid];
             throw `[ANTIBOT] - Bot with id ${data.data.cid} banned. Answered too quickly after joining.`;
           }
-        }
+        }else
         if(data.data ? data.data.id == 50 : false){
           window.cachedData[data.data.cid].tries++;
           if(window.cachedData[data.data.cid].tries > 3){
@@ -538,6 +571,8 @@ window.page.onload = ()=>{
               c.innerHTML = Number(c.innerHTML) + 1;
             }
           }
+        }else if (data.data && data.data.id == 18) {
+          teamBotDetector(JSON.parse(data.data.content),data.data.cid,e.webSocket);
         }
       };
     };
@@ -547,6 +582,7 @@ window.page.onload = ()=>{
     mainScript.onload = ()=>{
       let sc = mainScript.response;
       sc = sc.replace("o.namerator","(()=>{console.log(o.namerator);window.isUsingNamerator = o.namerator;return o.namerator})()");
+      sc = sc.replace("currentQuestionTimer:r.payload.time","currentQuestionTimer:r.payload.time + (()=>{return (window.specialData.config.additionalQuestionTime * 1000) || 0})()");
       let changed = originalPage.split("</body>");
       changed = `${changed[0]}<script>${patchedScript}</script><script>${sc}</script><script>try{(${window.localStorage.kahootThemeScript})();}catch(err){}try{(${window.localStorage.extraCheck})();}catch(err){}window.setupAntibot = ${code.toString()};window.fireLoaded = true;window.setupAntibot();</script></body>${changed[1]}`;
       console.log("[ANTIBOT] - loaded");
