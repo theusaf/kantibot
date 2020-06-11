@@ -17,7 +17,7 @@ The kahoot antibot found at https://greasyfork.org/en/scripts/374093-kahoot-anti
 <hr>
 <ul>
 <li>This script will remove all players with a similarity rating of 60%</li>
-<li>Line 34 can be edited to set the similarity percent</li>
+<li>Line 38 can be edited to set the similarity percent</li>
 </ul>
 <h2>Join our discord:</h2>
 <a href="https://discord.gg/pPdvXU6"><img src="https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png?size=128" alt="Kahoot Hacker Icon" height="100" width="100"></a>
