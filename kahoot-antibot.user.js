@@ -33,7 +33,7 @@ window.page.onload = ()=>{
   script.open("GET","https://play.kahoot.it/"+scriptURL);
   script.send();
   script.onload = ()=>{
-    let patchedScript =script.response.replace(".onMessage=function(t,n){",".onMessage=function(t,n){window.globalMessageListener(t,n);");
+    let patchedScript =script.response.replace(".onMessage=function(e,n){",".onMessage=function(e,n){window.globalMessageListener(e,n);");
     const code = ()=>{
       const percent = 0.6;
       // create watermark
