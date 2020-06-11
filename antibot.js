@@ -122,13 +122,9 @@ module.exports = class{
 		if(kick){
 			const packet = createKickPacket(cid);
 			socket.send(JSON.stringify(packet));
-			const c = document.getElementById("killcount");
-			if(c){
-				c.innerHTML = Number(c.innerHTML) + 1;
-			}
 			let name = "";
-			delete window.cachedData[cid];
-			window.cachedUsernames.forEach(o=>{
+			delete this.cachedData[cid];
+			this.cachedUsernames.forEach(o=>{
 				name = o.name;
 				if(o.id == cid){
 					o.banned = true;
@@ -136,7 +132,9 @@ module.exports = class{
 					return;
 				}
 			});
-			throw `[ANTIBOT] - Bot ${name} banned; invalid team members.`;
+			return true;
+		}else{
+			return false;
 		}
 	}
 	// for names like KaHOotSmaSH
