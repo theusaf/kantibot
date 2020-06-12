@@ -110,7 +110,7 @@ module.exports = class{
 					return true;
 				}
 			}else if(data.data && data.data.id == 18){
-				return this.teamBotDetector(JSON.parse(data.data.content),data.data.cid,e.webSocket);
+				return this.teamBotDetector(JSON.parse(data.data.content),data.data.cid,socket);
 			}
 		}
 	}
