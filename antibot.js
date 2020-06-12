@@ -120,7 +120,7 @@ module.exports = class{
 			kick = true;
 		}
 		if(kick){
-			const packet = createKickPacket(cid);
+			const packet = this.createKickPacket(cid);
 			socket.send(JSON.stringify(packet));
 			let name = "";
 			delete this.cachedData[cid];
