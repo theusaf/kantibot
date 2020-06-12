@@ -115,7 +115,7 @@ module.exports = class{
 		}
 	}
 	teamBotDetector(team,cid,socket){
-		kick = false;
+		let kick = false;
 		if(team.length == 0 || team.indexOf("") != -1 || team.indexOf("Player 1") != -1){
 			kick = true;
 		}
