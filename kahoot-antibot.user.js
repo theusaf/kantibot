@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.6.11
+// @version      2.6.12
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
 // @match        *://play.kahoot.it/*
@@ -35,12 +35,11 @@ window.page.onload = ()=>{
   script.onload = ()=>{
     let patchedScript =script.response.replace(".onMessage=function(e,n){",".onMessage=function(e,n){window.globalMessageListener(e,n);");
     const code = ()=>{
-      const percent = 0.6;
       // create watermark
       const container = document.createElement("div");
       container.id = "antibotwtr";
       const waterMark = document.createElement("p");
-      waterMark.innerHTML = "v2.6.11 @theusaf";
+      waterMark.innerHTML = "v2.6.12 @theusaf";
       const botText = document.createElement("p");
       botText.innerHTML = "0";
       botText.id = "killcount";
@@ -51,7 +50,9 @@ window.page.onload = ()=>{
       <input type="checkbox" id="antibot.config.looksRandom" checked="checked"></input>
       <label id="antibot.config.lookrandlbl" onclick="window.specialData.config.looksRandom = !window.specialData.config.looksRandom;if(!localStorage.antibotConfig){localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(localStorage.antibotConfig);a.looksRandom = window.specialData.config.looksRandom;localStorage.antibotConfig = JSON.stringify(a);" for="antibot.config.looksRandom" title="Blocks names that seem 'random', such as 'OmEGaboOt'">Block Random Names</label>
       <label for="antibot.config.teamtimeout" title="Add extra seconds to the question.">Additional Question Time</label>
-      <input type="number" step="1" value="0" id="antibot.config.teamtimeout" onchange="window.specialData.config.additionalQuestionTime = Number(document.getElementById('antibot.config.teamtimeout').value);if(!localStorage.antibotConfig){localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(localStorage.antibotConfig);a.teamtime = window.specialData.config.additionalQuestionTime;localStorage.antibotConfig = JSON.stringify(a);">`;
+      <input type="number" step="1" value="0" id="antibot.config.teamtimeout" onchange="window.specialData.config.additionalQuestionTime = Number(document.getElementById('antibot.config.teamtimeout').value);if(!localStorage.antibotConfig){localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(localStorage.antibotConfig);a.teamtime = window.specialData.config.additionalQuestionTime;localStorage.antibotConfig = JSON.stringify(a);">;
+      <label for="antibot.config.percent" title="Specify the match percentage.">Match Percent</label>
+      <input type="number" step="0.1" value="0.6" id="antibot.config.percent" onchange="window.specialData.config.percent = Number(document.getElementById('antibot.config.percent').value);if(!localStorage.antibotConfig){localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(localStorage.antibotConfig);a.percent = window.specialData.config.percent;localStorage.antibotConfig = JSON.stringify(a);">`;
       const styles = document.createElement("style");
       styles.type = "text/css";
       styles.innerHTML = `#antibotwtr{
@@ -117,7 +118,8 @@ window.page.onload = ()=>{
         config:{
           timeout: false,
           looksRandom: true,
-          additionalQuestionTime: null
+          additionalQuestionTime: null,
+          percent: 0.6
         }
       };
       // loading localStorage info
@@ -138,6 +140,10 @@ window.page.onload = ()=>{
         if(a.teamtime){
           document.getElementById("antibot.config.teamtimeout").value = Number(a.teamtime);
           window.specialData.config.additionalQuestionTime = Number(a.teamtime);
+        }
+        if(a.percent){
+          document.getElementById("antibot.config.percent").value = Number(a.percent);
+          window.specialData.config.percent = Number(a.percent);
         }
       }
       var messageId = 0;
@@ -330,7 +336,7 @@ window.page.onload = ()=>{
               delete window.cachedData[player.cid];
               throw "[ANTIBOT] - Bot banned. Dont add";
             }
-            if(similarity(window.cachedUsernames[i].name,player.name) >= percent){
+            if(similarity(window.cachedUsernames[i].name,player.name) >= window.specialData.config.percent){
               removed = true;
               let packet1 = createKickPacket(player.cid);
               socket.send(JSON.stringify(packet1));
@@ -389,9 +395,12 @@ window.page.onload = ()=>{
               loginTime: Date.now()
             };
           }else{
+            if(window.cachedData[data.cid]){ // now allowing reconnection
+              return;
+            }
             const packet = createKickPacket(data.cid);
             socket.send(JSON.stringify(packet));
-            console.warn(`[ANTIBOT] - Bot ${data.name} has been banished, clearly a bot from kahootsmash or something`);
+            console.warn(`[ANTIBOT] - Bot ${data.name} has been banished - invalid packet/name`);
             window.cachedUsernames.forEach(o=>{
               if(o.id == data.cid){
                 o.banned = true;
@@ -403,6 +412,7 @@ window.page.onload = ()=>{
             if(c){
               c.innerHTML = Number(c.innerHTML) + 1;
             }
+            delete window.cachedData[data.cid];
             throw "[ANTIBOT] - Bot banned. Dont add";
           }
           if(!window.isUsingNamerator){
