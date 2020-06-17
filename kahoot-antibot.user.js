@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.6.12
+// @version      2.6.13
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
 // @match        *://play.kahoot.it/*
@@ -39,7 +39,7 @@ window.page.onload = ()=>{
       const container = document.createElement("div");
       container.id = "antibotwtr";
       const waterMark = document.createElement("p");
-      waterMark.innerHTML = "v2.6.12 @theusaf";
+      waterMark.innerHTML = "v2.6.13 @theusaf";
       const botText = document.createElement("p");
       botText.innerHTML = "0";
       botText.id = "killcount";
@@ -152,10 +152,10 @@ window.page.onload = ()=>{
       // for names like KaHOotSmaSH
       function looksRandom(name){
         // assumes player names have either all caps, no caps, or up to 3 capital letters
-        if(name.replace(/[A-Z]/gm,"").length == 0){
+        if(name.replace(/[A-Z\s]/gm,"").length == 0){
           return false;
         }
-        if(name.replace(/[a-z]/gm,"").length == 0){
+        if(name.replace(/[a-z\s]/gm,"").length == 0){
           return false;
         }
         if(name.length - name.replace(/[A-Z]/gm,"").length < 4){
