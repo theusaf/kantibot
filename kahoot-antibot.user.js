@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.6.14
+// @version      2.6.15
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
 // @match        *://play.kahoot.it/*
@@ -39,20 +39,30 @@ window.page.onload = ()=>{
       const container = document.createElement("div");
       container.id = "antibotwtr";
       const waterMark = document.createElement("p");
-      waterMark.innerHTML = "v2.6.13 @theusaf";
+      waterMark.innerHTML = "v2.6.15 @theusaf";
       const botText = document.createElement("p");
       botText.innerHTML = "0";
       botText.id = "killcount";
       const menu = document.createElement("details");
       menu.innerHTML = `<summary>config</summary>
+      <!-- Timeout -->
       <input type="checkbox" id="antibot.config.timeout"></input>
       <label id="antibot.config.timeoutlbl" onclick="window.specialData.config.timeout = !window.specialData.config.timeout;if(!localStorage.antibotConfig){localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(localStorage.antibotConfig);a.timeout = window.specialData.config.timeout;localStorage.antibotConfig = JSON.stringify(a);" for="antibot.config.timeout" title="Blocks answers that are sent before 0.5 seconds after the question starts">Min Answer Timeout</label>
+      <!-- Random Names -->
       <input type="checkbox" id="antibot.config.looksRandom" checked="checked"></input>
       <label id="antibot.config.lookrandlbl" onclick="window.specialData.config.looksRandom = !window.specialData.config.looksRandom;if(!localStorage.antibotConfig){localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(localStorage.antibotConfig);a.looksRandom = window.specialData.config.looksRandom;localStorage.antibotConfig = JSON.stringify(a);" for="antibot.config.looksRandom" title="Blocks names that seem 'random', such as 'OmEGaboOt'">Block Random Names</label>
+      <!-- Blocking Format 1 -->
+      <input type="checkbox" id="antibot.config.blockformat1" checked="checked"></input>
+      <label id="antibot.config.blockformat1lbl" onclick="window.specialData.config.banFormat1 = !window.specialData.config.banFormat1;if(!localStorage.antibotConfig){localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(localStorage.antibotConfig);a.banFormat1 = window.specialData.config.banFormat1;localStorage.antibotConfig = JSON.stringify(a);" for="antibot.config.blockformat1" title="Blocks names using the format [First][random char][Last]">Block format First[._-,etc]Last</label>
+      <!-- Additional Question Time -->
       <label for="antibot.config.teamtimeout" title="Add extra seconds to the question.">Additional Question Time</label>
       <input type="number" step="1" value="0" id="antibot.config.teamtimeout" onchange="window.specialData.config.additionalQuestionTime = Number(document.getElementById('antibot.config.teamtimeout').value);if(!localStorage.antibotConfig){localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(localStorage.antibotConfig);a.teamtime = window.specialData.config.additionalQuestionTime;localStorage.antibotConfig = JSON.stringify(a);">;
+      <!-- Percent -->
       <label for="antibot.config.percent" title="Specify the match percentage.">Match Percent</label>
-      <input type="number" step="0.1" value="0.6" id="antibot.config.percent" onchange="window.specialData.config.percent = Number(document.getElementById('antibot.config.percent').value);if(!localStorage.antibotConfig){localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(localStorage.antibotConfig);a.percent = window.specialData.config.percent;localStorage.antibotConfig = JSON.stringify(a);">`;
+      <input type="number" step="0.1" value="0.6" id="antibot.config.percent" onchange="window.specialData.config.percent = Number(document.getElementById('antibot.config.percent').value);if(!localStorage.antibotConfig){localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(localStorage.antibotConfig);a.percent = window.specialData.config.percent;localStorage.antibotConfig = JSON.stringify(a);">
+      <!-- Toggling Streak Bonus -->
+      <input type="checkbox" checked id="antibot.config.streakBonus" onchange="window.specialData.config.streakBonus = Number(document.getElementById('antibot.config.streakBonus').checked ? 1 : 2);if(!localStorage.antibotConfig){localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(localStorage.antibotConfig);a.streakBonus = window.specialData.config.streakBonus;localStorage.antibotConfig = JSON.stringify(a);alert('When modifying this option, reload the page for it to take effect')">
+      <label for="antibot.config.streakBonus" title="Toggle the Streak Bonus.">Toggle Streak Bonus</label>`;
       const styles = document.createElement("style");
       styles.type = "text/css";
       styles.innerHTML = `#antibotwtr{
@@ -118,9 +128,11 @@ window.page.onload = ()=>{
         config:{
           timeout: false,
           looksRandom: true,
+          banFormat1: true,
           additionalQuestionTime: null,
-          percent: 0.6
-        }
+          percent: 0.6,
+          streakBonus: 1
+        },
       };
       // loading localStorage info
       if(localStorage.antibotConfig){
@@ -144,6 +156,14 @@ window.page.onload = ()=>{
         if(a.percent){
           document.getElementById("antibot.config.percent").value = Number(a.percent);
           window.specialData.config.percent = Number(a.percent);
+        }
+        if(!a.banFormat1){
+          document.getElementById("antibot.config.blockformat1").checked = false;
+          window.specialData.config.banFormat1 = false;
+        }
+        if(a.streakBonus == 2){
+          document.getElementById("antibot.config.streakBonus").checked = false;
+          window.specialData.config.streakBonus = Number(a.streakBonus);
         }
       }
       var messageId = 0;
@@ -389,6 +409,25 @@ window.page.onload = ()=>{
               throw `[ANTIBOT] - Bot ${data.name} banned; name too random.`;
             }
           }
+          // if ban format 1 is enabled
+          if(window.specialData.config.banFormat1){
+            if(/[a-z0-9]+[^a-z0-9\s][a-z0-9]+/gi.test(data.name)){
+              const packet = createKickPacket(data.cid);
+              socket.send(JSON.stringify(packet));
+              const c = document.getElementById("killcount");
+              if(c){
+                c.innerHTML = Number(c.innerHTML) + 1;
+              }
+              window.cachedUsernames.forEach(o=>{
+                if(o.id == data.cid){
+                  o.banned = true;
+                  o.time = 10;
+                  return;
+                }
+              });
+              throw `[ANTIBOT] - Bot ${data.name} banned; Name matches format [F][R][L].`;
+            }
+          }
           if(!window.cachedData[data.cid] && !isNaN(data.cid) && Object.keys(data).length <= 5 && data.name.length < 16){ //if the id has not been cached yet or is an invalid id, and they are not a bot :p
             window.cachedData[data.cid] = {
               tries: 0,
@@ -593,6 +632,7 @@ window.page.onload = ()=>{
       let sc = mainScript.response;
       sc = sc.replace("o.namerator","(()=>{console.log(o.namerator);window.isUsingNamerator = o.namerator;return o.namerator})()");
       sc = sc.replace("currentQuestionTimer:o.payload.time","currentQuestionTimer:o.payload.time + (()=>{return (window.specialData.config.additionalQuestionTime * 1000) || 0})()");
+      sc = sc.replace("Ke.NoStreakPoints","window.specialData.config.streakBonus || Ke.StreakPoints"); // yes = 1, no = 2
       let changed = originalPage.split("</body>");
       changed = `${changed[0]}<script>${patchedScript}</script><script>${sc}</script><script>try{(${window.localStorage.kahootThemeScript})();}catch(err){}try{(${window.localStorage.extraCheck})();}catch(err){}window.setupAntibot = ${code.toString()};window.fireLoaded = true;window.setupAntibot();</script></body>${changed[1]}`;
       console.log("[ANTIBOT] - loaded");
