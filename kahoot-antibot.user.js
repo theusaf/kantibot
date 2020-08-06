@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.6.15
+// @version      2.6.16
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
 // @match        *://play.kahoot.it/*
@@ -61,7 +61,7 @@ window.page.onload = ()=>{
       <label for="antibot.config.percent" title="Specify the match percentage.">Match Percent</label>
       <input type="number" step="0.1" value="0.6" id="antibot.config.percent" onchange="window.specialData.config.percent = Number(document.getElementById('antibot.config.percent').value);if(!localStorage.antibotConfig){localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(localStorage.antibotConfig);a.percent = window.specialData.config.percent;localStorage.antibotConfig = JSON.stringify(a);">
       <!-- Toggling Streak Bonus -->
-      <input type="checkbox" checked id="antibot.config.streakBonus" onchange="window.specialData.config.streakBonus = Number(document.getElementById('antibot.config.streakBonus').checked ? 1 : 2);if(!localStorage.antibotConfig){localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(localStorage.antibotConfig);a.streakBonus = window.specialData.config.streakBonus;localStorage.antibotConfig = JSON.stringify(a);alert('When modifying this option, reload the page for it to take effect')">
+      <input type="checkbox" id="antibot.config.streakBonus" onchange="window.specialData.config.streakBonus = Number(document.getElementById('antibot.config.streakBonus').checked ? 1 : 2);if(!localStorage.antibotConfig){localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(localStorage.antibotConfig);a.streakBonus = window.specialData.config.streakBonus;localStorage.antibotConfig = JSON.stringify(a);alert('When modifying this option, reload the page for it to take effect')">
       <label for="antibot.config.streakBonus" title="Toggle the Streak Bonus.">Toggle Streak Bonus</label>`;
       const styles = document.createElement("style");
       styles.type = "text/css";
@@ -131,7 +131,7 @@ window.page.onload = ()=>{
           banFormat1: true,
           additionalQuestionTime: null,
           percent: 0.6,
-          streakBonus: 1
+          streakBonus: 2
         },
       };
       // loading localStorage info
