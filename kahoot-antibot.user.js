@@ -39,7 +39,7 @@ window.page.onload = ()=>{
       const container = document.createElement("div");
       container.id = "antibotwtr";
       const waterMark = document.createElement("p");
-      waterMark.innerHTML = "v2.6.15 @theusaf";
+      waterMark.innerHTML = "v2.6.16 @theusaf";
       const botText = document.createElement("p");
       botText.innerHTML = "0";
       botText.id = "killcount";
@@ -161,9 +161,9 @@ window.page.onload = ()=>{
           document.getElementById("antibot.config.blockformat1").checked = false;
           window.specialData.config.banFormat1 = false;
         }
-        if(a.streakBonus == 2){
-          document.getElementById("antibot.config.streakBonus").checked = false;
-          window.specialData.config.streakBonus = Number(a.streakBonus);
+        if(a.streakBonus == 1){
+          document.getElementById("antibot.config.streakBonus").checked = true;
+          window.specialData.config.streakBonus = 1;
         }
       }
       var messageId = 0;
