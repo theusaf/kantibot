@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.6.16
+// @version      2.6.17
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
 // @match        *://play.kahoot.it/*
@@ -631,8 +631,8 @@ window.page.onload = ()=>{
     mainScript.onload = ()=>{
       let sc = mainScript.response;
       sc = sc.replace("o.namerator","(()=>{console.log(o.namerator);window.isUsingNamerator = o.namerator;return o.namerator})()");
-      sc = sc.replace("currentQuestionTimer:o.payload.time","currentQuestionTimer:o.payload.time + (()=>{return (window.specialData.config.additionalQuestionTime * 1000) || 0})()");
-      sc = sc.replace("Ke.NoStreakPoints","window.specialData.config.streakBonus || Ke.StreakPoints"); // yes = 1, no = 2
+      sc = sc.replace("currentQuestionTimer:a.payload.time","currentQuestionTimer:a.payload.time + (()=>{return (window.specialData.config.additionalQuestionTime * 1000) || 0})()");
+      sc = sc.replace("qe.NoStreakPoints","window.specialData.config.streakBonus || qe.StreakPoints"); // yes = 1, no = 2
       let changed = originalPage.split("</body>");
       changed = `${changed[0]}<script>${patchedScript}</script><script>${sc}</script><script>try{(${window.localStorage.kahootThemeScript})();}catch(err){}try{(${window.localStorage.extraCheck})();}catch(err){}window.setupAntibot = ${code.toString()};window.fireLoaded = true;window.setupAntibot();</script></body>${changed[1]}`;
       console.log("[ANTIBOT] - loaded");
