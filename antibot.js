@@ -140,10 +140,11 @@ module.exports = class{
 	// for names like KaHOotSmaSH
 	looksRandom(name){
 		// assumes player names have either all caps, no caps, or up to 3 capital letters
-		if(name.replace(/[A-Z]/gm,"").length == 0){
+		// excluding non-alphanumeric characters.
+		if(name.replace(/[A-Z]|[^A-z0-9]/gm,"").length == 0){
 			return false;
 		}
-		if(name.replace(/[a-z]/gm,"").length == 0){
+		if(name.replace(/[a-z]|[^A-z0-9]/gm,"").length == 0){
 			return false;
 		}
 		if(name.length - name.replace(/[A-Z]/gm,"").length < 4){

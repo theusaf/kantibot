@@ -1,6 +1,6 @@
 {
   "name": "@theusaf/kahoot-antibot",
-  "version": "2.6.10",
+  "version": "2.6.18",
   "description": "Kahoot Antibot Module for Kahoot-Session",
   "main": "antibot.js",
   "scripts": {
