@@ -1,6 +1,3 @@
-# kahoot-antibot
-The kahoot antibot found at https://greasyfork.org/en/scripts/374093-kahoot-antibot
-<hr>
 <h1>Kahoot AntiBot</h1>
 <p>This script uses a "Levenshtein distance" formula to determine similarity, taken from <a href="https://stackoverflow.com/questions/10473745/compare-strings-javascript-return-of-likely">Stackoverflow.com</a></p>
 <hr>
@@ -17,7 +14,7 @@ The kahoot antibot found at https://greasyfork.org/en/scripts/374093-kahoot-anti
 <hr>
 <ul>
 <li>This script will remove all players with a similarity rating of 60%</li>
-<li>Line 38 can be edited to set the similarity percent</li>
+<li>You can set the similarity in the config. Lower numbers = more strict</li>
 </ul>
 <h2>Join our discord:</h2>
 <a href="https://discord.gg/pPdvXU6"><img src="https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png?size=128" alt="Kahoot Hacker Icon" height="100" width="100"></a>
@@ -31,16 +28,23 @@ The kahoot antibot found at https://greasyfork.org/en/scripts/374093-kahoot-anti
 <li>Edit: Bans all bots everywhere!</li>
 </ul>
 <hr>
+<p>You can now extend kahoot questions by a constant number of seconds. This should help with stream delay.</p>
+<p>You can now enable the removed Answer Streak Bonus feature!</p>
+<hr>
 <h2>How to improve anti-botting:</h2>
 <p>Sometimes, just an antibot is not enough... Here are ways to prevent bots from joining your games to the best of your ability</p>
 <ol>
 <li><b>Enable Friendly Names</b> - This brings out the most power of the antibot, blocking 99% of bots. (until someone realized how to bypass this)</li>
 <li><b>Enable 2FA</b> - Many bots try to brute force this. The AntiBot detects this and can block them.</li>
-<li><b>Enable Team Mode</b> - Many bots are not used to joining as a team yet. This can kill off some of the more persistant bots.</li>
+<li><b>Enable Team Mode</b> - While team mode no longer prevents most bots from joining, it can help filter out some bots that use the same patters for teams. Some bots may still not support team mode, so this will help.</li>
 </ol>
 <hr>
 <h2>Features planned:</h2>
 <ul>
-<li>Nothing currently!</li>
-<p>Most things have been blocked, so not much to plan now.</p>
+<li>More Blocking Options.</li>
+<li>A way to automatically use the latest Kahoot! code, instead of manually updating it.</li>
+<ul>
+<li>first[._-]last</li>
+<li>etc</li>
+</ul>
 </ul>
