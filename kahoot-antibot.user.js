@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.6.18
+// @version      2.7.0
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
 // @match        *://play.kahoot.it/*
@@ -33,13 +33,16 @@ window.page.onload = ()=>{
   script.open("GET","https://play.kahoot.it/"+scriptURL);
   script.send();
   script.onload = ()=>{
-    let patchedScript =script.response.replace(".onMessage=function(e,n){",".onMessage=function(e,n){window.globalMessageListener(e,n);");
+    const patchedScriptRegex = /\.onMessage=function\([a-z],[a-z]\)\{/mg;
+    const letter1 = script.response.match(patchedScriptRegex)[0].match(/[a-z](?=,)/g)[0];
+    const letter2 = script.response.match(patchedScriptRegex)[0].match(/[a-z](?=\))/g)[0];
+    let patchedScript = script.response.replace(script.response.match(patchedScriptRegex)[0],`.onMessage=function(${letter1},${letter2}){window.globalMessageListener(${letter1},${letter2});`);
     const code = ()=>{
       // create watermark
       const container = document.createElement("div");
       container.id = "antibotwtr";
       const waterMark = document.createElement("p");
-      waterMark.innerHTML = "v2.6.18 @theusaf";
+      waterMark.innerHTML = "v2.7.0 @theusaf";
       const botText = document.createElement("p");
       botText.innerHTML = "0";
       botText.id = "killcount";
@@ -630,9 +633,15 @@ window.page.onload = ()=>{
     mainScript.send();
     mainScript.onload = ()=>{
       let sc = mainScript.response;
-      sc = sc.replace("o.namerator","(()=>{console.log(o.namerator);window.isUsingNamerator = o.namerator;return o.namerator})()");
-      sc = sc.replace("currentQuestionTimer:a.payload.time","currentQuestionTimer:a.payload.time + (()=>{return (window.specialData.config.additionalQuestionTime * 1000) || 0})()");
-      sc = sc.replace("qe.NoStreakPoints","window.specialData.config.streakBonus || qe.StreakPoints"); // yes = 1, no = 2
+      const nr = /=[a-z]\.namerator/gm;
+      const letter = sc.match(nr)[0].match(/[a-z](?=\.)/g)[0];
+      sc = sc.replace(sc.match(nr)[0],`=(()=>{console.log(${letter}.namerator);window.isUsingNamerator = ${letter}.namerator;return ${letter}.namerator})()`);
+      const cqtr = /currentQuestionTimer:[a-z]\.payload\.time/gm;
+      const letter2 = sc.match(cqtr)[0].match(/[a-z](?=\.payload)/g)[0];
+      sc = sc.replace(sc.match(cqtr)[0],`currentQuestionTimer:${letter2}.payload.time + (()=>{return (window.specialData.config.additionalQuestionTime * 1000) || 0})()`);
+      const nsr = /[a-zA-Z]{2}\.NoStreakPoints/gm;
+      const letter3 = sc.match(nsr)[0].match(/[a-zA-Z]{2}(?=\.)/g)[0];
+      sc = sc.replace(sc.match(nsr)[0],`window.specialData.config.streakBonus || 2`); // yes = 1, no = 2
       let changed = originalPage.split("</body>");
       changed = `${changed[0]}<script>${patchedScript}</script><script>${sc}</script><script>try{(${window.localStorage.kahootThemeScript})();}catch(err){}try{(${window.localStorage.extraCheck})();}catch(err){}window.setupAntibot = ${code.toString()};window.fireLoaded = true;window.setupAntibot();</script></body>${changed[1]}`;
       console.log("[ANTIBOT] - loaded");
