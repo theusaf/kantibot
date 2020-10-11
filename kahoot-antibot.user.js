@@ -10,7 +10,7 @@
 // @run-at       document-start
 // ==/UserScript==
 
-if(window.fireLoaded){
+if(window.fireLoaded || (window.parent && window.parent.page)){
   throw "[ANTIBOT] - page is loaded";
 }
 if(window.localStorage.extraCheck){
