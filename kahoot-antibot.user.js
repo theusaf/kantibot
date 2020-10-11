@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.8.1
+// @version      2.8.2
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
 // @match        *://play.kahoot.it/*
@@ -10,7 +10,7 @@
 // @run-at       document-start
 // ==/UserScript==
 
-if(window.fireLoaded){
+if(window.fireLoaded || (window.parent && window.parent.page)){
   throw "[ANTIBOT] - page is loaded";
 }
 if(window.localStorage.extraCheck){
@@ -44,7 +44,7 @@ window.page.onload = ()=>{
       const container = document.createElement("div");
       container.id = "antibotwtr";
       const waterMark = document.createElement("p");
-      waterMark.innerHTML = "v2.8.1 @theusaf";
+      waterMark.innerHTML = "v2.8.2 @theusaf";
       const botText = document.createElement("p");
       botText.innerHTML = "0";
       botText.id = "killcount";
