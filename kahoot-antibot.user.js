@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.8.2
+// @version      2.8.3
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
 // @match        *://play.kahoot.it/*
@@ -44,7 +44,7 @@ window.page.onload = ()=>{
       const container = document.createElement("div");
       container.id = "antibotwtr";
       const waterMark = document.createElement("p");
-      waterMark.innerHTML = "v2.8.2 @theusaf";
+      waterMark.innerHTML = "v2.8.3 @theusaf";
       const botText = document.createElement("p");
       botText.innerHTML = "0";
       botText.id = "killcount";
@@ -108,14 +108,21 @@ window.page.onload = ()=>{
       setTimeout(function(){
         if(document.body.innerText.split("\n").length < 8){ // assume broken. (just the water mark)
           const temp = document.createElement("template");
-          temp.innerHTML = `<div style="color: red; position: fixed; left: 0; top: 0; font-size: 1.5rem;line-height:2rem">
-            <h1>[ANTIBOT] - Detected broken page. I haven't actually foud a way to fix this issue completely yet, so do one of the following:</h1>
+          temp.innerHTML = `<div id="antibot-broken-page" style="color: red; position: fixed; left: 0; top: 0; font-size: 1.25rem;line-height:1.75rem">
+            <h2>[ANTIBOT] - Detected broken page. This message may appear due to slow internet. It will dissapear once the page loads. If the page doesn't load, try one of the following:</h2>
             <hr/>
-            <h1>Go back to <a href="https://create.kahoot.it/details/${location.search.split("quizId=")[1].split("&")[0]}">the kahoot launch screen</a>.</h1><br/>
-            <h1>Clear the cache of this page and then reload.</h1><br/>
-            <h1>Disable Kahoot AntiBot, reload the page, then re-enable Kahoot Antibot and reload the page again</h1>
+            <h2>Reload the page</h2>
+            <h2>Go back to <a href="https://create.kahoot.it/details/${location.search.split("quizId=")[1].split("&")[0]}">the kahoot launch screen</a>.</h2><br/>
+            <h2>Clear the cache of this page and then reload.</h2><br/>
+            <h2>Disable Kahoot AntiBot, reload the page, then re-enable Kahoot Antibot and reload the page again</h2>
           </div>`;
           document.body.append(temp.content.cloneNode(true));
+          const RemoveBroke = setInterval(()=>{
+            if(document.body.innerText.split("\n").length >= 20){
+              clearInterval(RemoveBroke);
+              document.getElementById("antibot-broken-page").outerHTML = "";
+            }
+          },1000);
         }
       },2000);
       document.body.append(container,styles);
