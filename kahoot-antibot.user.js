@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.8.3
+// @version      2.8.4
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
 // @match        *://play.kahoot.it/*
@@ -216,10 +216,10 @@ window.page.onload = ()=>{
       }
       function similarity(s1, s2) {
         // remove numbers from name if name is not only a number
-        if(!isNaN(s1) && typeof(s1) != "object" && !windw.isUsingNamerator){
+        if(isNaN(s1) && typeof(s1) != "object" && !windw.isUsingNamerator){
           s1 = s1.replace(/[0-9]/mg,"");
         }
-        if(!isNaN(s2) && typeof(s2) != "object" && !windw.isUsingNamerator){
+        if(isNaN(s2) && typeof(s2) != "object" && !windw.isUsingNamerator){
           s2 = s2.replace(/[0-9]/mg,"");
         }
         if(!s2){
