@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.8.4
+// @version      2.8.5
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
 // @match        *://play.kahoot.it/*
@@ -25,9 +25,9 @@ window.page = new XMLHttpRequest();
 window.page.open("GET",window.url);
 window.page.send();
 window.page.onload = ()=>{
-  let scriptURL = window.page.response.match(/<\/script><script\ .*?vendors.*?><\/script>/mg)[0].substr(9).split("src=\"")[1].split("\"")[0];
+  let scriptURL = window.page.response.match(/><\/script><script\ .*?vendors.*?><\/script>/mg)[0].substr(9).split("src=\"")[1].split("\"")[0];
   let script2 = window.page.response.match(/<\/script><script src=\"\/v2\/assets\/js\/main.*?(?=\")/mg)[0].substr(22);
-  let originalPage = window.page.response.replace(/<\/script><script\ .*?vendors.*?><\/script>/mg,"</script>");
+  let originalPage = window.page.response.replace(/><\/script><script\ .*?vendors.*?><\/script>/mg,"></script>");
   originalPage = originalPage.replace(/<\/script><script src=\"\/v2\/assets\/js\/main.*?(?=\")/mg,"</script><script src=\"data:text/javascript,");
   let script = new XMLHttpRequest();
   script.open("GET","https://play.kahoot.it/"+scriptURL);
