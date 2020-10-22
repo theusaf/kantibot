@@ -28,7 +28,7 @@ function editDistance(s1, s2) {
 }
 module.exports = class{
 	constructor(options){
-		this.percent = (options && options.per) || 0.6;
+		if(!options){options = {};}
 		this.isUsingNamerator = (options && options.namerator);
 		this.cachedUsernames = [];
 		this.confirmedPlayers = [];
@@ -40,8 +40,12 @@ module.exports = class{
 			lastFakeUserID: 0,
 			lastFakeUserName: "",
 			config:{
-				timeout: options.timeout,
-				looksRandom: options.random
+				timeout: options.timeout || false,
+				looksRandom: options.looksRandom || true,
+				banFormat1: options.banFormat1 || true,
+				additionalQuestionTime: options.additionalQuestionTime || 0,
+				percent: options.percent || 0.6,
+				ddos: options.ddos || 0
 			}
 		};
 		this.messageId = (options && options.mid) || 0;
@@ -65,6 +69,12 @@ module.exports = class{
 				this.cachedData[i].tries = 0;
 			}
 		},10000);
+		this.oldamount = 0;
+		this.kickedamount = 0;
+		this.locked = false;
+		this.DDOSInterval = setInterval(()=>{
+			this.oldamount = this.kickedamount;
+		},20e3);
 	}
 	handle(message,type,socket){
 		const data = JSON.parse(message)[0];
@@ -77,7 +87,42 @@ module.exports = class{
 			if(data.data && data.data.id  == 2){
 				this.specialData.startTime = Date.now();
 			}
+			if(!this.pin){
+				if(data.data && data.data.gameid){
+					this.pin = data.data.gameid;
+				}
+			}
 		}else{
+			if(!this.locked){
+				if(!!(+this.specialData.config.ddos) && (this.kickedamount - this.oldamount) > (+this.specialData.config.ddos/3)){
+					this.locked = true;
+					// LOCK THE GAME!
+					socket.send(JSON.stringify([{
+						channel: "/service/player",
+						clientId: this.clientId,
+						data: {
+							gameid: this.pin,
+							type: "lock"
+						},
+						ext: {},
+						id: ++this.messageId
+					}]));
+					setTimeout(()=>{
+						this.locked = false;
+						// UNLOCK GAME
+						socket.send(JSON.stringify([{
+							channel: "/service/player",
+							clientId: this.clientId,
+							data: {
+								gameid: this.pin,
+								type: "unlock"
+							},
+							ext: {},
+							id: ++this.messageId
+						}]));
+					},60e3);
+				}
+			}
 			if(data.id == 1){
 				this.clientId = data.clientId;
 			}
@@ -229,6 +274,7 @@ module.exports = class{
 	}
 	createKickPacket(id){
 		this.messageId++;
+		this.kickedamount++;
 		return [{
 			channel: "/service/player",
 			clientId: this.clientId,
@@ -236,8 +282,7 @@ module.exports = class{
 			data: {
 				cid: String(id),
 				content: JSON.stringify({
-					kickCode: 1,
-					quizType: "quiz"
+					kickCode: 1
 				}),
 				gameid: this.pin,
 				host: "play.kahoot.it",
