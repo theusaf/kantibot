@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.8.5
+// @version      2.8.6
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
 // @match        *://play.kahoot.it/*
@@ -44,7 +44,7 @@ window.page.onload = ()=>{
       const container = document.createElement("div");
       container.id = "antibotwtr";
       const waterMark = document.createElement("p");
-      waterMark.innerHTML = "v2.8.5 @theusaf";
+      waterMark.innerHTML = "v2.8.6 @theusaf";
       const botText = document.createElement("p");
       botText.innerHTML = "0";
       botText.id = "killcount";
@@ -65,6 +65,9 @@ window.page.onload = ()=>{
       <!-- Percent -->
       <label for="antibot.config.percent" title="Specify the match percentage.">Match Percent</label>
       <input type="number" step="0.1" value="0.6" id="antibot.config.percent" onchange="windw.specialData.config.percent = Number(document.getElementById('antibot.config.percent').value);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.percent = windw.specialData.config.percent;windw.localStorage.antibotConfig = JSON.stringify(a);">
+      <!-- DDOS -->
+      <label for="antibot.config.ddos" title="Specify the number of bots/minute to lock the game. Set it to 0 to disable.">Auto Lock Threshold</label>
+      <input type="number" step="1" value="0" id="antibot.config.ddos" onchange="windw.specialData.config.ddos = Number(document.getElementById('antibot.config.ddos').value);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.ddos = windw.specialData.config.ddos;windw.localStorage.antibotConfig = JSON.stringify(a);">
       <!-- Toggling Streak Bonus -->
       <input type="checkbox" id="antibot.config.streakBonus" onchange="windw.specialData.config.streakBonus = Number(document.getElementById('antibot.config.streakBonus').checked ? 1 : 2);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.streakBonus = windw.specialData.config.streakBonus;localStorage.antibotConfig = JSON.stringify(a);alert('When modifying this option, reload the page for it to take effect')">
       <label for="antibot.config.streakBonus" title="Toggle the Streak Bonus.">Toggle Streak Bonus</label>`;
@@ -142,7 +145,8 @@ window.page.onload = ()=>{
           banFormat1: true,
           additionalQuestionTime: null,
           percent: 0.6,
-          streakBonus: 2
+          streakBonus: 2,
+          ddos: 0
         },
       };
       // loading localStorage info
@@ -175,6 +179,10 @@ window.page.onload = ()=>{
         if(a.streakBonus == 1){
           document.getElementById("antibot.config.streakBonus").checked = true;
           windw.specialData.config.streakBonus = 1;
+        }
+        if(a.ddos){
+          document.getElementById("antibot.config.ddos").value = +a.ddos;
+          windw.specialData.config.banFormat1 = +a.ddos;
         }
       }
       var messageId = 0;
@@ -568,6 +576,14 @@ window.page.onload = ()=>{
           ExtraCheck2 = new Function("return " + windw.localStorage.extraCheck2)();
         }
       }catch(e){}
+      let oldamount = 0;
+      let locked = false;
+      setInterval(()=>{
+        const c = document.getElementById("killcount");
+        if(c){
+          oldamount = +c.innerHTML;
+        }
+      },20e3);
       window.globalMessageListener = function(e,t){
         try{ExtraCheck2(e,t);}catch(e){}
         windw.e = e;
@@ -576,6 +592,41 @@ window.page.onload = ()=>{
           windw.e.webSocket.send = function(data){
             windw.sendHandler(data);
             windw.e.webSocket.oldSend(data);
+          }
+        }
+        // check DDOS
+        const c = document.getElementById("killcount");
+        if(c && !locked){
+          if(!!(+windw.specialData.config.ddos) && (+c.innerHTML - oldamount) > (+windw.specialData.config.ddos/3)){
+            locked = true;
+            // LOCK THE GAME!
+            e.webSocket.send(JSON.stringify([{
+              channel: "/service/player",
+              clientId,
+              data: {
+                gameid: pin,
+                type: "lock"
+              },
+              ext: {},
+              id: ++messageId
+            }]));
+            const oldpin = pin;
+            console.log("[ANTIBOT] - Detected bot spam. Locking game for 1 minute.");
+            setTimeout(()=>{
+              locked = false;
+              // UNLOCK GAME
+              console.log("[ANTIBOT] - Unlocking game.");
+              e.webSocket.send(JSON.stringify([{
+                channel: "/service/player",
+                clientId,
+                data: {
+                  gameid: oldpin,
+                  type: "unlock"
+                },
+                ext: {},
+                id: ++messageId
+              }]));
+            },60e3);
           }
         }
         /*console.log(e); from testing: e[.webSocket] is the websocket*/
