@@ -184,38 +184,12 @@ module.exports = class{
 	}
 	// for names like KaHOotSmaSH
 	looksRandom(name){
-		// assumes player names have either all caps, no caps, or up to 3 capital letters
-		// excluding non-alphanumeric characters.
-		if(name.replace(/[A-Z]|[^A-z0-9]/gm,"").length == 0){
-			return false;
-		}
-		if(name.replace(/[a-z]|[^A-z0-9]/gm,"").length == 0){
-			return false;
-		}
-		if(name.length - name.replace(/[A-Z]/gm,"").length < 4){
-			return false;
-		}
-		return true;
+		// assumes player names have either all caps, no caps, or up to 3 capital letters or weird endings
+		return !/(^(([^A-Z\n]*)?[A-Z]?([^A-Z\n]*)?){0,3}$)|^([A-Z]*)$/.test(name);
 	}
 	// for names like AmazingRobot32
 	isFakeValid(name){
-		let caps = name.length - name.replace(/[A-Z]/g, "").length;
-		if(caps !== 2){ /*has less than 2 or more than 2 capitals*/
-			return false;
-		}
-		if (name.substr(0,1).replace(/[A-Z]/g,"").length === 1){/*first char is not a capital*/
-			return false;
-		}
-		if (name.substr(1,2).replace(/[A-Z]/g,"").length != 2){/*next few char have capitals*/
-			return false;
-		}
-		if(name.substr(name.length -2,2).replace(/[A-Z]/g,"").length !== 2){ /*last few char have acapital*/
-			return false;
-		}
-		if(name.replace(/([a-z]|[0-9])/ig,"").length > 0){ /*hasnon-letter/number chars*/
-			return false;
-		}
-		return true;
+		return /^([A-Z][a-z]+){2}\d{2}$/.test(name) || /^[A-Z][^A-Z]+?(\d[a-z]+\d*?)$/.test(name);
 	}
 	similarity(s1, s2) {
 		// remove numbers from name if name is not only a number
@@ -236,20 +210,7 @@ module.exports = class{
 		}
 		// apply namerator rules
 		if(this.isUsingNamerator){
-			let caps = s2.length - s2.replace(/[A-Z]/g, "").length;
-			if(caps !== 2){ /*has less than 2 or more than 2 capitals*/
-				return -1;
-			}
-			if (s2.substr(0,1).replace(/[A-Z]/g,"").length === 1){/*first char is not a capital*/
-				return -1;
-			}
-			if (s2.substr(1,2).replace(/[A-Z]/g,"").length != 2){/*next few char have capitals*/
-				return -1;
-			}
-			if(s2.substr(s2.length -2,2).replace(/[A-Z]/g,"").length !== 2){ /*last few char have acapital*/
-				return -1;
-			}
-			if(s2.replace(/[a-z]/ig,"").length > 0){ /*hasnon-letter chars*/
+			if(!/^([A-Z][a-z]+){2,3}$/.test(s2)){
 				return -1;
 			}
 		}
