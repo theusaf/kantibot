@@ -189,7 +189,7 @@ module.exports = class{
 	}
 	// for names like AmazingRobot32
 	isFakeValid(name){
-		return /^([A-Z][a-z]+){2}\d{2}$/.test(name) || /^[A-Z][^A-Z]+?(\d[a-z]+\d*?)$/.test(name);
+		return /^([A-Z][a-z]+){2}\d{1,2}$/.test(name) || /^[A-Z][^A-Z]+?(\d[a-z]+\d*?)$/.test(name);
 	}
 	similarity(s1, s2) {
 		// remove numbers from name if name is not only a number
@@ -265,16 +265,16 @@ module.exports = class{
 			this.loggedPlayers[player.cid] = true;
 		}else{
 			var removed = false;
+			if(this.similarity(null,player.name) == -1){
+				removed = true;
+				var packet1 = this.createKickPacket(player.cid);
+				socket.send(JSON.stringify(packet1));
+				delete this.cachedData[player.cid];
+				return true;
+			}
 			for(var i in this.cachedUsernames){
 				if(this.confirmedPlayers.includes(this.cachedUsernames[i].name)){
 					continue;
-				}
-				if(this.similarity(this.cachedUsernames[i].name,player.name) == -1){
-					removed = true;
-					var packet1 = this.createKickPacket(player.cid);
-					socket.send(JSON.stringify(packet1));
-					delete this.cachedData[player.cid];
-					return true;
 				}
 				if(this.similarity(this.cachedUsernames[i].name,player.name) >= this.percent){
 					removed = true;
