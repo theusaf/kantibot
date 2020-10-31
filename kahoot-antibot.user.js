@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.8.6
+// @version      2.8.7
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
 // @match        *://play.kahoot.it/*
@@ -44,7 +44,7 @@ window.page.onload = ()=>{
       const container = document.createElement("div");
       container.id = "antibotwtr";
       const waterMark = document.createElement("p");
-      waterMark.innerHTML = "v2.8.6 @theusaf";
+      waterMark.innerHTML = "v2.8.7 @theusaf";
       const botText = document.createElement("p");
       botText.innerHTML = "0";
       botText.id = "killcount";
@@ -182,7 +182,7 @@ window.page.onload = ()=>{
         }
         if(a.ddos){
           document.getElementById("antibot.config.ddos").value = +a.ddos;
-          windw.specialData.config.banFormat1 = +a.ddos;
+          windw.specialData.config.ddos = +a.ddos;
         }
       }
       var messageId = 0;
@@ -196,7 +196,7 @@ window.page.onload = ()=>{
       // for names like AmazingRobot32
       // also matches other somewhat suspicious names
       function isFakeValid(name){
-        return /^([A-Z][a-z]+){2}\d{2}$/.test(name) || /^[A-Z][^A-Z]+?(\d[a-z]+\d*?)$/.test(name);
+        return /^([A-Z][a-z]+){2}\d{1,2}$/.test(name) || /^[A-Z][^A-Z]+?(\d[a-z]+\d*?)$/.test(name);
       }
       function similarity(s1, s2) {
         // remove numbers from name if name is not only a number
@@ -322,21 +322,21 @@ window.page.onload = ()=>{
           windw.loggedPlayers[player.cid] = true;
         }else{
           var removed = false;
+          if(similarity(null,player.name) == -1){
+            removed = true;
+            var packet1 = createKickPacket(player.cid);
+            socket.send(JSON.stringify(packet1));
+            console.warn(`[ANTIBOT] - Bot ${player.name} has been banished`);
+            const c = document.getElementById("killcount");
+            if(c){
+              c.innerHTML = Number(c.innerHTML) + 1;
+            }
+            delete windw.cachedData[player.cid];
+            throw "[ANTIBOT] - Bot banned. Dont add";
+          }
           for(var i in windw.cachedUsernames){
             if(windw.confirmedPlayers.includes(windw.cachedUsernames[i].name)){
               continue;
-            }
-            if(similarity(windw.cachedUsernames[i].name,player.name) == -1){
-              removed = true;
-              var packet1 = createKickPacket(player.cid);
-              socket.send(JSON.stringify(packet1));
-              console.warn(`[ANTIBOT] - Bot ${player.name} has been banished`);
-              const c = document.getElementById("killcount");
-              if(c){
-                c.innerHTML = Number(c.innerHTML) + 1;
-              }
-              delete windw.cachedData[player.cid];
-              throw "[ANTIBOT] - Bot banned. Dont add";
             }
             if(similarity(windw.cachedUsernames[i].name,player.name) >= windw.specialData.config.percent){
               removed = true;
