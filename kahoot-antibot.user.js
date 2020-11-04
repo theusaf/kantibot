@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.8.8
+// @version      2.8.9
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
 // @match        *://play.kahoot.it/*
@@ -44,7 +44,7 @@ window.page.onload = ()=>{
       const container = document.createElement("div");
       container.id = "antibotwtr";
       const waterMark = document.createElement("p");
-      waterMark.innerHTML = "v2.8.8 @theusaf";
+      waterMark.innerHTML = "v2.8.9 @theusaf";
       const botText = document.createElement("p");
       botText.innerHTML = "0";
       botText.id = "killcount";
@@ -601,9 +601,9 @@ window.page.onload = ()=>{
           clientId = data.clientId;
         }
         try{
-          pin = pin ? pin : Number(document.querySelector("[data-functional-selector=\"game-pin\"]").innerHTML);
-          if(Number(document.querySelector("[data-functional-selector=\"game-pin\"]").innerHTML) != pin){
-            pin = Number(document.querySelector("[data-functional-selector=\"game-pin\"]").innerHTML);
+          pin = pin ? pin : Number(document.querySelector("[data-functional-selector=\"game-pin\"]").innerText);
+          if(Number(document.querySelector("[data-functional-selector=\"game-pin\"]").innerText) != pin){
+            pin = Number(document.querySelector("[data-functional-selector=\"game-pin\"]").innerText);
           }
         }catch(err){}
         /*if the message is a player join message*/
