@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.8.7
+// @version      2.8.8
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
 // @match        *://play.kahoot.it/*
@@ -26,9 +26,9 @@ window.page.open("GET",window.url);
 window.page.send();
 window.page.onload = ()=>{
   let scriptURL = window.page.response.match(/><\/script><script\ .*?vendors.*?><\/script>/mg)[0].substr(9).split("src=\"")[1].split("\"")[0];
-  let script2 = window.page.response.match(/<\/script><script src=\"\/v2\/assets\/js\/main.*?(?=\")/mg)[0].substr(22);
+  let script2 = window.page.response.match(/\/v2\/assets\/js\/main.*?(?=")/mg)[0];
   let originalPage = window.page.response.replace(/><\/script><script\ .*?vendors.*?><\/script>/mg,"></script>");
-  originalPage = originalPage.replace(/<\/script><script src=\"\/v2\/assets\/js\/main.*?(?=\")/mg,"</script><script src=\"data:text/javascript,");
+  originalPage = originalPage.replace(/\/v2\/assets\/js\/main.*?(?=")/mg,"data:text/javascript,");
   let script = new XMLHttpRequest();
   script.open("GET","https://play.kahoot.it/"+scriptURL);
   script.send();
@@ -44,7 +44,7 @@ window.page.onload = ()=>{
       const container = document.createElement("div");
       container.id = "antibotwtr";
       const waterMark = document.createElement("p");
-      waterMark.innerHTML = "v2.8.7 @theusaf";
+      waterMark.innerHTML = "v2.8.8 @theusaf";
       const botText = document.createElement("p");
       botText.innerHTML = "0";
       botText.id = "killcount";
@@ -665,9 +665,9 @@ window.page.onload = ()=>{
       const nr = /=[a-z]\.namerator/gm;
       const letter = sc.match(nr)[0].match(/[a-z](?=\.)/g)[0];
       sc = sc.replace(sc.match(nr)[0],`=(()=>{console.log(${letter}.namerator);windw.isUsingNamerator = ${letter}.namerator;return ${letter}.namerator})()`);
-      const cqtr = /currentQuestionTimer:[a-z]\.payload\.time/gm;
+      const cqtr = /currentQuestionTimer:[a-z]\.payload\.questionTime/gm;
       const letter2 = sc.match(cqtr)[0].match(/[a-z](?=\.payload)/g)[0];
-      sc = sc.replace(sc.match(cqtr)[0],`currentQuestionTimer:${letter2}.payload.time + (()=>{return (windw.specialData.config.additionalQuestionTime * 1000) || 0})()`);
+      sc = sc.replace(sc.match(cqtr)[0],`currentQuestionTimer:${letter2}.payload.questionTime + (()=>{return (windw.specialData.config.additionalQuestionTime * 1000) || 0})()`);
       const nsr = /[a-zA-Z]{2}\.NoStreakPoints/gm;
       const letter3 = sc.match(nsr)[0].match(/[a-zA-Z]{2}(?=\.)/g)[0];
       sc = sc.replace(sc.match(nsr)[0],`windw.specialData.config.streakBonus || 2`); // yes = 1, no = 2
