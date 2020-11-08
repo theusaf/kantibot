@@ -97,16 +97,18 @@ module.exports = class{
 				if(!!(+this.specialData.config.ddos) && (this.kickedamount - this.oldamount) > (+this.specialData.config.ddos/3)){
 					this.locked = true;
 					// LOCK THE GAME!
-					socket.send(JSON.stringify([{
-						channel: "/service/player",
-						clientId: this.clientId,
-						data: {
-							gameid: this.pin,
-							type: "lock"
-						},
-						ext: {},
-						id: ++this.messageId
-					}]));
+					setTimeout(()=>{
+						socket.send(JSON.stringify([{
+							channel: "/service/player",
+							clientId: this.clientId,
+							data: {
+								gameid: this.pin,
+								type: "lock"
+							},
+							ext: {},
+							id: ++this.messageId
+						}]));
+					},1e3);
 					setTimeout(()=>{
 						this.locked = false;
 						// UNLOCK GAME
