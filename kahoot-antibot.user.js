@@ -562,20 +562,20 @@ window.page.onload = ()=>{
         if(c && !locked){
           if(!!(+windw.specialData.config.ddos) && (+c.innerHTML - oldamount) > (+windw.specialData.config.ddos/3)){
             locked = true;
+            const oldpin = pin;
             // LOCK THE GAME!
             setTimeout(()=>{
               e.webSocket.send(JSON.stringify([{
                 channel: "/service/player",
                 clientId,
                 data: {
-                  gameid: pin,
+                  gameid: oldpin,
                   type: "lock"
                 },
                 ext: {},
                 id: ++messageId
               }]));
             },1e3);
-            const oldpin = pin;
             console.log("[ANTIBOT] - Detected bot spam. Locking game for 1 minute.");
             setTimeout(()=>{
               locked = false;
