@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.8.10
+// @version      2.8.11
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
 // @match        *://play.kahoot.it/*
@@ -557,25 +557,29 @@ window.page.onload = ()=>{
             windw.e.webSocket.oldSend(data);
           }
         }
+        try{
+          pin = pin ? pin : Number(document.querySelector("[data-functional-selector=\"game-pin\"]").innerText);
+          if(Number(document.querySelector("[data-functional-selector=\"game-pin\"]").innerText) != pin){
+            pin = Number(document.querySelector("[data-functional-selector=\"game-pin\"]").innerText);
+          }
+        }catch(err){}
         // check DDOS
         const c = document.getElementById("killcount");
-        if(c && !locked){
+        if(c && !locked && pin){
           if(!!(+windw.specialData.config.ddos) && (+c.innerHTML - oldamount) > (+windw.specialData.config.ddos/3)){
             locked = true;
             const oldpin = pin;
             // LOCK THE GAME!
-            setTimeout(()=>{
-              e.webSocket.send(JSON.stringify([{
-                channel: "/service/player",
-                clientId,
-                data: {
-                  gameid: oldpin,
-                  type: "lock"
-                },
-                ext: {},
-                id: ++messageId
-              }]));
-            },1e3);
+            e.webSocket.send(JSON.stringify([{
+              channel: "/service/player",
+              clientId,
+              data: {
+                gameid: oldpin,
+                type: "lock"
+              },
+              ext: {},
+              id: ++messageId
+            }]));
             console.log("[ANTIBOT] - Detected bot spam. Locking game for 1 minute.");
             setTimeout(()=>{
               locked = false;
@@ -602,12 +606,6 @@ window.page.onload = ()=>{
         if(data.id == 1){
           clientId = data.clientId;
         }
-        try{
-          pin = pin ? pin : Number(document.querySelector("[data-functional-selector=\"game-pin\"]").innerText);
-          if(Number(document.querySelector("[data-functional-selector=\"game-pin\"]").innerText) != pin){
-            pin = Number(document.querySelector("[data-functional-selector=\"game-pin\"]").innerText);
-          }
-        }catch(err){}
         /*if the message is a player join message*/
         if(data.data ? data.data.type == "joined" : false){
           console.warn("[ANTIBOT] - determining evil...");
