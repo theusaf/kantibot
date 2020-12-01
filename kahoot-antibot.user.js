@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.8.11
+// @version      2.9.0
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
 // @match        *://play.kahoot.it/*
@@ -44,7 +44,7 @@ window.page.onload = ()=>{
       const container = document.createElement("div");
       container.id = "antibotwtr";
       const waterMark = document.createElement("p");
-      waterMark.innerHTML = "v2.8.10 @theusaf";
+      waterMark.innerHTML = "v2.9.0 @theusaf";
       const botText = document.createElement("p");
       botText.innerHTML = "0";
       botText.id = "killcount";
@@ -68,6 +68,9 @@ window.page.onload = ()=>{
       <!-- DDOS -->
       <label for="antibot.config.ddos" title="Specify the number of bots/minute to lock the game. Set it to 0 to disable.">Auto Lock Threshold</label>
       <input type="number" step="1" value="0" id="antibot.config.ddos" onchange="windw.specialData.config.ddos = Number(document.getElementById('antibot.config.ddos').value);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.ddos = windw.specialData.config.ddos;windw.localStorage.antibotConfig = JSON.stringify(a);">
+      <!-- Auto-Start-Lock -->
+      <label for="antibot.config.start_lock" title="Specify the maximum time in seconds for a lobby to stay open after a player joins. Setting this to 0 or below will disable it.">Lobby Auto-Start Time</label>
+      <input type="number" step="1" value="0" id="antibot.config.start_lock" onchange="windw.specialData.config.start_lock = Number(document.getElementById('antibot.config.start_lock').value);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.start_lock = windw.specialData.config.start_lock;windw.localStorage.antibotConfig = JSON.stringify(a);">
       <!-- Toggling Streak Bonus -->
       <input type="checkbox" id="antibot.config.streakBonus" onchange="windw.specialData.config.streakBonus = Number(document.getElementById('antibot.config.streakBonus').checked ? 1 : 2);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.streakBonus = windw.specialData.config.streakBonus;localStorage.antibotConfig = JSON.stringify(a);alert('When modifying this option, reload the page for it to take effect')">
       <label for="antibot.config.streakBonus" title="Toggle the Streak Bonus.">Toggle Streak Bonus</label>`;
@@ -146,8 +149,11 @@ window.page.onload = ()=>{
           additionalQuestionTime: null,
           percent: 0.6,
           streakBonus: 2,
-          ddos: 0
+          ddos: 0,
+          start_lock: 0 // I named it start_lock, but since I can just directly start the quiz, no need to lock it
         },
+        inLobby: true,
+        lobbyLoadTime: 0
       };
       // loading localStorage info
       if(windw.localStorage.antibotConfig){
@@ -184,6 +190,10 @@ window.page.onload = ()=>{
           document.getElementById("antibot.config.ddos").value = +a.ddos;
           windw.specialData.config.ddos = +a.ddos;
         }
+        if(a.start_lock){
+          document.getElementById("antibot.config.start_lock").value = +a.start_lock;
+          windw.specialData.config.start_lock = +a.start_lock;
+        }
       }
       var messageId = 0;
       var clientId = null;
@@ -196,7 +206,7 @@ window.page.onload = ()=>{
       // for names like AmazingRobot32
       // also matches other somewhat suspicious names
       function isFakeValid(name){
-        return /^([A-Z][a-z]+){2}\d{1,2}$/.test(name) || /^[A-Z][^A-Z]+?(\d[a-z]+\d*?)$/.test(name);
+        return /^([A-Z][a-z]+){2,3}\d{1,2}$/.test(name) || /^[A-Z][^A-Z]+?(\d[a-z]+\d*?)$/.test(name);
       }
       function similarity(s1, s2) {
         // remove numbers from name if name is not only a number
@@ -530,6 +540,13 @@ window.page.onload = ()=>{
             case 2:
               windw.specialData.startTime = Date.now();
               break;
+            case 5:
+              windw.specialData.inLobby = true;
+              windw.specialData.lobbyLoadTime = 0;
+              break;
+            case 9:
+              windw.specialData.inLobby = false;
+              break;
           }
         }
       }
@@ -611,6 +628,24 @@ window.page.onload = ()=>{
           console.warn("[ANTIBOT] - determining evil...");
           determineEvil(data.data,e.webSocket);
           specialBotDetector(data.data.type,data.data,e.webSocket);
+          // Player was not banned.
+          if(windw.specialData.inLobby && windw.specialData.config.start_lock !== 0 && window.globalFuncs && window.globalFuncs.gameOptions.automaticallyProgressGame){
+            if(windw.specialData.lobbyLoadTime === 0){
+              windw.specialData.lobbyLoadTime = Date.now();
+            }
+            if(Date.now() - windw.specialData.lobbyLoadTime > windw.specialData.config.start_lock * 1000){
+              // max time passed, just start the darn thing!
+              const {controllers} = window.globalFuncs;
+              if(controllers.filter((controller)=>{
+                return !controller.isGhost && !controller.hasLeft;
+              }).length === 0){
+                // The only current player in the lobby.
+                windw.specialData.lobbyLoadTime = Date.now();
+              }else{
+                window.globalFuncs.startQuiz();
+              }
+            }
+          }
         }else
         /*if the message is a player leave message*/
         if(data.data ? data.data.type == "left" : false){
@@ -656,21 +691,32 @@ window.page.onload = ()=>{
           teamBotDetector(JSON.parse(data.data.content),data.data.cid,e.webSocket);
         }
       };
+      // remove loaded modules (allows turning off things to be a bit easier)
+      delete localStorage.kahootThemeScript;
+      delete localStorage.extraCheck;
+      delete localStorage.extraCheck2;
     };
     let mainScript = new XMLHttpRequest();
     mainScript.open("GET","https://play.kahoot.it/"+script2);
     mainScript.send();
     mainScript.onload = ()=>{
       let sc = mainScript.response;
+      // Access the namerator option
       const nr = /=[a-z]\.namerator/gm;
       const letter = sc.match(nr)[0].match(/[a-z](?=\.)/g)[0];
       sc = sc.replace(sc.match(nr)[0],`=(()=>{console.log(${letter}.namerator);windw.isUsingNamerator = ${letter}.namerator;return ${letter}.namerator})()`);
+      // Access the currentQuestionTimer and change the question time
       const cqtr = /currentQuestionTimer:[a-z]\.payload\.questionTime/gm;
       const letter2 = sc.match(cqtr)[0].match(/[a-z](?=\.payload)/g)[0];
       sc = sc.replace(sc.match(cqtr)[0],`currentQuestionTimer:${letter2}.payload.questionTime + (()=>{return (windw.specialData.config.additionalQuestionTime * 1000) || 0})()`);
+      // Access the "NoStreakPoints", allowing it to be enabled
       const nsr = /[a-zA-Z]{2}\.NoStreakPoints/gm;
       const letter3 = sc.match(nsr)[0].match(/[a-zA-Z]{2}(?=\.)/g)[0];
       sc = sc.replace(sc.match(nsr)[0],`windw.specialData.config.streakBonus || 2`); // yes = 1, no = 2
+      // Access the StartQuiz function. Also gains direct access to the controllers!
+      const sq = /=[a-zA-Z]\.startQuiz/gm;
+      const letter4 = sc.match(sq)[0].match(/[a-zA-Z](?=\.)/g)[0];
+      sc = sc.replace(sc.match(sq)[0],`=(()=>{window.globalFuncs = e;return ${letter4}.startQuiz})()`);
       let changed = originalPage.split("</body>");
       changed = `${changed[0]}<script>${patchedScript}</script><script>${sc}</script><script>try{(${window.localStorage.kahootThemeScript})();}catch(err){}try{(${window.localStorage.extraCheck})();}catch(err){}window.setupAntibot = ${code.toString()};window.parent.fireLoaded = window.fireLoaded = true;window.setupAntibot();</script></body>${changed[1]}`;
       console.log("[ANTIBOT] - loaded");
