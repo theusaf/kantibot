@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.10.0
+// @version      2.10.1
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
 // @match        *://play.kahoot.it/*
@@ -25,9 +25,9 @@ window.page = new XMLHttpRequest();
 window.page.open("GET",window.url);
 window.page.send();
 window.page.onload = ()=>{
-  let scriptURL = window.page.response.match(/><\/script><script\ .*?vendors.*?><\/script>/mg)[0].substr(9).split("src=\"")[1].split("\"")[0];
+  let scriptURL = window.page.response.match(/><\/script><script .*?vendors.*?><\/script>/mg)[0].substr(9).split("src=\"")[1].split("\"")[0];
   let script2 = window.page.response.match(/\/v2\/assets\/js\/main.*?(?=")/mg)[0];
-  let originalPage = window.page.response.replace(/><\/script><script\ .*?vendors.*?><\/script>/mg,"></script>");
+  let originalPage = window.page.response.replace(/><\/script><script .*?vendors.*?><\/script>/mg,"></script>");
   originalPage = originalPage.replace(/\/v2\/assets\/js\/main.*?(?=")/mg,"data:text/javascript,");
   let script = new XMLHttpRequest();
   script.open("GET","https://play.kahoot.it/"+scriptURL);
@@ -44,7 +44,7 @@ window.page.onload = ()=>{
       const container = document.createElement("div");
       container.id = "antibotwtr";
       const waterMark = document.createElement("p");
-      waterMark.innerHTML = "v2.10.0 @theusaf";
+      waterMark.innerHTML = "v2.10.1 @theusaf";
       const botText = document.createElement("p");
       botText.innerHTML = "0";
       botText.id = "killcount";
@@ -83,7 +83,7 @@ window.page.onload = ()=>{
         </div>
         <!-- Auto-Start-Lock -->
         <div>
-          <label class="antibot-input" for="antibot.config.start_lock" title="Specify the maximum time in seconds for a lobby to stay open after a player joins. Setting this to 0 or below will disable it.">Lobby Auto-Start Time</label>
+          <label class="antibot-input" for="antibot.config.start_lock" title="Specify the maximum time in seconds for a lobby to stay open after a player joins. Setting this to 0 will disable it.">Lobby Auto-Start Time</label>
           <input type="number" step="1" value="0" id="antibot.config.start_lock" onchange="windw.specialData.config.start_lock = Number(document.getElementById('antibot.config.start_lock').value);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.start_lock = windw.specialData.config.start_lock;windw.localStorage.antibotConfig = JSON.stringify(a);">
         </div>
         <!-- Toggling Streak Bonus -->
@@ -91,7 +91,14 @@ window.page.onload = ()=>{
           <input type="checkbox" id="antibot.config.streakBonus" onchange="windw.specialData.config.streakBonus = Number(document.getElementById('antibot.config.streakBonus').checked ? 1 : 2);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.streakBonus = windw.specialData.config.streakBonus;localStorage.antibotConfig = JSON.stringify(a);alert('When modifying this option, reload the page for it to take effect')">
           <label for="antibot.config.streakBonus" title="Toggle the Streak Bonus.">Toggle Streak Bonus</label>
         </div>
+        <!-- Show Antibot Counters -->
+        <div>
+          <input type="checkbox" id="antibot.config.counters" onchange="windw.specialData.config.counters = document.getElementById('antibot.config.counters').checked;if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.counters = windw.specialData.config.counters;localStorage.antibotConfig = JSON.stringify(a);">
+          <label for="antibot.config.counters" title="Shows Antibot Countdowns (Lobby Auto-Start/Auto-Lock)">Show Antibot Timers</label>
+        </div>
       </div>`;
+      const counters = document.createElement("div");
+      counters.id = "antibot-counters";
       const styles = document.createElement("style");
       styles.type = "text/css";
       styles.innerHTML = `#antibotwtr{
@@ -169,6 +176,30 @@ window.page.onload = ()=>{
         box-sizing: border-box;
         position: relative;
         border: solid 0.5rem transparent;
+      }
+      #antibot-counters{
+        position: absolute;
+        right: 10rem;
+        top: 11rem;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: white;
+        pointer-events: none;
+      }
+      #antibot-counters div{
+        background: rgba(0,0,0,0.5);
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+        margin-bottom: 0.5rem;
+      }
+      .antibot-count-num{
+        display: block;
+        text-align: center;
+      }
+      .antibot-count-desc{
+        text-align: center;
+        font-size: 1.25rem;
+        display: block;
       }`;
       container.append(waterMark,botText,menu);
       setTimeout(function(){
@@ -191,7 +222,7 @@ window.page.onload = ()=>{
           },1000);
         }
       },2000);
-      document.body.append(container,styles);
+      document.body.append(container,styles,counters);
       windw.isUsingNamerator = false;
       windw.cachedUsernames = [];
       windw.confirmedPlayers = [];
@@ -210,7 +241,8 @@ window.page.onload = ()=>{
           percent: 0.6,
           streakBonus: 2,
           ddos: 0,
-          start_lock: 0 // I named it start_lock, but since I can just directly start the quiz, no need to lock it
+          start_lock: 0,
+          counters: false
         },
         inLobby: true,
         lobbyLoadTime: 0
@@ -254,6 +286,10 @@ window.page.onload = ()=>{
           document.getElementById("antibot.config.start_lock").value = +a.start_lock;
           windw.specialData.config.start_lock = +a.start_lock;
         }
+        if(a.counters){
+          document.getElementById("antibot.config.counters").checked = true;
+          windw.specialData.config.counters = true;
+        }
       }
       var messageId = 0;
       var clientId = null;
@@ -266,7 +302,7 @@ window.page.onload = ()=>{
       // for names like AmazingRobot32
       // also matches other somewhat suspicious names
       function isFakeValid(name){
-        return /^([A-Z][a-z]+){2,3}\d{1,2}$/.test(name) || /^[A-Z][^A-Z]+?(\d[a-z]+\d*?)$/.test(name);
+        return /(^([A-Z][a-z]+){2,3}\d{1,2}$)|(^([A-Z][^A-Z\n]+?)+?(\d[a-z]+\d*?)$)|(^[a-zA-Z]+\d{4,}$)/.test(name);
       }
       function similarity(s1, s2) {
         // remove numbers from name if name is not only a number
@@ -441,7 +477,7 @@ window.page.onload = ()=>{
       }
       function specialBotDetector(type,data,socket){
         switch (type) {
-          case 'joined':
+        case "joined":
           // if looks random
           if(windw.specialData.config.looksRandom){
             if(looksRandom(data.name)){
@@ -548,7 +584,7 @@ window.page.onload = ()=>{
         }
       }
       function teamBotDetector(team,cid,socket){
-        kick = false;
+        let kick = false;
         if(team.length == 0 || team.indexOf("") != -1 || team.indexOf("Player 1") != -1){
           kick = true;
         }
@@ -572,7 +608,8 @@ window.page.onload = ()=>{
           throw `[ANTIBOT] - Bot ${name} banned; invalid team members.`;
         }
       }
-      var timer = setInterval(function(){
+      // Cache Manager Timer
+      setInterval(function(){
         for(let i in windw.cachedUsernames){
           if(windw.cachedUsernames[i].time <= 0 && !windw.cachedUsernames[i].banned && !windw.confirmedPlayers.includes(windw.cachedUsernames[i].name)){
             windw.confirmedPlayers.push(windw.cachedUsernames[i].name);
@@ -585,7 +622,8 @@ window.page.onload = ()=>{
           windw.cachedUsernames[i].time--;
         }
       },1000);
-      const TFATimer = setInterval(()=>{
+      // 2 Factor Auth Timer
+      setInterval(()=>{
         for(let i in windw.cachedData){
           windw.cachedData[i].tries = 0;
         }
@@ -597,25 +635,33 @@ window.page.onload = ()=>{
             return;
           }
           switch (data.data.id) {
-            case 2:
-              windw.specialData.startTime = Date.now();
-              break;
-            case 5:
-              windw.specialData.inLobby = true;
-              windw.specialData.lobbyLoadTime = 0;
-              break;
-            case 9:
-              windw.specialData.inLobby = false;
-              break;
+          case 2:
+            // question start
+            windw.specialData.startTime = Date.now();
+            break;
+          case 5:
+            // restart
+            windw.specialData.inLobby = true;
+            windw.specialData.lobbyLoadTime = 0;
+            break;
+          case 9:
+            // start
+            windw.specialData.inLobby = false;
+            if(windw.specialData.StartLockElem){
+              clearInterval(windw.specialData.StartLockInterval);
+              windw.specialData.StartLockElem.outerHTML = "";
+              windw.specialData.StartLockElem = null;
+            }
+            break;
           }
         }
-      }
+      };
       let ExtraCheck2 = function(){};
       try{
         if(windw.localStorage.extraCheck2){
           ExtraCheck2 = new Function("return " + windw.localStorage.extraCheck2)();
         }
-      }catch(e){}
+      }catch(e){/* Likely doesn't exist */}
       let oldamount = 0;
       let locked = false;
       setInterval(()=>{
@@ -625,14 +671,14 @@ window.page.onload = ()=>{
         }
       },20e3);
       window.globalMessageListener = function(e,t){
-        try{ExtraCheck2(e,t);}catch(e){}
+        try{ExtraCheck2(e,t);}catch(e){console.error("[ANTIBOT] - Execution of PIN-CHECKER Failed: " + e);}
         windw.e = e;
         if(!windw.e.webSocket.oldSend){
           windw.e.webSocket.oldSend = windw.e.webSocket.send;
           windw.e.webSocket.send = function(data){
             windw.sendHandler(data);
             windw.e.webSocket.oldSend(data);
-          }
+          };
         }
         try{
           const elem = document.querySelector("[data-functional-selector=\"game-pin\"]") || document.querySelector("[data-functional-selector=\"bottom-bar-game-pin\"]");
@@ -640,7 +686,7 @@ window.page.onload = ()=>{
           if(Number(elem.innerText) !== pin && !isNaN(Number(elem.innerText))){
             pin = Number(elem.innerText);
           }
-        }catch(err){}
+        }catch(err){/* Item doesn't exist */}
         // check DDOS
         const c = document.getElementById("killcount");
         if(c && !locked && pin){
@@ -659,6 +705,20 @@ window.page.onload = ()=>{
               id: ++messageId
             }]));
             console.log("[ANTIBOT] - Detected bot spam. Locking game for 1 minute.");
+            if(windw.specialData.config.counters){
+              const ddoscount = document.createElement("div");
+              let int = 60;
+              ddoscount.innerHTML = `<span class="antibot-count-num">60</span>
+              <span class="antibot-count-desc">Until Unlock</span>`;
+              counters.append(ddoscount);
+              const countTimer = setInterval(()=>{
+                ddoscount.querySelector(".antibot-count-num").innerHTML = --int;
+                if(int <= 0){
+                  clearInterval(countTimer);
+                  ddoscount.outerHTML = "";
+                }
+              },1e3);
+            }
             setTimeout(()=>{
               locked = false;
               // UNLOCK GAME
@@ -693,6 +753,21 @@ window.page.onload = ()=>{
           if(windw.specialData.inLobby && windw.specialData.config.start_lock !== 0 && window.globalFuncs && window.globalFuncs.gameOptions.automaticallyProgressGame){
             if(windw.specialData.lobbyLoadTime === 0){
               windw.specialData.lobbyLoadTime = Date.now();
+              if(windw.specialData.config.counters){
+                const c = document.createElement("div");
+                c.innerHTML = `<span class="antibot-count-num">${Math.round((windw.specialData.config.start_lock - (Date.now() - windw.specialData.lobbyLoadTime)/1000))}</span>
+                <span class="antibot-count-desc">Until Auto-Start</span>`;
+                const i = setInterval(()=>{
+                  let t = Math.round((windw.specialData.config.start_lock - (Date.now() - windw.specialData.lobbyLoadTime)/1000));
+                  if(t < 0){
+                    t = "Please Wait...";
+                  }
+                  c.querySelector(".antibot-count-num").innerHTML = t;
+                },1e3);
+                counters.append(c);
+                windw.specialData.StartLockElem = c;
+                windw.specialData.StartLockInterval = i;
+              }
             }
             if(Date.now() - windw.specialData.lobbyLoadTime > windw.specialData.config.start_lock * 1000){
               // max time passed, just start the darn thing!
@@ -704,14 +779,15 @@ window.page.onload = ()=>{
                 windw.specialData.lobbyLoadTime = Date.now();
               }else{
                 window.globalFuncs.startQuiz();
+                if(windw.specialData.StartLockElem){
+                  clearInterval(windw.specialData.StartLockInterval);
+                  windw.specialData.StartLockElem.outerHTML = "";
+                  windw.specialData.StartLockElem = null;
+                }
               }
             }
           }
-        }else
-        /*if the message is a player leave message*/
-        if(data.data ? data.data.type == "left" : false){
-        }else
-        if(data.data ? data.data.id == 45 : false){
+        }else if(data.data ? data.data.id == 45 : false){
           // if player answers
           if(Date.now() - windw.specialData.startTime < 500 && windw.specialData.config.timeout){
             throw "[ANTIBOT] - Answer was too quick!";
@@ -727,13 +803,12 @@ window.page.onload = ()=>{
             delete windw.cachedData[data.data.cid];
             throw `[ANTIBOT] - Bot with id ${data.data.cid} banned. Answered too quickly after joining.`;
           }
-        }else
-        if(data.data ? data.data.id == 50 : false){
+        }else if(data.data ? data.data.id == 50 : false){
           windw.cachedData[data.data.cid].tries++;
           if(windw.cachedData[data.data.cid].tries > 3){
             const kicker = createKickPacket(data.data.cid);
             e.webSocket.send(JSON.stringify(kicker));
-            const name = windw.cachedUsernames.filter(o=>{return o.id == data.data.cid}).length ? windw.cachedUsernames.filter(o=>{return o.id == data.data.cid})[0].name : "bot";
+            const name = windw.cachedUsernames.filter(o=>{return o.id == data.data.cid;}).length ? windw.cachedUsernames.filter(o=>{return o.id == data.data.cid;})[0].name : "bot";
             console.warn(`[ANTIBOT] - Bot ${name} banished. Seen spamming 2FA`);
             windw.cachedUsernames.forEach(o=>{
               if(o.id == windw.specialData.lastFakeUserID){
@@ -772,8 +847,7 @@ window.page.onload = ()=>{
       sc = sc.replace(sc.match(cqtr)[0],`currentQuestionTimer:${letter2}.payload.questionTime + (()=>{return (windw.specialData.config.additionalQuestionTime * 1000) || 0})()`);
       // Access the "NoStreakPoints", allowing it to be enabled
       const nsr = /[a-zA-Z]{2}\.NoStreakPoints/gm;
-      const letter3 = sc.match(nsr)[0].match(/[a-zA-Z]{2}(?=\.)/g)[0];
-      sc = sc.replace(sc.match(nsr)[0],`windw.specialData.config.streakBonus || 2`); // yes = 1, no = 2
+      sc = sc.replace(sc.match(nsr)[0],"windw.specialData.config.streakBonus || 2"); // yes = 1, no = 2
       // Access the StartQuiz function. Also gains direct access to the controllers!
       const sq = /=[a-zA-Z]\.startQuiz/gm;
       const letter4 = sc.match(sq)[0].match(/[a-zA-Z](?=\.)/g)[0];
