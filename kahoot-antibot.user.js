@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.9.0
+// @version      2.10.0
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
 // @match        *://play.kahoot.it/*
@@ -44,36 +44,54 @@ window.page.onload = ()=>{
       const container = document.createElement("div");
       container.id = "antibotwtr";
       const waterMark = document.createElement("p");
-      waterMark.innerHTML = "v2.9.0 @theusaf";
+      waterMark.innerHTML = "v2.10.0 @theusaf";
       const botText = document.createElement("p");
       botText.innerHTML = "0";
       botText.id = "killcount";
       const menu = document.createElement("details");
       menu.innerHTML = `<summary>config</summary>
-      <!-- Timeout -->
-      <input type="checkbox" id="antibot.config.timeout"></input>
-      <label id="antibot.config.timeoutlbl" onclick="windw.specialData.config.timeout = !windw.specialData.config.timeout;if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.timeout = windw.specialData.config.timeout;windw.localStorage.antibotConfig = JSON.stringify(a);" for="antibot.config.timeout" title="Blocks answers that are sent before 0.5 seconds after the question starts">Min Answer Timeout</label>
-      <!-- Random Names -->
-      <input type="checkbox" id="antibot.config.looksRandom" checked="checked"></input>
-      <label id="antibot.config.lookrandlbl" onclick="windw.specialData.config.looksRandom = !windw.specialData.config.looksRandom;if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.looksRandom = windw.specialData.config.looksRandom;windw.localStorage.antibotConfig = JSON.stringify(a);" for="antibot.config.looksRandom" title="Blocks names that seem 'random', such as 'OmEGaboOt'">Block Random Names</label>
-      <!-- Blocking Format 1 -->
-      <input type="checkbox" id="antibot.config.blockformat1" checked="checked"></input>
-      <label id="antibot.config.blockformat1lbl" onclick="windw.specialData.config.banFormat1 = !windw.specialData.config.banFormat1;if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.banFormat1 = windw.specialData.config.banFormat1;windw.localStorage.antibotConfig = JSON.stringify(a);" for="antibot.config.blockformat1" title="Blocks names using the format [First][random char][Last]">Block format First[._-,etc]Last</label>
-      <!-- Additional Question Time -->
-      <label for="antibot.config.teamtimeout" title="Add extra seconds to the question.">Additional Question Time</label>
-      <input type="number" step="1" value="0" id="antibot.config.teamtimeout" onchange="windw.specialData.config.additionalQuestionTime = Number(document.getElementById('antibot.config.teamtimeout').value);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.teamtime = windw.specialData.config.additionalQuestionTime;windw.localStorage.antibotConfig = JSON.stringify(a);">;
-      <!-- Percent -->
-      <label for="antibot.config.percent" title="Specify the match percentage.">Match Percent</label>
-      <input type="number" step="0.1" value="0.6" id="antibot.config.percent" onchange="windw.specialData.config.percent = Number(document.getElementById('antibot.config.percent').value);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.percent = windw.specialData.config.percent;windw.localStorage.antibotConfig = JSON.stringify(a);">
-      <!-- DDOS -->
-      <label for="antibot.config.ddos" title="Specify the number of bots/minute to lock the game. Set it to 0 to disable.">Auto Lock Threshold</label>
-      <input type="number" step="1" value="0" id="antibot.config.ddos" onchange="windw.specialData.config.ddos = Number(document.getElementById('antibot.config.ddos').value);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.ddos = windw.specialData.config.ddos;windw.localStorage.antibotConfig = JSON.stringify(a);">
-      <!-- Auto-Start-Lock -->
-      <label for="antibot.config.start_lock" title="Specify the maximum time in seconds for a lobby to stay open after a player joins. Setting this to 0 or below will disable it.">Lobby Auto-Start Time</label>
-      <input type="number" step="1" value="0" id="antibot.config.start_lock" onchange="windw.specialData.config.start_lock = Number(document.getElementById('antibot.config.start_lock').value);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.start_lock = windw.specialData.config.start_lock;windw.localStorage.antibotConfig = JSON.stringify(a);">
-      <!-- Toggling Streak Bonus -->
-      <input type="checkbox" id="antibot.config.streakBonus" onchange="windw.specialData.config.streakBonus = Number(document.getElementById('antibot.config.streakBonus').checked ? 1 : 2);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.streakBonus = windw.specialData.config.streakBonus;localStorage.antibotConfig = JSON.stringify(a);alert('When modifying this option, reload the page for it to take effect')">
-      <label for="antibot.config.streakBonus" title="Toggle the Streak Bonus.">Toggle Streak Bonus</label>`;
+      <div id="antibot-settings">
+        <!-- Timeout -->
+        <div>
+          <input type="checkbox" id="antibot.config.timeout"></input>
+          <label id="antibot.config.timeoutlbl" onclick="windw.specialData.config.timeout = !windw.specialData.config.timeout;if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.timeout = windw.specialData.config.timeout;windw.localStorage.antibotConfig = JSON.stringify(a);" for="antibot.config.timeout" title="Blocks answers that are sent before 0.5 seconds after the question starts">Min Answer Timeout</label>
+        </div>
+        <!-- Random Names -->
+        <div>
+          <input type="checkbox" id="antibot.config.looksRandom" checked="checked"></input>
+          <label id="antibot.config.lookrandlbl" onclick="windw.specialData.config.looksRandom = !windw.specialData.config.looksRandom;if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.looksRandom = windw.specialData.config.looksRandom;windw.localStorage.antibotConfig = JSON.stringify(a);" for="antibot.config.looksRandom" title="Blocks names that seem 'random', such as 'OmEGaboOt'">Block Random Names</label>
+        </div>
+        <!-- Blocking Format 1 -->
+        <div>
+          <input type="checkbox" id="antibot.config.blockformat1" checked="checked"></input>
+          <label id="antibot.config.blockformat1lbl" onclick="windw.specialData.config.banFormat1 = !windw.specialData.config.banFormat1;if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.banFormat1 = windw.specialData.config.banFormat1;windw.localStorage.antibotConfig = JSON.stringify(a);" for="antibot.config.blockformat1" title="Blocks names using the format [First][random char][Last]">Block format First[._-,etc]Last</label>
+        </div>
+        <!-- Additional Question Time -->
+        <div>
+          <label class="antibot-input" for="antibot.config.teamtimeout" title="Add extra seconds to the question.">Additional Question Time</label>
+          <input type="number" step="1" value="0" id="antibot.config.teamtimeout" onchange="windw.specialData.config.additionalQuestionTime = Number(document.getElementById('antibot.config.teamtimeout').value);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.teamtime = windw.specialData.config.additionalQuestionTime;windw.localStorage.antibotConfig = JSON.stringify(a);">
+        </div>
+        <!-- Percent -->
+        <div>
+          <label class="antibot-input" for="antibot.config.percent" title="Specify the match percentage.">Match Percent</label>
+          <input type="number" step="0.1" value="0.6" id="antibot.config.percent" onchange="windw.specialData.config.percent = Number(document.getElementById('antibot.config.percent').value);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.percent = windw.specialData.config.percent;windw.localStorage.antibotConfig = JSON.stringify(a);">
+        </div>
+        <!-- DDOS -->
+        <div>
+          <label class="antibot-input" for="antibot.config.ddos" title="Specify the number of bots/minute to lock the game. Set it to 0 to disable.">Auto Lock Threshold</label>
+          <input type="number" step="1" value="0" id="antibot.config.ddos" onchange="windw.specialData.config.ddos = Number(document.getElementById('antibot.config.ddos').value);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.ddos = windw.specialData.config.ddos;windw.localStorage.antibotConfig = JSON.stringify(a);">
+        </div>
+        <!-- Auto-Start-Lock -->
+        <div>
+          <label class="antibot-input" for="antibot.config.start_lock" title="Specify the maximum time in seconds for a lobby to stay open after a player joins. Setting this to 0 or below will disable it.">Lobby Auto-Start Time</label>
+          <input type="number" step="1" value="0" id="antibot.config.start_lock" onchange="windw.specialData.config.start_lock = Number(document.getElementById('antibot.config.start_lock').value);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.start_lock = windw.specialData.config.start_lock;windw.localStorage.antibotConfig = JSON.stringify(a);">
+        </div>
+        <!-- Toggling Streak Bonus -->
+        <div>
+          <input type="checkbox" id="antibot.config.streakBonus" onchange="windw.specialData.config.streakBonus = Number(document.getElementById('antibot.config.streakBonus').checked ? 1 : 2);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.streakBonus = windw.specialData.config.streakBonus;localStorage.antibotConfig = JSON.stringify(a);alert('When modifying this option, reload the page for it to take effect')">
+          <label for="antibot.config.streakBonus" title="Toggle the Streak Bonus.">Toggle Streak Bonus</label>
+        </div>
+      </div>`;
       const styles = document.createElement("style");
       styles.type = "text/css";
       styles.innerHTML = `#antibotwtr{
@@ -84,12 +102,21 @@ window.page.onload = ()=>{
         opacity: 0.4;
         transition: opacity 0.4s;
         z-index: 5000;
+        background: white;
+        text-align: center;
+        border-radius: 0.5rem;
+      }
+      #antibotwtr summary{
+        text-align: left;
       }
       #antibotwtr:hover{
         opacity: 1;
       }
       #antibotwtr p{
         display: inline-block;
+      }
+      #antibotwtr p:first-child{
+        font-weight: 600;
       }
       #killcount{
         margin-left: 0.25rem;
@@ -104,11 +131,44 @@ window.page.onload = ()=>{
         display: none;
       }
       #antibotwtr label{
-        color: red;
+        color: black;
+        font-weight: 600;
         display: block;
+        background: #c60929;
+        border-radius: 0.5rem;
+        height: 100%;
+        word-break: break-word;
+      }
+      #antibotwtr .antibot-input{
+        height: calc(100% - 1.5rem);
+        background: #864cbf;
+        color: white;
+      }
+      #antibotwtr input{
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 1rem;
+        border-radius: 0.25rem;
+        border: solid 1px black;
       }
       #antibotwtr input:checked+label{
-        color: green;
+        background: #26890c;
+      }
+      #antibot-settings{
+        display: flex;
+        flex-wrap: wrap;
+        max-width: 25rem;
+      }
+      #antibot-settings > div{
+        flex: 1;
+        max-width: 33%;
+        min-width: 33%;
+        min-height: 6rem;
+        box-sizing: border-box;
+        position: relative;
+        border: solid 0.5rem transparent;
       }`;
       container.append(waterMark,botText,menu);
       setTimeout(function(){
@@ -575,9 +635,10 @@ window.page.onload = ()=>{
           }
         }
         try{
-          pin = pin ? pin : Number(document.querySelector("[data-functional-selector=\"game-pin\"]").innerText);
-          if(Number(document.querySelector("[data-functional-selector=\"game-pin\"]").innerText) != pin){
-            pin = Number(document.querySelector("[data-functional-selector=\"game-pin\"]").innerText);
+          const elem = document.querySelector("[data-functional-selector=\"game-pin\"]") || document.querySelector("[data-functional-selector=\"bottom-bar-game-pin\"]");
+          pin = pin ? pin : Number(elem.innerText);
+          if(Number(elem.innerText) !== pin && !isNaN(Number(elem.innerText))){
+            pin = Number(elem.innerText);
           }
         }catch(err){}
         // check DDOS
