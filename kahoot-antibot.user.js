@@ -47,178 +47,178 @@ window.page.onload = ()=>{
         const container = document.createElement("div");
         container.id = "antibotwtr";
         const waterMark = document.createElement("p");
-        waterMark.innerHTML = "v2.11.0 @theusaf";
+        waterMark.innerHTML = "v2.12.0 @theusaf";
         const botText = document.createElement("p");
         botText.innerHTML = "0";
         botText.id = "killcount";
         const menu = document.createElement("details");
         menu.innerHTML = `<summary>config</summary>
-      <div id="antibot-settings">
-        <!-- Timeout -->
-        <div>
-          <input type="checkbox" id="antibot.config.timeout"></input>
-          <label id="antibot.config.timeoutlbl" onclick="windw.specialData.config.timeout = !windw.specialData.config.timeout;if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.timeout = windw.specialData.config.timeout;windw.localStorage.antibotConfig = JSON.stringify(a);" for="antibot.config.timeout" title="Blocks answers that are sent before 0.5 seconds after the question starts">Min Answer Timeout</label>
-        </div>
-        <!-- Random Names -->
-        <div>
-          <input type="checkbox" id="antibot.config.looksRandom" checked="checked"></input>
-          <label id="antibot.config.lookrandlbl" onclick="windw.specialData.config.looksRandom = !windw.specialData.config.looksRandom;if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.looksRandom = windw.specialData.config.looksRandom;windw.localStorage.antibotConfig = JSON.stringify(a);" for="antibot.config.looksRandom" title="Blocks names that seem 'random', such as 'OmEGaboOt'">Block Random Names</label>
-        </div>
-        <!-- Blocking Format 1 -->
-        <div>
-          <input type="checkbox" id="antibot.config.blockformat1" checked="checked"></input>
-          <label id="antibot.config.blockformat1lbl" onclick="windw.specialData.config.banFormat1 = !windw.specialData.config.banFormat1;if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.banFormat1 = windw.specialData.config.banFormat1;windw.localStorage.antibotConfig = JSON.stringify(a);" for="antibot.config.blockformat1" title="Blocks names using the format [First][random char][Last]">Block format First[._-,etc]Last</label>
-        </div>
-        <!-- Blocking kahootflood.weebly.com -->
-        <div>
-          <input type="checkbox" id="antibot.config.blockservice1" checked="checked"></input>
-          <label onclick="windw.specialData.config.blockservice1 = !windw.specialData.config.blockservice1;if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.blockservice1 = windw.specialData.config.blockservice1;windw.localStorage.antibotConfig = JSON.stringify(a);" for="antibot.config.blockservice1" title="A special filter focused on kahootflood.weebly.com">Block kahootflood.weebly.com</label>
-        </div>
-        <!-- Block Numbers -->
-        <div>
-          <input type="checkbox" id="antibot.config.blocknum"></input>
-          <label onclick="windw.specialData.config.blocknum = !windw.specialData.config.blocknum;if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.blocknum = windw.specialData.config.blocknum;windw.localStorage.antibotConfig = JSON.stringify(a);" for="antibot.config.blocknum" title="Marks names with numbers as suspicious. If multiple players join with numbers in their name in a short amount of time, they will be banned.">Block Numbers</label>
-        </div>
-        <!-- Block Non-Ascii -->
-        <div>
-          <input type="checkbox" id="antibot.config.forceascii"></input>
-          <label onclick="windw.specialData.config.forceascii = !windw.specialData.config.forceascii;if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.forceascii = windw.specialData.config.blocknum;windw.localStorage.antibotConfig = JSON.stringify(a);" for="antibot.config.blocknum" title="Marks names with non-alphanumeric characters as suspicious and bans them if multiple join.">Force Alphanumeric</label>
-        </div>
-        <!-- Additional Question Time -->
-        <div>
-          <label class="antibot-input" for="antibot.config.teamtimeout" title="Add extra seconds to the question.">Additional Question Time</label>
-          <input type="number" step="1" value="0" id="antibot.config.teamtimeout" onchange="windw.specialData.config.additionalQuestionTime = Number(document.getElementById('antibot.config.teamtimeout').value);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.teamtime = windw.specialData.config.additionalQuestionTime;windw.localStorage.antibotConfig = JSON.stringify(a);">
-        </div>
-        <!-- Percent -->
-        <div>
-          <label class="antibot-input" for="antibot.config.percent" title="Specify the match percentage.">Match Percent</label>
-          <input type="number" step="0.1" value="0.6" id="antibot.config.percent" onchange="windw.specialData.config.percent = Number(document.getElementById('antibot.config.percent').value);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.percent = windw.specialData.config.percent;windw.localStorage.antibotConfig = JSON.stringify(a);">
-        </div>
-        <!-- DDOS -->
-        <div>
-          <label class="antibot-input" for="antibot.config.ddos" title="Specify the number of bots/minute to lock the game. Set it to 0 to disable.">Auto Lock Threshold</label>
-          <input type="number" step="1" value="0" id="antibot.config.ddos" onchange="windw.specialData.config.ddos = Number(document.getElementById('antibot.config.ddos').value);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.ddos = windw.specialData.config.ddos;windw.localStorage.antibotConfig = JSON.stringify(a);">
-        </div>
-        <!-- Auto-Start-Lock -->
-        <div>
-          <label class="antibot-input" for="antibot.config.start_lock" title="Specify the maximum time in seconds for a lobby to stay open after a player joins. Setting this to 0 will disable it.">Lobby Auto-Start Time</label>
-          <input type="number" step="1" value="0" id="antibot.config.start_lock" onchange="windw.specialData.config.start_lock = Number(document.getElementById('antibot.config.start_lock').value);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.start_lock = windw.specialData.config.start_lock;windw.localStorage.antibotConfig = JSON.stringify(a);">
-        </div>
-        <!-- Toggling Streak Bonus -->
-        <div>
-          <input type="checkbox" id="antibot.config.streakBonus" onchange="windw.specialData.config.streakBonus = Number(document.getElementById('antibot.config.streakBonus').checked ? 1 : 2);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.streakBonus = windw.specialData.config.streakBonus;localStorage.antibotConfig = JSON.stringify(a);alert('When modifying this option, reload the page for it to take effect')">
-          <label for="antibot.config.streakBonus" title="Toggle the Streak Bonus.">Toggle Streak Bonus</label>
-        </div>
-        <!-- Show Antibot Counters -->
-        <div>
-          <input type="checkbox" id="antibot.config.counters" onchange="windw.specialData.config.counters = document.getElementById('antibot.config.counters').checked;if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.counters = windw.specialData.config.counters;localStorage.antibotConfig = JSON.stringify(a);">
-          <label for="antibot.config.counters" title="Shows Antibot Countdowns (Lobby Auto-Start/Auto-Lock)">Show Antibot Timers</label>
-        </div>
-      </div>`;
+        <div id="antibot-settings">
+          <!-- Timeout -->
+          <div>
+            <input type="checkbox" id="antibot.config.timeout"></input>
+            <label id="antibot.config.timeoutlbl" onclick="windw.specialData.config.timeout = !windw.specialData.config.timeout;if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.timeout = windw.specialData.config.timeout;windw.localStorage.antibotConfig = JSON.stringify(a);" for="antibot.config.timeout" title="Blocks answers that are sent before 0.5 seconds after the question starts">Min Answer Timeout</label>
+          </div>
+          <!-- Random Names -->
+          <div>
+            <input type="checkbox" id="antibot.config.looksRandom" checked="checked"></input>
+            <label id="antibot.config.lookrandlbl" onclick="windw.specialData.config.looksRandom = !windw.specialData.config.looksRandom;if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.looksRandom = windw.specialData.config.looksRandom;windw.localStorage.antibotConfig = JSON.stringify(a);" for="antibot.config.looksRandom" title="Blocks names that seem 'random', such as 'OmEGaboOt'">Block Random Names</label>
+          </div>
+          <!-- Blocking Format 1 -->
+          <div>
+            <input type="checkbox" id="antibot.config.blockformat1" checked="checked"></input>
+            <label id="antibot.config.blockformat1lbl" onclick="windw.specialData.config.banFormat1 = !windw.specialData.config.banFormat1;if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.banFormat1 = windw.specialData.config.banFormat1;windw.localStorage.antibotConfig = JSON.stringify(a);" for="antibot.config.blockformat1" title="Blocks names using the format [First][random char][Last]">Block format First[._-,etc]Last</label>
+          </div>
+          <!-- Blocking kahootflood.weebly.com -->
+          <div>
+            <input type="checkbox" id="antibot.config.blockservice1"></input>
+            <label onclick="windw.specialData.config.blockservice1 = !windw.specialData.config.blockservice1;if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.blockservice1 = windw.specialData.config.blockservice1;windw.localStorage.antibotConfig = JSON.stringify(a);" for="antibot.config.blockservice1" title="A special filter focused on kahootflood.weebly.com">Block kahootflood.weebly.com</label>
+          </div>
+          <!-- Block Numbers -->
+          <div>
+            <input type="checkbox" id="antibot.config.blocknum"></input>
+            <label onclick="windw.specialData.config.blocknum = !windw.specialData.config.blocknum;if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.blocknum = windw.specialData.config.blocknum;windw.localStorage.antibotConfig = JSON.stringify(a);" for="antibot.config.blocknum" title="Marks names with numbers as suspicious. If multiple players join with numbers in their name in a short amount of time, they will be banned.">Block Numbers</label>
+          </div>
+          <!-- Block Non-Ascii -->
+          <div>
+            <input type="checkbox" id="antibot.config.forceascii"></input>
+            <label onclick="windw.specialData.config.forceascii = !windw.specialData.config.forceascii;if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.forceascii = windw.specialData.config.forceascii;windw.localStorage.antibotConfig = JSON.stringify(a);" for="antibot.config.forceascii" title="Marks names with non-alphanumeric characters as suspicious and bans them if multiple join.">Force Alphanumeric</label>
+          </div>
+          <!-- Additional Question Time -->
+          <div>
+            <label class="antibot-input" for="antibot.config.teamtimeout" title="Add extra seconds to the question.">Additional Question Time</label>
+            <input type="number" step="1" value="0" id="antibot.config.teamtimeout" onchange="windw.specialData.config.additionalQuestionTime = Number(document.getElementById('antibot.config.teamtimeout').value);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.teamtime = windw.specialData.config.additionalQuestionTime;windw.localStorage.antibotConfig = JSON.stringify(a);">
+          </div>
+          <!-- Percent -->
+          <div>
+            <label class="antibot-input" for="antibot.config.percent" title="Specify the match percentage.">Match Percent</label>
+            <input type="number" step="0.1" value="0.6" id="antibot.config.percent" onchange="windw.specialData.config.percent = Number(document.getElementById('antibot.config.percent').value);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.percent = windw.specialData.config.percent;windw.localStorage.antibotConfig = JSON.stringify(a);">
+          </div>
+          <!-- DDOS -->
+          <div>
+            <label class="antibot-input" for="antibot.config.ddos" title="Specify the number of bots/minute to lock the game. Set it to 0 to disable.">Auto Lock Threshold</label>
+            <input type="number" step="1" value="0" id="antibot.config.ddos" onchange="windw.specialData.config.ddos = Number(document.getElementById('antibot.config.ddos').value);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.ddos = windw.specialData.config.ddos;windw.localStorage.antibotConfig = JSON.stringify(a);">
+          </div>
+          <!-- Auto-Start-Lock -->
+          <div>
+            <label class="antibot-input" for="antibot.config.start_lock" title="Specify the maximum time in seconds for a lobby to stay open after a player joins. Setting this to 0 will disable it.">Lobby Auto-Start Time</label>
+            <input type="number" step="1" value="0" id="antibot.config.start_lock" onchange="windw.specialData.config.start_lock = Number(document.getElementById('antibot.config.start_lock').value);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.start_lock = windw.specialData.config.start_lock;windw.localStorage.antibotConfig = JSON.stringify(a);">
+          </div>
+          <!-- Toggling Streak Bonus -->
+          <div>
+            <input type="checkbox" id="antibot.config.streakBonus" onchange="windw.specialData.config.streakBonus = Number(document.getElementById('antibot.config.streakBonus').checked ? 1 : 2);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.streakBonus = windw.specialData.config.streakBonus;localStorage.antibotConfig = JSON.stringify(a);alert('When modifying this option, reload the page for it to take effect')">
+            <label for="antibot.config.streakBonus" title="Toggle the Streak Bonus.">Toggle Streak Bonus</label>
+          </div>
+          <!-- Show Antibot Counters -->
+          <div>
+            <input type="checkbox" id="antibot.config.counters" onchange="windw.specialData.config.counters = document.getElementById('antibot.config.counters').checked;if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.counters = windw.specialData.config.counters;localStorage.antibotConfig = JSON.stringify(a);">
+            <label for="antibot.config.counters" title="Shows Antibot Countdowns (Lobby Auto-Start/Auto-Lock)">Show Antibot Timers</label>
+          </div>
+        </div>`;
         const counters = document.createElement("div");
         counters.id = "antibot-counters";
         const styles = document.createElement("style");
         styles.type = "text/css";
         styles.innerHTML = `#antibotwtr{
-        position: fixed;
-        bottom: 100px;
-        right: 100px;
-        font-size: 1rem;
-        opacity: 0.4;
-        transition: opacity 0.4s;
-        z-index: 5000;
-        background: white;
-        text-align: center;
-        border-radius: 0.5rem;
-      }
-      #antibotwtr summary{
-        text-align: left;
-      }
-      #antibotwtr:hover{
-        opacity: 1;
-      }
-      #antibotwtr p{
-        display: inline-block;
-      }
-      #antibotwtr p:first-child{
-        font-weight: 600;
-      }
-      #killcount{
-        margin-left: 0.25rem;
-        background: black;
-        border-radius: 0.5rem;
-        color: white;
-      }
-      #antibotwtr details{
-        background: grey;
-      }
-      #antibotwtr input[type="checkbox"]{
-        display: none;
-      }
-      #antibotwtr label{
-        color: black;
-        font-weight: 600;
-        display: block;
-        background: #c60929;
-        border-radius: 0.5rem;
-        height: 100%;
-        word-break: break-word;
-      }
-      #antibotwtr .antibot-input{
-        height: calc(100% - 1.5rem);
-        background: #864cbf;
-        color: white;
-      }
-      #antibotwtr input{
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        height: 1rem;
-        border-radius: 0.25rem;
-        border: solid 1px black;
-      }
-      #antibotwtr input:checked+label{
-        background: #26890c;
-      }
-      #antibot-settings{
-        display: flex;
-        flex-wrap: wrap;
-        max-width: 25rem;
-      }
-      #antibot-settings > div{
-        flex: 1;
-        max-width: 33%;
-        min-width: 33%;
-        min-height: 6rem;
-        box-sizing: border-box;
-        position: relative;
-        border: solid 0.5rem transparent;
-      }
-      #antibot-counters{
-        position: absolute;
-        right: 10rem;
-        top: 11rem;
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: white;
-        pointer-events: none;
-      }
-      #antibot-counters div{
-        background: rgba(0,0,0,0.5);
-        padding: 0.5rem;
-        border-radius: 0.5rem;
-        margin-bottom: 0.5rem;
-      }
-      .antibot-count-num{
-        display: block;
-        text-align: center;
-      }
-      .antibot-count-desc{
-        text-align: center;
-        font-size: 1.25rem;
-        display: block;
-      }`;
+          position: fixed;
+          bottom: 100px;
+          right: 100px;
+          font-size: 1rem;
+          opacity: 0.4;
+          transition: opacity 0.4s;
+          z-index: 5000;
+          background: white;
+          text-align: center;
+          border-radius: 0.5rem;
+        }
+        #antibotwtr summary{
+          text-align: left;
+        }
+        #antibotwtr:hover{
+          opacity: 1;
+        }
+        #antibotwtr p{
+          display: inline-block;
+        }
+        #antibotwtr p:first-child{
+          font-weight: 600;
+        }
+        #killcount{
+          margin-left: 0.25rem;
+          background: black;
+          border-radius: 0.5rem;
+          color: white;
+        }
+        #antibotwtr details{
+          background: grey;
+        }
+        #antibotwtr input[type="checkbox"]{
+          display: none;
+        }
+        #antibotwtr label{
+          color: black;
+          font-weight: 600;
+          display: block;
+          background: #c60929;
+          border-radius: 0.5rem;
+          height: 100%;
+          word-break: break-word;
+        }
+        #antibotwtr .antibot-input{
+          height: calc(100% - 1.5rem);
+          background: #864cbf;
+          color: white;
+        }
+        #antibotwtr input{
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          width: 100%;
+          height: 1rem;
+          border-radius: 0.25rem;
+          border: solid 1px black;
+        }
+        #antibotwtr input:checked+label{
+          background: #26890c;
+        }
+        #antibot-settings{
+          display: flex;
+          flex-wrap: wrap;
+          max-width: 25rem;
+        }
+        #antibot-settings > div{
+          flex: 1;
+          max-width: 33%;
+          min-width: 33%;
+          min-height: 6rem;
+          box-sizing: border-box;
+          position: relative;
+          border: solid 0.5rem transparent;
+        }
+        #antibot-counters{
+          position: absolute;
+          right: 10rem;
+          top: 11rem;
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: white;
+          pointer-events: none;
+        }
+        #antibot-counters div{
+          background: rgba(0,0,0,0.5);
+          padding: 0.5rem;
+          border-radius: 0.5rem;
+          margin-bottom: 0.5rem;
+        }
+        .antibot-count-num{
+          display: block;
+          text-align: center;
+        }
+        .antibot-count-desc{
+          text-align: center;
+          font-size: 1.25rem;
+          display: block;
+        }`;
         container.append(waterMark,botText,menu);
         setTimeout(function(){
           if(document.body.innerText.split("\n").length < 8){ // assume broken. (just the water mark)
@@ -267,7 +267,8 @@ window.page.onload = ()=>{
             blockservice1: false
           },
           inLobby: true,
-          lobbyLoadTime: 0
+          lobbyLoadTime: 0,
+          lockInterval: null
         };
         // loading localStorage info
         if(windw.localStorage.antibotConfig){
@@ -370,24 +371,6 @@ window.page.onload = ()=>{
           }
           if(!s1){
             return;
-          }
-          // special blocks against kahootflood.weebly.com who has beef with Kahoot Antibot.
-          if(windw.specialData.config.blockservice1){
-            const chars = "abcdefghijklmnopqrstuvwxyz",
-              chars2 = [
-                "ᗩᗷᑕᗪEᖴGᕼIᒍKᒪᗰᑎOᑭᑫᖇᔕTᑌᐯᗯ᙭Yᘔ"
-              ];
-            for(let i = 0;i<chars2.length;i++){
-              for(let j = 0;j<chars2[i].length;j++){
-                const regex = new RegExp(chars2[i][j],"g");
-                if(typeof s1 === "string"){
-                  s1 = s1.replace(regex,chars[j]);
-                }
-                if(typeof s2 === "string"){
-                  s2 = s2.replace(regex,chars[j]);
-                }
-              }
-            }
           }
           // ignore case
           s1 = s1.toLowerCase();
@@ -555,6 +538,22 @@ window.page.onload = ()=>{
                     }
                   });
                   throw `[ANTIBOT] - Bot ${data.name} banned; Name matches format [F][R][L].`;
+                }
+              }
+              // special filters for kahootflood.weebly.com
+              if(windw.specialData.config.blockservice1){
+                if(data.name.replace(/[ᗩᗷᑕᗪEᖴGᕼIᒍKᒪᗰᑎOᑭᑫᖇᔕTᑌᐯᗯ᙭Yᘔ]/g,"").length === 0){
+                  const packet = createKickPacket(data.cid);
+                  socket.send(JSON.stringify(packet));
+                  killcount.innerHTML = +killcount.innerHTML + 1;
+                  windw.cachedUsernames.forEach(o=>{
+                    if(o.id == data.cid){
+                      o.banned = true;
+                      o.time = 10;
+                      return;
+                    }
+                  });
+                  throw `[ANTIBOT] - Bot ${data.name} banned; likely from kahootflood.weebly.com.`;
                 }
               }
               if(!windw.cachedData[data.cid] && !isNaN(data.cid) && Object.keys(data).length <= 5 && data.name.length < 16){ //if the id has not been cached yet or is an invalid id, and they are not a bot :p
@@ -776,11 +775,11 @@ window.page.onload = ()=>{
           /*console.log(data);*/
           messageId = data.id ? data.id : messageId;
           /*if the message is the first message, which contains important clientid data*/
-          if(data.id == 1){
+          if(data.id === "1"){
             clientId = data.clientId;
           }
           /*if the message is a player join message*/
-          if(data.data ? data.data.type == "joined" : false){
+          if(data.data && data.data.type === "joined"){
             console.warn("[ANTIBOT] - determining evil...");
             determineEvil(data.data,e.webSocket);
             specialBotDetector(data.data.type,data.data,e.webSocket);
@@ -822,7 +821,7 @@ window.page.onload = ()=>{
                 }
               }
             }
-          }else if(data.data ? data.data.id == 45 : false){
+          }else if(data.data && data.data.id === 45){
           // if player answers
             if(Date.now() - windw.specialData.startTime < 500 && windw.specialData.config.timeout){
               throw "[ANTIBOT] - Answer was too quick!";
@@ -835,7 +834,7 @@ window.page.onload = ()=>{
               delete windw.cachedData[data.data.cid];
               throw `[ANTIBOT] - Bot with id ${data.data.cid} banned. Answered too quickly after joining.`;
             }
-          }else if(data.data ? data.data.id == 50 : false){
+          }else if(data.data && data.data.id === 50){
             windw.cachedData[data.data.cid].tries++;
             if(windw.cachedData[data.data.cid].tries > 3){
               const kicker = createKickPacket(data.data.cid);
@@ -852,8 +851,10 @@ window.page.onload = ()=>{
               delete windw.cachedData[data.data.cid];
               killcount.innerHTML = +killcount.innerHTML + 1;
             }
-          }else if (data.data && data.data.id == 18) {
+          }else if(data.data && data.data.id === 18) {
             teamBotDetector(JSON.parse(data.data.content),data.data.cid,e.webSocket);
+          }else if(data.data && data.data.status === "LOCKED"){
+            clearInterval(windw.specialData.lockInterval);
           }
         };
         // remove loaded modules (allows turning off things to be a bit easier)
