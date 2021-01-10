@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.12.0
+// @version      2.12.1
 // @icon         https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
@@ -47,7 +47,7 @@ window.page.onload = ()=>{
         const container = document.createElement("div");
         container.id = "antibotwtr";
         const waterMark = document.createElement("p");
-        waterMark.innerHTML = "v2.12.0 @theusaf";
+        waterMark.innerHTML = "v2.12.1 @theusaf";
         const botText = document.createElement("p");
         botText.innerHTML = "0";
         botText.id = "killcount";
@@ -542,7 +542,7 @@ window.page.onload = ()=>{
               }
               // special filters for kahootflood.weebly.com
               if(windw.specialData.config.blockservice1){
-                if(data.name.replace(/[ᗩᗷᑕᗪEᖴGᕼIᒍKᒪᗰᑎOᑭᑫᖇᔕTᑌᐯᗯ᙭Yᘔ]/g,"").length === 0){
+                if(data.name.replace(/[ᗩᗷᑕᗪEᖴGᕼIᒍKᒪᗰᑎOᑭᑫᖇᔕTᑌᐯᗯ᙭Yᘔ]/g,"").length / data.name.length < 0.5){
                   const packet = createKickPacket(data.cid);
                   socket.send(JSON.stringify(packet));
                   killcount.innerHTML = +killcount.innerHTML + 1;
