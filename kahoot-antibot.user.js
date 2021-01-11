@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.13.0
+// @version      2.13.1
 // @icon         https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
@@ -47,7 +47,7 @@ window.page.onload = ()=>{
         const container = document.createElement("div");
         container.id = "antibotwtr";
         const waterMark = document.createElement("p");
-        waterMark.innerHTML = "v2.13.0 @theusaf";
+        waterMark.innerHTML = "v2.13.1 @theusaf";
         const botText = document.createElement("p");
         botText.innerHTML = "0";
         botText.id = "killcount";
@@ -910,10 +910,10 @@ window.page.onload = ()=>{
         letter4 = sc.match(sq)[0].match(/[a-zA-Z](?=\.)/g)[0];
       sc = sc.replace(sc.match(sq)[0],`=(()=>{window.globalFuncs = e;return ${letter4}.startQuiz})()`);
       // Access the fetched quiz information. Allows the quiz to be modified when the quiz is fetched!
-      const fqr = /ERROR",[A-Z][a-z]=function\([a-z]\){return Object\(\$[a-z]\.[a-z]\)\([A-Z][a-z],{response:[a-z]}\)}/gm,
+      const fqr = /RETRIEVE_KAHOOT_ERROR",[\w\d]{2}=function\([a-z]\){return Object\([\w$\d]{2}\.[a-z]\)\([\w\d]{2},{response:[a-z]}\)}/gm,
         letter5 = sc.match(fqr)[0].match(/response:[a-z]/g)[0].split(":")[1],
         fqrt = sc.match(fqr)[0];
-      sc = sc.replace(fqrt,`ERROR",${fqrt.split("ERROR\",")[1].split("response:")[0]}response:(()=>{windw.specialData.globalQuizData = e;if(!windw.specialData.config.counterCheats){return e;}e.questions.push({question:"[ANTIBOT] - This poll is for countering Kahoot cheating sites.",time:20000,type:"survey",isAntibotQuestion:true,choices:[{answer:"OK",correct:true}]});return ${letter5};})()})}`);
+      sc = sc.replace(fqrt,`RETRIEVE_KAHOOT_ERROR",${fqrt.split("RETRIEVE_KAHOOT_ERROR\",")[1].split("response:")[0]}response:(()=>{windw.specialData.globalQuizData = e;if(!windw.specialData.config.counterCheats){return e;}e.questions.push({question:"[ANTIBOT] - This poll is for countering Kahoot cheating sites.",time:20000,type:"survey",isAntibotQuestion:true,choices:[{answer:"OK",correct:true}]});return ${letter5};})()})}`);
       let changed = originalPage.split("</body>");
       changed = `${changed[0]}<script>${patchedScript}</script><script>${sc}</script><script>try{(${window.localStorage.kahootThemeScript})();}catch(err){}try{(${window.localStorage.extraCheck})();}catch(err){}window.setupAntibot = ${code.toString()};window.parent.fireLoaded = window.fireLoaded = true;window.setupAntibot();</script></body>${changed[1]}`;
       console.log("[ANTIBOT] - loaded");
