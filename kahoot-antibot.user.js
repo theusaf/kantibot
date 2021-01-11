@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.12.1
+// @version      2.13.0
 // @icon         https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
@@ -47,7 +47,7 @@ window.page.onload = ()=>{
         const container = document.createElement("div");
         container.id = "antibotwtr";
         const waterMark = document.createElement("p");
-        waterMark.innerHTML = "v2.12.1 @theusaf";
+        waterMark.innerHTML = "v2.13.0 @theusaf";
         const botText = document.createElement("p");
         botText.innerHTML = "0";
         botText.id = "killcount";
@@ -113,6 +113,27 @@ window.page.onload = ()=>{
           <div>
             <input type="checkbox" id="antibot.config.counters" onchange="windw.specialData.config.counters = document.getElementById('antibot.config.counters').checked;if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.counters = windw.specialData.config.counters;localStorage.antibotConfig = JSON.stringify(a);">
             <label for="antibot.config.counters" title="Shows Antibot Countdowns (Lobby Auto-Start/Auto-Lock)">Show Antibot Timers</label>
+          </div>
+          <!-- Counter cheats -->
+          <div>
+            <input type="checkbox" id="antibot.config.counterCheats" onchange="windw.specialData.config.counterCheats = document.getElementById('antibot.config.counterCheats').checked;
+              if(!windw.localStorage.antibotConfig){
+                windw.localStorage.antibotConfig = JSON.stringify({});
+              }
+              const a = JSON.parse(windw.localStorage.antibotConfig);
+              a.counterCheats = windw.specialData.config.counterCheats;
+              localStorage.antibotConfig = JSON.stringify(a);
+              if(a.counterCheats){
+                // enable cheats?
+                alert('This setting will only be applied once the page is reloaded.');
+              }else{
+                // disable anti-cheat
+                const q = windw.specialData.globalQuizData.questions;
+                if(q[q.length - 1].isAntibotQuestion){
+                  q.splice(-1,1);
+                }
+              }">
+            <label for="antibot.config.counterCheats" title="Adds an additional 20 second question at the end to counter cheats.">Counter Kahoot Cheats</label>
           </div>
         </div>`;
         const counters = document.createElement("div");
@@ -185,6 +206,8 @@ window.page.onload = ()=>{
           display: flex;
           flex-wrap: wrap;
           max-width: 25rem;
+          max-height: 24rem;
+          overflow: auto;
         }
         #antibot-settings > div{
           flex: 1;
@@ -325,6 +348,10 @@ window.page.onload = ()=>{
           if(a.blockservice1){
             document.getElementById("antibot.config.blockservice1").checked = true;
             windw.specialData.config.blockservice1 = true;
+          }
+          if(a.counterCheats){
+            document.getElementById("antibot.config.counterCheats").checked = true;
+            windw.specialData.config.counterCheats = true;
           }
         }
         let messageId = 0,
@@ -882,6 +909,11 @@ window.page.onload = ()=>{
       const sq = /=[a-zA-Z]\.startQuiz/gm,
         letter4 = sc.match(sq)[0].match(/[a-zA-Z](?=\.)/g)[0];
       sc = sc.replace(sc.match(sq)[0],`=(()=>{window.globalFuncs = e;return ${letter4}.startQuiz})()`);
+      // Access the fetched quiz information. Allows the quiz to be modified when the quiz is fetched!
+      const fqr = /ERROR",[A-Z][a-z]=function\([a-z]\){return Object\(\$[a-z]\.[a-z]\)\([A-Z][a-z],{response:[a-z]}\)}/gm,
+        letter5 = sc.match(fqr)[0].match(/response:[a-z]/g)[0].split(":")[1],
+        fqrt = sc.match(fqr)[0];
+      sc = sc.replace(fqrt,`ERROR",${fqrt.split("ERROR\",")[1].split("response:")[0]}response:(()=>{windw.specialData.globalQuizData = e;if(!windw.specialData.config.counterCheats){return e;}e.questions.push({question:"[ANTIBOT] - This poll is for countering Kahoot cheating sites.",time:20000,type:"survey",isAntibotQuestion:true,choices:[{answer:"OK",correct:true}]});return ${letter5};})()})}`);
       let changed = originalPage.split("</body>");
       changed = `${changed[0]}<script>${patchedScript}</script><script>${sc}</script><script>try{(${window.localStorage.kahootThemeScript})();}catch(err){}try{(${window.localStorage.extraCheck})();}catch(err){}window.setupAntibot = ${code.toString()};window.parent.fireLoaded = window.fireLoaded = true;window.setupAntibot();</script></body>${changed[1]}`;
       console.log("[ANTIBOT] - loaded");
