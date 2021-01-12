@@ -707,7 +707,7 @@ window.page.onload = ()=>{
                   windw.specialData.inLobby = true;
                   windw.specialData.lobbyLoadTime = 0;
                 }
-                break
+                break;
               case 9:
                 // start
                 windw.specialData.inLobby = false;
