@@ -1,17 +1,19 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.13.2
+// @version      2.14.0
 // @icon         https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
-// @copyright    2019-2021, Daniel Lau (https://github.com/theusaf/kahoot-antibot)
+// @copyright    2018-2021, Daniel Lau (https://github.com/theusaf/kahoot-antibot)
 // @match        *://play.kahoot.it/*
 // @exclude      *://play.kahoot.it/v2/assets/*
 // @grant        none
 // @run-at       document-start
 // @license      MIT; https://opensource.org/licenses/MIT
 // ==/UserScript==
+
+// Notes: changing the questions AND questionIndex stuff works?
 
 if(window.fireLoaded || (window.parent && window.parent.page)){
   throw "[ANTIBOT] - page is loaded";
@@ -47,7 +49,7 @@ window.page.onload = ()=>{
         const container = document.createElement("div");
         container.id = "antibotwtr";
         const waterMark = document.createElement("p");
-        waterMark.innerHTML = "v2.13.2 @theusaf";
+        waterMark.innerHTML = "v2.14.0 @theusaf";
         const botText = document.createElement("p");
         botText.innerHTML = "0";
         botText.id = "killcount";
@@ -124,16 +126,77 @@ window.page.onload = ()=>{
               a.counterCheats = windw.specialData.config.counterCheats;
               localStorage.antibotConfig = JSON.stringify(a);
               if(a.counterCheats){
-                // enable cheats?
-                alert('This setting will only be applied once the page is reloaded.');
+                // enable cheats
+                clearInterval(windw.specialData.waitCounterCheats);
+                windw.specialData.waitCounterCheats = setInterval(()=>{
+                  if(windw.specialData.globalQuizData){
+                    clearInterval(windw.specialData.waitCounterCheats);
+                    const len = windw.specialData.globalQuizData.questions.push({
+                      question:'[ANTIBOT] - This poll is for countering Kahoot cheating sites.',
+                      time:20000,
+                      type:'survey',
+                      isAntibotQuestion:true,
+                      choices:[{answer:'OK',correct:true}]
+                    });
+                    windw.specialData.kahootCore.game.navigation.questionIndexMap[len - 1] = len - 1;
+                  }
+                },500);
               }else{
                 // disable anti-cheat
+                clearInterval(windw.specialData.waitCounterCheats);
                 const q = windw.specialData.globalQuizData.questions;
                 if(q[q.length - 1].isAntibotQuestion){
                   q.splice(-1,1);
+                  delete windw.specialData.kahootCore.game.navigation.questionIndexMap[q.length];
                 }
               }">
-            <label for="antibot.config.counterCheats" title="Adds an additional 20 second question at the end to counter cheats.">Counter Kahoot Cheats</label>
+            <label for="antibot.config.counterCheats" title="Adds an additional 20 second question at the end to counter cheats. Note: Changing this mid-game may break the game.">Counter Kahoot Cheats</label>
+          </div>
+          <!-- CAPTCHA -->
+          <div>
+            <input type="checkbox" id="antibot.config.enableCAPTCHA" onchange="windw.specialData.config.enableCAPTCHA = document.getElementById('antibot.config.enableCAPTCHA').checked;
+              if(!windw.localStorage.antibotConfig){
+                windw.localStorage.antibotConfig = JSON.stringify({});
+              }
+              const a = JSON.parse(windw.localStorage.antibotConfig);
+              a.enableCAPTCHA = windw.specialData.config.enableCAPTCHA;
+              localStorage.antibotConfig = JSON.stringify(a);
+              if(a.enableCAPTCHA){
+                // enable captcha
+                clearInterval(windw.specialData.waitEnableCaptcha);
+                windw.specialData.waitEnableCaptcha = setInterval(()=>{
+                  if(windw.specialData.globalQuizData){
+                    clearInterval(windw.specialData.waitEnableCaptcha);
+                    const answers = ['red','blue','yellow','green'],
+                      images = [
+                        'https://cdn.discordapp.com/attachments/775828441127714837/798671584520568852/red.png',
+                        'https://cdn.discordapp.com/attachments/775828441127714837/798671580778594344/blue.png',
+                        'https://cdn.discordapp.com/attachments/775828441127714837/798671583178522685/yellow.png',
+                        'https://cdn.discordapp.com/attachments/775828441127714837/798671581962436619/green.png'
+                      ],
+                      imageIndex = Math.floor(Math.random() * answers.length);
+                    windw.specialData.globalQuizData.questions.splice(0,0,{
+                      question: \`[ANTIBOT] - CAPTCHA: Please select \${answers[imageIndex]}\`,
+                      time: 30000,
+                      type: 'survey',
+                      isAntibotQuestion: true,
+                      AntibotCaptchaCorrectIndex: imageIndex,
+                      choices:[{answer:'OK'},{answer:'OK'},{answer:'OK'},{answer:'OK'}],
+                      image: images[imageIndex]
+                    });
+                    windw.specialData.kahootCore.game.navigation.questionIndexMap[windw.specialData.globalQuizData.questions.length - 1] = windw.specialData.globalQuizData.questions.length - 1;
+                  }
+                },500);
+              }else{
+                // disable captcha
+                clearInterval(windw.specialData.waitEnableCaptcha);
+                const q = windw.specialData.globalQuizData.questions;
+                if(q[0].isAntibotQuestion){
+                  q.splice(0,1);
+                  delete windw.specialData.kahootCore.game.navigation.questionIndexMap[q.length];
+                }
+              }">
+            <label for="antibot.config.enableCAPTCHA" title="Adds a 30 second poll at the start of the quiz. If players don't answer it correctly, they get banned. Note: Changing this mid-game may break the game.">Enable CAPTCHA</label>
           </div>
         </div>`;
         const counters = document.createElement("div");
@@ -271,6 +334,48 @@ window.page.onload = ()=>{
         windw.cachedData = {};
         windw.loggedPlayers = {};
         windw.specialData = {
+          extraQuestionSetup: ()=>{
+            if(windw.specialData.config.counterCheats){
+              windw.specialData.waitCounterCheats = setInterval(()=>{
+                if(windw.specialData.globalQuizData){
+                  clearInterval(windw.specialData.waitCounterCheats);
+                  const len = windw.specialData.globalQuizData.questions.push({
+                    question:"[ANTIBOT] - This poll is for countering Kahoot cheating sites.",
+                    time:20000,
+                    type:"survey",
+                    isAntibotQuestion:true,
+                    choices:[{answer:"OK",correct:true}]
+                  });
+                  windw.specialData.kahootCore.game.navigation.questionIndexMap[len] = len;
+                }
+              },500);
+            }
+            if(windw.specialData.config.enableCAPTCHA){
+              windw.specialData.waitEnableCaptcha = setInterval(()=>{
+                if(windw.specialData.globalQuizData){
+                  clearInterval(windw.specialData.waitEnableCaptcha);
+                  const answers = ["red","blue","yellow","green"],
+                    images = [
+                      "https://cdn.discordapp.com/attachments/775828441127714837/798671584520568852/red.png",
+                      "https://cdn.discordapp.com/attachments/775828441127714837/798671580778594344/blue.png",
+                      "https://cdn.discordapp.com/attachments/775828441127714837/798671583178522685/yellow.png",
+                      "https://cdn.discordapp.com/attachments/775828441127714837/798671581962436619/green.png"
+                    ],
+                    imageIndex = Math.floor(Math.random() * answers.length);
+                  windw.specialData.globalQuizData.questions.splice(0,0,{
+                    question: `[ANTIBOT] - CAPTCHA: Please select ${answers[imageIndex]}`,
+                    time: 30000,
+                    type: "survey",
+                    isAntibotQuestion: true,
+                    AntibotCaptchaCorrectIndex: imageIndex,
+                    choices:[{answer:"OK"},{answer:"OK"},{answer:"OK"},{answer:"OK"}],
+                    image: images[imageIndex]
+                  });
+                  windw.specialData.kahootCore.game.navigation.questionIndexMap[windw.specialData.globalQuizData.questions.length] = windw.specialData.globalQuizData.questions.length;
+                }
+              },500);
+            }
+          },
           startTime: 0,
           lastFakeLogin: 0,
           lastFakeUserID: 0,
@@ -287,11 +392,17 @@ window.page.onload = ()=>{
             start_lock: 0,
             counters: false,
             forceascii: false,
-            blockservice1: false
+            blockservice1: false,
+            enableCAPTCHA: false
           },
           inLobby: true,
           lobbyLoadTime: 0,
-          lockInterval: null
+          lockInterval: null,
+          kahootCore: null,
+          globalFuncs: null,
+          waitCounterCheats: null,
+          waitEnableCaptcha: null,
+          CAPTCHA_IDS: null
         };
         // loading localStorage info
         if(windw.localStorage.antibotConfig){
@@ -352,6 +463,10 @@ window.page.onload = ()=>{
           if(a.counterCheats){
             document.getElementById("antibot.config.counterCheats").checked = true;
             windw.specialData.config.counterCheats = true;
+          }
+          if(a.enableCAPTCHA){
+            document.getElementById("antibot.config.enableCAPTCHA").checked = true;
+            windw.specialData.config.enableCAPTCHA = true;
           }
         }
         let messageId = 0,
@@ -686,7 +801,7 @@ window.page.onload = ()=>{
             windw.cachedData[i].tries = 0;
           }
         },10000);
-        windw.sendHandler = function(data){
+        windw.sendHandler = function(data,e){
           data = JSON.parse(data)[0];
           if(data.data){
             if(!data.data.id){
@@ -696,6 +811,7 @@ window.page.onload = ()=>{
               case 2:
                 // question start
                 windw.specialData.startTime = Date.now();
+                windw.specialData.CAPTCHA_IDS = new Set;
                 break;
               case 5:
                 // restart
@@ -715,6 +831,25 @@ window.page.onload = ()=>{
                   clearInterval(windw.specialData.StartLockInterval);
                   windw.specialData.StartLockElem.outerHTML = "";
                   windw.specialData.StartLockElem = null;
+                }
+                break;
+              case 4:
+                // question end
+                if(windw.specialData.kahootCore.game.navigation.currentGameBlockIndex === 0
+                  && windw.specialData.globalQuizData.questions[0].isAntibotQuestion){
+                  // boot all who did not answer
+                  const controllers = windw.specialData.kahootCore.game.core.controllers,
+                    answeredControllers = windw.specialData.CAPTCHA_IDS;
+                  for(const id in controllers){
+                    if(!answeredControllers.has(id)){
+                      const pack = createKickPacket(id);
+                      e.webSocket.send(JSON.stringify(pack));
+                      killcount.innerHTML = +killcount.innerHTML + 1;
+                      console.error("[ANTIBOT] - Bot banned. Did not answer the CAPTCHA.");
+                      delete windw.cachedData[data.data.cid];
+                      delete controllers[id];
+                    }
+                  }
                 }
                 break;
             }
@@ -737,34 +872,27 @@ window.page.onload = ()=>{
           if(!windw.e.webSocket.oldSend){
             windw.e.webSocket.oldSend = windw.e.webSocket.send;
             windw.e.webSocket.send = function(data){
-              windw.sendHandler(data);
+              windw.sendHandler(data,e);
               windw.e.webSocket.oldSend(data);
             };
           }
-          try{
-            const elem = document.querySelector("[data-functional-selector=\"game-pin\"]") || document.querySelector("[data-functional-selector=\"bottom-bar-game-pin\"]");
-            pin = pin ? pin : Number(elem.innerText);
-            if(Number(elem.innerText) !== pin && !isNaN(Number(elem.innerText))){
-              pin = Number(elem.innerText);
-            }
-          }catch(err){/* Item doesn't exist */}
+          try{pin = windw.specialData.kahootCore.game.core.pin;}catch(e){/* Pin doesn't exist yet */}
           // check DDOS
           if(!locked && pin){
             if(!!(+windw.specialData.config.ddos) && (+killcount.innerHTML - oldamount) > (+windw.specialData.config.ddos/3)){
               locked = true;
-              const oldpin = pin,
-                // LOCK THE GAME!
-                // 2.12.0 - Repeats every 0.25 seconds until the game is actually locked.
-                lockPacket = [{
-                  channel: "/service/player",
-                  clientId,
-                  data: {
-                    gameid: oldpin,
-                    type: "lock"
-                  },
-                  ext: {},
-                  id: ++messageId
-                }];
+              // LOCK THE GAME!
+              // 2.12.0 - Repeats every 0.25 seconds until the game is actually locked.
+              const lockPacket = [{
+                channel: "/service/player",
+                clientId,
+                data: {
+                  gameid: pin,
+                  type: "lock"
+                },
+                ext: {},
+                id: ++messageId
+              }];
               e.webSocket.send(JSON.stringify(lockPacket));
               windw.specialData.lockInterval = setInterval(()=>{
                 lockPacket.id = ++messageId;
@@ -794,7 +922,7 @@ window.page.onload = ()=>{
                   channel: "/service/player",
                   clientId,
                   data: {
-                    gameid: oldpin,
+                    gameid: pin,
                     type: "unlock"
                   },
                   ext: {},
@@ -817,7 +945,7 @@ window.page.onload = ()=>{
             determineEvil(data.data,e.webSocket);
             specialBotDetector(data.data.type,data.data,e.webSocket);
             // Player was not banned.
-            if(windw.specialData.inLobby && windw.specialData.config.start_lock !== 0 && window.globalFuncs && window.globalFuncs.gameOptions.automaticallyProgressGame){
+            if(windw.specialData.inLobby && windw.specialData.config.start_lock !== 0 && windw.specialData.globalFuncs && windw.specialData.globalFuncs.gameOptions.automaticallyProgressGame){
               if(windw.specialData.lobbyLoadTime === 0){
                 windw.specialData.lobbyLoadTime = Date.now();
                 if(windw.specialData.config.counters){
@@ -837,15 +965,15 @@ window.page.onload = ()=>{
                 }
               }
               if(Date.now() - windw.specialData.lobbyLoadTime > windw.specialData.config.start_lock * 1000){
-              // max time passed, just start the darn thing!
-                const {controllers} = window.globalFuncs;
+                // max time passed, just start the darn thing!
+                const {controllers} = windw.specialData.globalFuncs;
                 if(controllers.filter((controller)=>{
                   return !controller.isGhost && !controller.hasLeft;
                 }).length === 0){
                 // The only current player in the lobby.
                   windw.specialData.lobbyLoadTime = Date.now();
                 }else{
-                  window.globalFuncs.startQuiz();
+                  windw.specialData.globalFuncs.startQuiz();
                   if(windw.specialData.StartLockElem){
                     clearInterval(windw.specialData.StartLockInterval);
                     windw.specialData.StartLockElem.outerHTML = "";
@@ -855,7 +983,25 @@ window.page.onload = ()=>{
               }
             }
           }else if(data.data && data.data.id === 45){
-          // if player answers
+            // if player answers
+            if(windw.specialData.kahootCore.game.navigation.currentGameBlockIndex === 0
+              && windw.specialData.globalQuizData.questions[0].isAntibotQuestion){
+              windw.specialData.CAPTCHA_IDS.add(data.data.cid);
+              // if incorrect answer
+              let choice = -1;
+              try{
+                choice = JSON.parse(data.data.content).choice;
+              }catch(e){/* Likely invalid answer */}
+              if(choice !== windw.specialData.globalQuizData.questions[0].AntibotCaptchaCorrectIndex){
+                // BAN!
+                const packet = createKickPacket(data.data.cid);
+                e.webSocket.send(JSON.stringify(packet));
+                delete windw.cachedData[data.data.cid];
+                delete windw.specialData.kahootCore.game.core.controllers[data.data.cid];
+                killcount.innerHTML = +killcount.innerHTML + 1;
+                console.error("[ANTIBOT] - Bot banned. Failed the captcha.");
+              }
+            }
             if(Date.now() - windw.specialData.startTime < 500 && windw.specialData.config.timeout){
               throw "[ANTIBOT] - Answer was too quick!";
             }
@@ -914,12 +1060,27 @@ window.page.onload = ()=>{
       // Access the StartQuiz function. Also gains direct access to the controllers!
       const sq = /=[a-zA-Z]\.startQuiz/gm,
         letter4 = sc.match(sq)[0].match(/[a-zA-Z](?=\.)/g)[0];
-      sc = sc.replace(sc.match(sq)[0],`=(()=>{window.globalFuncs = e;return ${letter4}.startQuiz})()`);
+      sc = sc.replace(sc.match(sq)[0],`=(()=>{
+        windw.specialData.globalFuncs = ${letter4};
+        return ${letter4}.startQuiz})()`);
       // Access the fetched quiz information. Allows the quiz to be modified when the quiz is fetched!
       const fqr = /RETRIEVE_KAHOOT_ERROR",[\w\d]{2}=function\([a-z]\){return Object\([\w$\d]{2}\.[a-z]\)\([\w\d]{2},{response:[a-z]}\)}/gm,
         letter5 = sc.match(fqr)[0].match(/response:[a-z]/g)[0].split(":")[1],
         fqrt = sc.match(fqr)[0];
-      sc = sc.replace(fqrt,`RETRIEVE_KAHOOT_ERROR",${fqrt.split("RETRIEVE_KAHOOT_ERROR\",")[1].split("response:")[0]}response:(()=>{windw.specialData.globalQuizData = e;if(!windw.specialData.config.counterCheats){return e;}e.questions.push({question:"[ANTIBOT] - This poll is for countering Kahoot cheating sites.",time:20000,type:"survey",isAntibotQuestion:true,choices:[{answer:"OK",correct:true}]});return ${letter5};})()})}`);
+      sc = sc.replace(fqrt,`RETRIEVE_KAHOOT_ERROR",${fqrt.split("RETRIEVE_KAHOOT_ERROR\",")[1].split("response:")[0]}response:(()=>{
+        windw.specialData.globalQuizData = ${letter5};
+        windw.specialData.extraQuestionSetup();
+        return ${letter5};
+      })()})}`);
+      // Access the core data
+      const cr = /[a-z]\.game\.core/m,
+        letter6 = sc.match(cr)[0].match(/[a-z](?=\.game)/)[0];
+      sc = sc.replace(cr,`(()=>{
+        if(typeof windw !== "undefined"){
+          windw.specialData.kahootCore = ${letter6};
+        }
+        return ${letter6}.game.core;
+      })()`);
       let changed = originalPage.split("</body>");
       changed = `${changed[0]}<script>${patchedScript}</script><script>${sc}</script><script>try{(${window.localStorage.kahootThemeScript})();}catch(err){}try{(${window.localStorage.extraCheck})();}catch(err){}window.setupAntibot = ${code.toString()};window.parent.fireLoaded = window.fireLoaded = true;window.setupAntibot();</script></body>${changed[1]}`;
       console.log("[ANTIBOT] - loaded");
