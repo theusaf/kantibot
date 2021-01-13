@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.14.0
+// @version      2.14.1
 // @icon         https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
@@ -49,7 +49,7 @@ window.page.onload = ()=>{
         const container = document.createElement("div");
         container.id = "antibotwtr";
         const waterMark = document.createElement("p");
-        waterMark.innerHTML = "v2.14.0 @theusaf";
+        waterMark.innerHTML = "v2.14.1 @theusaf";
         const botText = document.createElement("p");
         botText.innerHTML = "0";
         botText.id = "killcount";
@@ -127,23 +127,9 @@ window.page.onload = ()=>{
               localStorage.antibotConfig = JSON.stringify(a);
               if(a.counterCheats){
                 // enable cheats
-                clearInterval(windw.specialData.waitCounterCheats);
-                windw.specialData.waitCounterCheats = setInterval(()=>{
-                  if(windw.specialData.globalQuizData){
-                    clearInterval(windw.specialData.waitCounterCheats);
-                    const len = windw.specialData.globalQuizData.questions.push({
-                      question:'[ANTIBOT] - This poll is for countering Kahoot cheating sites.',
-                      time:20000,
-                      type:'survey',
-                      isAntibotQuestion:true,
-                      choices:[{answer:'OK',correct:true}]
-                    });
-                    windw.specialData.kahootCore.game.navigation.questionIndexMap[len - 1] = len - 1;
-                  }
-                },500);
+                alert('Changes may only take effect upon reload.');
               }else{
                 // disable anti-cheat
-                clearInterval(windw.specialData.waitCounterCheats);
                 const q = windw.specialData.globalQuizData.questions;
                 if(q[q.length - 1].isAntibotQuestion){
                   q.splice(-1,1);
@@ -163,33 +149,9 @@ window.page.onload = ()=>{
               localStorage.antibotConfig = JSON.stringify(a);
               if(a.enableCAPTCHA){
                 // enable captcha
-                clearInterval(windw.specialData.waitEnableCaptcha);
-                windw.specialData.waitEnableCaptcha = setInterval(()=>{
-                  if(windw.specialData.globalQuizData){
-                    clearInterval(windw.specialData.waitEnableCaptcha);
-                    const answers = ['red','blue','yellow','green'],
-                      images = [
-                        'https://cdn.discordapp.com/attachments/775828441127714837/798671584520568852/red.png',
-                        'https://cdn.discordapp.com/attachments/775828441127714837/798671580778594344/blue.png',
-                        'https://cdn.discordapp.com/attachments/775828441127714837/798671583178522685/yellow.png',
-                        'https://cdn.discordapp.com/attachments/775828441127714837/798671581962436619/green.png'
-                      ],
-                      imageIndex = Math.floor(Math.random() * answers.length);
-                    windw.specialData.globalQuizData.questions.splice(0,0,{
-                      question: \`[ANTIBOT] - CAPTCHA: Please select \${answers[imageIndex]}\`,
-                      time: 30000,
-                      type: 'survey',
-                      isAntibotQuestion: true,
-                      AntibotCaptchaCorrectIndex: imageIndex,
-                      choices:[{answer:'OK'},{answer:'OK'},{answer:'OK'},{answer:'OK'}],
-                      image: images[imageIndex]
-                    });
-                    windw.specialData.kahootCore.game.navigation.questionIndexMap[windw.specialData.globalQuizData.questions.length - 1] = windw.specialData.globalQuizData.questions.length - 1;
-                  }
-                },500);
+                alert('Changes may only take effect upon reload.');
               }else{
                 // disable captcha
-                clearInterval(windw.specialData.waitEnableCaptcha);
                 const q = windw.specialData.globalQuizData.questions;
                 if(q[0].isAntibotQuestion){
                   q.splice(0,1);
@@ -334,46 +296,36 @@ window.page.onload = ()=>{
         windw.cachedData = {};
         windw.loggedPlayers = {};
         windw.specialData = {
-          extraQuestionSetup: ()=>{
+          extraQuestionSetup: (quiz)=>{
             if(windw.specialData.config.counterCheats){
-              windw.specialData.waitCounterCheats = setInterval(()=>{
-                if(windw.specialData.globalQuizData){
-                  clearInterval(windw.specialData.waitCounterCheats);
-                  const len = windw.specialData.globalQuizData.questions.push({
-                    question:"[ANTIBOT] - This poll is for countering Kahoot cheating sites.",
-                    time:20000,
-                    type:"survey",
-                    isAntibotQuestion:true,
-                    choices:[{answer:"OK",correct:true}]
-                  });
-                  windw.specialData.kahootCore.game.navigation.questionIndexMap[len] = len;
-                }
-              },500);
+              const len = quiz.questions.push({
+                  question:"[ANTIBOT] - This poll is for countering Kahoot cheating sites.",
+                  time:20000,
+                  type:"survey",
+                  isAntibotQuestion:true,
+                  choices:[{answer:"OK",correct:true}]
+                });
+              // windw.specialData.kahootCore.game.navigation.questionIndexMap[len - 1] = len - 1;
             }
             if(windw.specialData.config.enableCAPTCHA){
-              windw.specialData.waitEnableCaptcha = setInterval(()=>{
-                if(windw.specialData.globalQuizData){
-                  clearInterval(windw.specialData.waitEnableCaptcha);
-                  const answers = ["red","blue","yellow","green"],
-                    images = [
-                      "https://cdn.discordapp.com/attachments/775828441127714837/798671584520568852/red.png",
-                      "https://cdn.discordapp.com/attachments/775828441127714837/798671580778594344/blue.png",
-                      "https://cdn.discordapp.com/attachments/775828441127714837/798671583178522685/yellow.png",
-                      "https://cdn.discordapp.com/attachments/775828441127714837/798671581962436619/green.png"
-                    ],
-                    imageIndex = Math.floor(Math.random() * answers.length);
-                  windw.specialData.globalQuizData.questions.splice(0,0,{
-                    question: `[ANTIBOT] - CAPTCHA: Please select ${answers[imageIndex]}`,
-                    time: 30000,
-                    type: "survey",
-                    isAntibotQuestion: true,
-                    AntibotCaptchaCorrectIndex: imageIndex,
-                    choices:[{answer:"OK"},{answer:"OK"},{answer:"OK"},{answer:"OK"}],
-                    image: images[imageIndex]
-                  });
-                  windw.specialData.kahootCore.game.navigation.questionIndexMap[windw.specialData.globalQuizData.questions.length] = windw.specialData.globalQuizData.questions.length;
-                }
-              },500);
+              const answers = ["red","blue","yellow","green"],
+                images = [
+                  "https://cdn.discordapp.com/attachments/775828441127714837/798671584520568852/red.png",
+                  "https://cdn.discordapp.com/attachments/775828441127714837/798671580778594344/blue.png",
+                  "https://cdn.discordapp.com/attachments/775828441127714837/798671583178522685/yellow.png",
+                  "https://cdn.discordapp.com/attachments/775828441127714837/798671581962436619/green.png"
+                ],
+                imageIndex = Math.floor(Math.random() * answers.length);
+              quiz.questions.splice(0,0,{
+                question: `[ANTIBOT] - CAPTCHA: Please select ${answers[imageIndex]}`,
+                time: 30000,
+                type: "survey",
+                isAntibotQuestion: true,
+                AntibotCaptchaCorrectIndex: imageIndex,
+                choices:[{answer:"OK"},{answer:"OK"},{answer:"OK"},{answer:"OK"}],
+                image: images[imageIndex]
+              });
+              // windw.specialData.kahootCore.game.navigation.questionIndexMap[quiz.length - 1] = quiz.length - 1;
             }
           },
           startTime: 0,
@@ -1069,7 +1021,7 @@ window.page.onload = ()=>{
         fqrt = sc.match(fqr)[0];
       sc = sc.replace(fqrt,`RETRIEVE_KAHOOT_ERROR",${fqrt.split("RETRIEVE_KAHOOT_ERROR\",")[1].split("response:")[0]}response:(()=>{
         windw.specialData.globalQuizData = ${letter5};
-        windw.specialData.extraQuestionSetup();
+        windw.specialData.extraQuestionSetup(${letter5});
         return ${letter5};
       })()})}`);
       // Access the core data
