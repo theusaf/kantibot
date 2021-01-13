@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.14.1
+// @version      2.14.2
 // @icon         https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
@@ -12,8 +12,6 @@
 // @run-at       document-start
 // @license      MIT; https://opensource.org/licenses/MIT
 // ==/UserScript==
-
-// Notes: changing the questions AND questionIndex stuff works?
 
 if(window.fireLoaded || (window.parent && window.parent.page)){
   throw "[ANTIBOT] - page is loaded";
@@ -49,7 +47,7 @@ window.page.onload = ()=>{
         const container = document.createElement("div");
         container.id = "antibotwtr";
         const waterMark = document.createElement("p");
-        waterMark.innerHTML = "v2.14.1 @theusaf";
+        waterMark.innerHTML = "v2.14.2 @theusaf";
         const botText = document.createElement("p");
         botText.innerHTML = "0";
         botText.id = "killcount";
@@ -292,20 +290,24 @@ window.page.onload = ()=>{
         const killcount = document.getElementById("killcount");
         windw.isUsingNamerator = false;
         windw.cachedUsernames = [];
-        windw.confirmedPlayers = [];
+        windw.confirmedPlayers = new Set;
         windw.cachedData = {};
         windw.loggedPlayers = {};
         windw.specialData = {
+          /**
+           * extraQuestionSetup - Modifies quiz data (anti-cheat, bot-captcha)
+           *
+           * @param {Object} quiz The quiz to be modified
+           */
           extraQuestionSetup: (quiz)=>{
             if(windw.specialData.config.counterCheats){
-              const len = quiz.questions.push({
-                  question:"[ANTIBOT] - This poll is for countering Kahoot cheating sites.",
-                  time:20000,
-                  type:"survey",
-                  isAntibotQuestion:true,
-                  choices:[{answer:"OK",correct:true}]
-                });
-              // windw.specialData.kahootCore.game.navigation.questionIndexMap[len - 1] = len - 1;
+              quiz.questions.push({
+                question:"[ANTIBOT] - This poll is for countering Kahoot cheating sites.",
+                time:20000,
+                type:"survey",
+                isAntibotQuestion:true,
+                choices:[{answer:"OK",correct:true}]
+              });
             }
             if(windw.specialData.config.enableCAPTCHA){
               const answers = ["red","blue","yellow","green"],
@@ -325,36 +327,35 @@ window.page.onload = ()=>{
                 choices:[{answer:"OK"},{answer:"OK"},{answer:"OK"},{answer:"OK"}],
                 image: images[imageIndex]
               });
-              // windw.specialData.kahootCore.game.navigation.questionIndexMap[quiz.length - 1] = quiz.length - 1;
             }
           },
-          startTime: 0,
-          lastFakeLogin: 0,
-          lastFakeUserID: 0,
-          lastFakeUserName: "",
+          startTime: 0, // The question start time
+          lastFakeLogin: 0, // The time when the last "fake valid" joined
+          lastFakeUserID: 0, // The id of the last "fake valid"
+          lastFakeUserName: "", // The name of the last "fake valid"
           config:{
-            timeout: false,
-            blocknum: false,
-            looksRandom: true,
-            banFormat1: true,
-            additionalQuestionTime: null,
-            percent: 0.6,
-            streakBonus: 2,
-            ddos: 0,
-            start_lock: 0,
-            counters: false,
-            forceascii: false,
-            blockservice1: false,
-            enableCAPTCHA: false
+            timeout: false, // Minimum 0.5s answer time
+            blocknum: false, // Ban all numbers
+            looksRandom: true, // Ban "random" names
+            banFormat1: true, // Ban bots like Doctor_Robot123
+            additionalQuestionTime: null, // Adds time to a question
+            percent: 0.6, // The name match percent
+            streakBonus: 2, // Whether to enable streak points
+            ddos: 0, // Whether to auto-lock quizzes
+            start_lock: 0, // Time until auto-start activates
+            counters: false, // Shows antibot counters
+            forceascii: false, // Forces alpha-numeric characters
+            blockservice1: false, // Special filters against kahootflood.weebly.com
+            counterCheats: false, // Counters cheats by adding an extra question
+            enableCAPTCHA: false // Adds a captcha
           },
-          inLobby: true,
-          lobbyLoadTime: 0,
-          lockInterval: null,
-          kahootCore: null,
-          globalFuncs: null,
-          waitCounterCheats: null,
-          waitEnableCaptcha: null,
-          CAPTCHA_IDS: null
+          inLobby: true, // Whether in the lobby
+          lobbyLoadTime: 0, // The time the first player joined the lobby
+          lockInterval: null, // The lock interval
+          kahootCore: null, // Kahoot's core data
+          globalFuncs: null, // Useful functions (starting quiz, etc)
+          CAPTCHA_IDS: null, // Players that answered the captcha
+          blockService1Data: new Set() // Bots that are suspicious in blockservice1
         };
         // loading localStorage info
         if(windw.localStorage.antibotConfig){
@@ -424,13 +425,24 @@ window.page.onload = ()=>{
         let messageId = 0,
           clientId = null,
           pin = null;
-        // for names like KaHOotSmaSH
+        /**
+         * looksRandom - Blocks names like "KaHOotSmaSH"
+         *
+         * @param  {String} name The name of the controller
+         * @returns {Boolean} Whether it looks "random"
+         */
         function looksRandom(name){
         // Assumes player names have either all caps, no caps, or up to 3 capital letters
           return !/(^(([^A-Z\n]*)?[A-Z]?([^A-Z\n]*)?){0,3}$)|^([A-Z]*)$/.test(name);
         }
-        // for names like AmazingRobot32
-        // also matches other somewhat suspicious names
+        /**
+         * isFakeValid - Marks suspicious names that are not 100% bots, but could be.
+         *
+         * @example AmazingRabbit32
+         *
+         * @param  {String} name The name of the controller
+         * @returns {Boolean} Whether the name is "suspicious"
+         */
         function isFakeValid(name){
           if(windw.specialData.config.blocknum && /\d/.test(name)){
             return true;
@@ -440,6 +452,13 @@ window.page.onload = ()=>{
           }
           return /(^([A-Z][a-z]+){2,3}\d{1,2}$)|(^([A-Z][^A-Z\n]+?)+?(\d[a-z]+\d*?)$)|(^[a-zA-Z]+\d{4,}$)/.test(name);
         }
+        /**
+         * similarity - Checks the similarity between names and other stuff
+         *
+         * @param  {String} s1 The name of the first player
+         * @param  {String} s2 The name of the second player
+         * @returns {Number} The percent match between the players. if -1 is returned, its due to a different issue.
+         */
         function similarity(s1, s2) {
           // remove numbers from name if name is not only a number
           if(isNaN(s1) && typeof(s1) !== "object" && !windw.isUsingNamerator){
@@ -482,6 +501,13 @@ window.page.onload = ()=>{
           }
           return (longerLength - editDistance(longer, shorter)) / parseFloat(longerLength);
         }
+        /**
+         * editDistance - Used in similarity
+         *
+         * @param  {String} s1 String 1
+         * @param  {String} s2 String 2
+         * @returns {Number} "Distance" to match
+         */
         function editDistance(s1, s2) {
           s1 = s1.toLowerCase();
           s2 = s2.toLowerCase();
@@ -510,23 +536,12 @@ window.page.onload = ()=>{
           }
           return costs[s2.length];
         }
-        function setup(){
-          const launch_button =document.querySelectorAll("[data-functional-selector=\"launch-button\"]")[0];
-          if(launch_button){
-            console.warn("[ANTIBOT] - launch button found!");
-          }else{
-            setTimeout(setup,1000);
-          }
-        }
-        setup();
-        function clickName(name){
-          const names = document.querySelectorAll("[data-functional-selector=player-name]");
-          names.forEach(o=>{
-            if(o.innerText == name){
-              return o.click();
-            }
-          });
-        }
+        /**
+         * createKickPacket - Creates a packet to kick the player
+         *
+         * @param  {String} id The id of the bot
+         * @returns {Object} A kick packet
+         */
         function createKickPacket(id){
           messageId++;
           return [{
@@ -547,9 +562,15 @@ window.page.onload = ()=>{
             ext: {}
           }];
         }
+        /**
+         * determineEvil - Checks the similarity between players and stuff
+         *
+         * @param  {Object} player The controller
+         * @param  {WebSocket} socket The websocket
+         */
         function determineEvil(player,socket){
-          if(windw.cachedUsernames.length == 0){
-            if(similarity(null,player.name) == -1){
+          if(windw.cachedUsernames.length === 0){
+            if(similarity(null,player.name) === -1){
               const packet = createKickPacket(player.cid);
               socket.send(JSON.stringify(packet));
               console.warn(`[ANTIBOT] - Bot ${player.name} has been banished`);
@@ -561,7 +582,7 @@ window.page.onload = ()=>{
             windw.loggedPlayers[player.cid] = true;
           }else{
             let removed = false;
-            if(similarity(null,player.name) == -1){
+            if(similarity(null,player.name) === -1){
               removed = true;
               const packet1 = createKickPacket(player.cid);
               socket.send(JSON.stringify(packet1));
@@ -571,7 +592,7 @@ window.page.onload = ()=>{
               throw "[ANTIBOT] - Bot banned. Dont add";
             }
             for(const i in windw.cachedUsernames){
-              if(windw.confirmedPlayers.includes(windw.cachedUsernames[i].name)){
+              if(windw.confirmedPlayers.has(windw.cachedUsernames[i].name)){
                 continue;
               }
               if(similarity(windw.cachedUsernames[i].name,player.name) >= windw.specialData.config.percent){
@@ -582,7 +603,7 @@ window.page.onload = ()=>{
                   const packet2 =createKickPacket(windw.cachedUsernames[i].id);
                   windw.cachedUsernames[i].banned = true;
                   socket.send(JSON.stringify(packet2));
-                  clickName(windw.cachedUsernames[i].name);
+                  delete windw.specialData.kahootCore.game.core.controllers[windw.cachedUsernames[i].id];
                   killcount.innerHTML = +killcount.innerHTML + 1;
                 }
                 windw.cachedUsernames[i].time = 10;
@@ -599,6 +620,13 @@ window.page.onload = ()=>{
             }
           }
         }
+        /**
+         * specialBotDetector - Checks other information
+         *
+         * @param  {String} type The type of action
+         * @param  {Object} data The controller
+         * @param  {WebSocket} socket The websocket
+         */
         function specialBotDetector(type,data,socket){
           switch (type) {
             case "joined":
@@ -608,13 +636,13 @@ window.page.onload = ()=>{
                   const packet = createKickPacket(data.cid);
                   socket.send(JSON.stringify(packet));
                   killcount.innerHTML = +killcount.innerHTML + 1;
-                  windw.cachedUsernames.forEach(o=>{
-                    if(o.id == data.cid){
-                      o.banned = true;
-                      o.time = 10;
-                      return;
-                    }
+                  const banned = windw.cachedUsernames.find(o=>{
+                    return o.id === data.cid;
                   });
+                  if(banned){
+                    banned.banned = true;
+                    banned.time = 10;
+                  }
                   throw `[ANTIBOT] - Bot ${data.name} banned; name too random.`;
                 }
               }
@@ -624,13 +652,13 @@ window.page.onload = ()=>{
                   const packet = createKickPacket(data.cid);
                   socket.send(JSON.stringify(packet));
                   killcount.innerHTML = +killcount.innerHTML + 1;
-                  windw.cachedUsernames.forEach(o=>{
-                    if(o.id == data.cid){
-                      o.banned = true;
-                      o.time = 10;
-                      return;
-                    }
+                  const banned = windw.cachedUsernames.find(o=>{
+                    return o.id === data.cid;
                   });
+                  if(banned){
+                    banned.banned = true;
+                    banned.time = 10;
+                  }
                   throw `[ANTIBOT] - Bot ${data.name} banned; Name matches format [F][R][L].`;
                 }
               }
@@ -640,14 +668,47 @@ window.page.onload = ()=>{
                   const packet = createKickPacket(data.cid);
                   socket.send(JSON.stringify(packet));
                   killcount.innerHTML = +killcount.innerHTML + 1;
-                  windw.cachedUsernames.forEach(o=>{
-                    if(o.id == data.cid){
-                      o.banned = true;
-                      o.time = 10;
-                      return;
-                    }
+                  const banned = windw.cachedUsernames.find(o=>{
+                    return o.id === data.cid;
                   });
+                  if(banned){
+                    banned.banned = true;
+                    banned.time = 10;
+                  }
                   throw `[ANTIBOT] - Bot ${data.name} banned; likely from kahootflood.weebly.com.`;
+                }
+                if((windw.aSetOfEnglishWords || new Set).has(data.name)){
+                  // check if being spammed
+                  windw.specialData.blockService1Data.add(data);
+                  setTimeout(()=>{
+                    windw.specialData.blockService1Data.delete(data);
+                  },5e3);
+                  if(windw.specialData.blockService1Data.size >= 10){
+                    // probably being spammed.
+                    for(const bot of windw.specialData.blockService1Data){
+                      if(bot.banned){
+                        continue;
+                      }
+                      const p = createKickPacket(bot.cid);
+                      socket.send(JSON.stringify(p));
+                      killcount.innerHTML = +killcount.innerHTML + 1;
+                      const banned = windw.cachedUsernames.find(o=>{
+                        return o.id === data.cid;
+                      });
+                      if(banned){
+                        banned.banned = true;
+                        banned.time = 10;
+                      }
+                      delete windw.cachedData[bot.cid];
+                      delete windw.specialData.kahootCore.game.core.controllers[bot.cid];
+                      if(windw.specialData.blockService1Data.size >= 10){
+                        windw.specialData.blockService1Data.delete(bot);
+                      }else{
+                        bot.banned = true;
+                      }
+                    }
+                    throw "[ANTIBOT] - Bots banned. Likely from kahootflood.weebly.com. Don't add.";
+                  }
                 }
               }
               if(!windw.cachedData[data.cid] && !isNaN(data.cid) && Object.keys(data).length <= 5 && data.name.length < 16){ //if the id has not been cached yet or is an invalid id, and they are not a bot :p
@@ -662,13 +723,13 @@ window.page.onload = ()=>{
                 const packet = createKickPacket(data.cid);
                 socket.send(JSON.stringify(packet));
                 console.warn(`[ANTIBOT] - Bot ${data.name} has been banished - invalid packet/name`);
-                windw.cachedUsernames.forEach(o=>{
-                  if(o.id == data.cid){
-                    o.banned = true;
-                    o.time = 10;
-                    return;
-                  }
+                const banned = windw.cachedUsernames.find(o=>{
+                  return o.id === data.cid;
                 });
+                if(banned){
+                  banned.banned = true;
+                  banned.time = 10;
+                }
                 killcount.innerHTML = +killcount.innerHTML + 1;
                 delete windw.cachedData[data.cid];
                 throw "[ANTIBOT] - Bot banned. Dont add";
@@ -679,24 +740,26 @@ window.page.onload = ()=>{
                     if(windw.cachedData[windw.specialData.lastFakeUserID]){ // to get the first guy
                       const packet = createKickPacket(windw.specialData.lastFakeUserID);
                       socket.send(JSON.stringify(packet));
-                      clickName(windw.specialData.lastFakeUserName);
-                      delete windw.cachedData[windw.specialData.lastFakeUserID]; windw.cachedUsernames.forEach(o=>{
-                        if(o.id == windw.specialData.lastFakeUserID){
-                          o.banned = true;
-                          o.time = 10;
-                          return;
-                        }
+                      delete windw.kahootCore.game.core.controllers[windw.specialData.lastFakeUserID];
+                      delete windw.cachedData[windw.specialData.lastFakeUserID];
+                      const banned = windw.cachedUsernames.find(o=>{
+                        return o.id === windw.specialData.lastFakeUserID;
                       });
+                      if(banned){
+                        banned.banned = true;
+                        banned.time = 10;
+                      }
                     }
                     const packet = createKickPacket(data.cid);
                     socket.send(JSON.stringify(packet));
                     delete windw.cachedData[data.cid];
-                    windw.cachedUsernames.forEach(o=>{
-                      if(o.id == data.cid){
-                        o.banned = true;
-                        return;
-                      }
+                    const banned = windw.cachedUsernames.find(o=>{
+                      return o.id === data.cid;
                     });
+                    if(banned){
+                      banned.banned = true;
+                      banned.time = 10;
+                    }
                     killcount.innerHTML = +killcount.innerHTML + 1;
                     windw.specialData.lastFakeLogin = Date.now();
                     windw.specialData.lastFakeUserID = data.cid;
@@ -711,33 +774,36 @@ window.page.onload = ()=>{
               break;
           }
         }
+        /**
+         * teamBotDetector - Checks the team of a client
+         *
+         * @param  {Array} team The team members
+         * @param  {String} cid The cid of the controller
+         * @param  {WebSocket} socket The websocket
+         */
         function teamBotDetector(team,cid,socket){
-          let kick = false;
           if(team.length == 0 || team.indexOf("") != -1 || team.indexOf("Player 1") != -1 || team.join("") === "Youjustgotbotted" /* kahootflood.weebly.com */){
-            kick = true;
-          }
-          if(kick){
             const packet = createKickPacket(cid);
             socket.send(JSON.stringify(packet));
             killcount.innerHTML = +killcount.innerHTML + 1;
             let name = "";
             delete windw.cachedData[cid];
-            windw.cachedUsernames.forEach(o=>{
-              name = o.name;
-              if(o.id == cid){
-                o.banned = true;
-                o.time = 10;
-                return;
-              }
+            const banned = windw.cachedUsernames.find(o=>{
+              return o.id === cid;
             });
+            if(banned){
+              banned.banned = true;
+              banned.time = 10;
+              name = banned.name;
+            }
             throw `[ANTIBOT] - Bot ${name} banned; invalid team members.`;
           }
         }
         // Cache Manager Timer
         setInterval(function(){
           for(const i in windw.cachedUsernames){
-            if(windw.cachedUsernames[i].time <= 0 && !windw.cachedUsernames[i].banned && !windw.confirmedPlayers.includes(windw.cachedUsernames[i].name)){
-              windw.confirmedPlayers.push(windw.cachedUsernames[i].name);
+            if(windw.cachedUsernames[i].time <= 0 && !windw.cachedUsernames[i].banned && !windw.confirmedPlayers.has(windw.cachedUsernames[i].name)){
+              windw.confirmedPlayers.add(windw.cachedUsernames[i].name);
               continue;
             }
             if(windw.cachedUsernames[i].time <= -20){
@@ -746,13 +812,19 @@ window.page.onload = ()=>{
             }
             windw.cachedUsernames[i].time--;
           }
-        },1000);
+        },1e3);
         // 2 Factor Auth Timer
         setInterval(()=>{
           for(const i in windw.cachedData){
             windw.cachedData[i].tries = 0;
           }
-        },10000);
+        },10e3);
+        /**
+         * sendHandler - Checks the outgoing messages
+         *
+         * @param  {String} data The message
+         * @param  {Object} e The socket
+         */
         windw.sendHandler = function(data,e){
           data = JSON.parse(data)[0];
           if(data.data){
@@ -818,6 +890,12 @@ window.page.onload = ()=>{
         setInterval(()=>{
           oldamount = +killcount.innerHTML;
         },20e3);
+        /**
+         * globalMessageListener - Checks the incoming messages
+         *
+         * @param  {Object} e The socket
+         * @param  {Object} t idk
+         */
         window.globalMessageListener = function(e,t){
           try{ExtraCheck2(e,t);}catch(e){console.error("[ANTIBOT] - Execution of PIN-CHECKER Failed: " + e);}
           windw.e = e;
@@ -883,9 +961,7 @@ window.page.onload = ()=>{
               },60e3);
             }
           }
-          /*console.log(e); from testing: e[.webSocket] is the websocket*/
           const data = JSON.parse(t.data)[0];
-          /*console.log(data);*/
           messageId = data.id ? data.id : messageId;
           /*if the message is the first message, which contains important clientid data*/
           if(data.id === "1"){
@@ -922,7 +998,7 @@ window.page.onload = ()=>{
                 if(controllers.filter((controller)=>{
                   return !controller.isGhost && !controller.hasLeft;
                 }).length === 0){
-                // The only current player in the lobby.
+                  // The only current player in the lobby.
                   windw.specialData.lobbyLoadTime = Date.now();
                 }else{
                   windw.specialData.globalFuncs.startQuiz();
@@ -963,6 +1039,7 @@ window.page.onload = ()=>{
               windw.e.webSocket.send(JSON.stringify(packet));
               killcount.innerHTML = +killcount.innerHTML + 1;
               delete windw.cachedData[data.data.cid];
+              delete windw.specialData.kahootCore.game.core.controllers[data.data.cid];
               throw `[ANTIBOT] - Bot with id ${data.data.cid} banned. Answered too quickly after joining.`;
             }
           }else if(data.data && data.data.id === 50){
@@ -972,13 +1049,14 @@ window.page.onload = ()=>{
               e.webSocket.send(JSON.stringify(kicker));
               const name = windw.cachedUsernames.filter(o=>{return o.id == data.data.cid;}).length ? windw.cachedUsernames.filter(o=>{return o.id == data.data.cid;})[0].name : "bot";
               console.warn(`[ANTIBOT] - Bot ${name} banished. Seen spamming 2FA`);
-              windw.cachedUsernames.forEach(o=>{
-                if(o.id == windw.specialData.lastFakeUserID){
-                  o.banned = true;
-                  o.time = 10;
-                  return;
-                }
+              const banned = windw.cachedUsernames.find(o=>{
+                return o.id === windw.specialData.lastFakeUserID;
               });
+              if(banned){
+                banned.banned = true;
+                banned.time = 10;
+              }
+              delete windw.specialData.kahootCore.game.core.controllers[data.data.cid];
               delete windw.cachedData[data.data.cid];
               killcount.innerHTML = +killcount.innerHTML + 1;
             }
@@ -1034,15 +1112,30 @@ window.page.onload = ()=>{
         return ${letter6}.game.core;
       })()`);
       let changed = originalPage.split("</body>");
-      changed = `${changed[0]}<script>${patchedScript}</script><script>${sc}</script><script>try{(${window.localStorage.kahootThemeScript})();}catch(err){}try{(${window.localStorage.extraCheck})();}catch(err){}window.setupAntibot = ${code.toString()};window.parent.fireLoaded = window.fireLoaded = true;window.setupAntibot();</script></body>${changed[1]}`;
-      console.log("[ANTIBOT] - loaded");
-      document.open();
-      document.write("<style>body{margin:0;}iframe{border:0;width:100%;height:100%;}</style><iframe src=\"about:blank\"></iframe>");
-      document.close();
-      window.stop();
-      const doc = document.querySelector("iframe");
-      doc.contentDocument.write(changed);
-      document.title = doc.contentDocument.title;
+
+      /**
+       * ExternalLibrary - Note: This script requires https://raw.githubusercontent.com/theusaf/a-set-of-english-words/master/index.js
+       * - This is a script that loads 275k english words into a set. (about 30MB ram?)
+       * @see https://github.com/theusaf/a-set-of-english-words
+       */
+      const ExternalLibrary = new XMLHttpRequest;
+      ExternalLibrary.open("GET","https://raw.githubusercontent.com/theusaf/a-set-of-english-words/master/index.js");
+      ExternalLibrary.send();
+      ExternalLibrary.onload = ExternalLibrary.onerror = function(){
+        let ext = "";
+        if(ExternalLibrary.readyState === 4 && ExternalLibrary.status === 200){
+          ext = ExternalLibrary.responseText;
+        }
+        changed = `${changed[0]}<script>${patchedScript}</script><script>${sc}</script><script>try{(${window.localStorage.kahootThemeScript})();}catch(err){}try{(${window.localStorage.extraCheck})();}catch(err){}window.setupAntibot = ${code.toString()};window.parent.fireLoaded = window.fireLoaded = true;window.setupAntibot();try{${ext};window.parent.aSetOfEnglishWords = window.aSetOfEnglishWords;}catch(e){}</script></body>${changed[1]}`;
+        console.log("[ANTIBOT] - loaded");
+        document.open();
+        document.write("<style>body{margin:0;}iframe{border:0;width:100%;height:100%;}</style><iframe src=\"about:blank\"></iframe>");
+        document.close();
+        window.stop();
+        const doc = document.querySelector("iframe");
+        doc.contentDocument.write(changed);
+        document.title = doc.contentDocument.title;
+      };
     };
   };
 };
