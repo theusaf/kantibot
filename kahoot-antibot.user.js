@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.14.3
+// @version      2.14.4
 // @icon         https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
@@ -47,7 +47,7 @@ window.page.onload = ()=>{
         const container = document.createElement("div");
         container.id = "antibotwtr";
         const waterMark = document.createElement("p");
-        waterMark.innerHTML = "v2.14.3 @theusaf";
+        waterMark.innerHTML = "v2.14.4 @theusaf";
         const botText = document.createElement("p");
         botText.innerHTML = "0";
         botText.id = "killcount";
@@ -571,11 +571,25 @@ window.page.onload = ()=>{
         }
         /**
          * determineEvil - Checks the similarity between players and stuff
+         * Moved the name length check here to fix a severe issue!
          *
          * @param  {Object} player The controller
          * @param  {WebSocket} socket The websocket
          */
         function determineEvil(player,socket){
+          if(isNaN(player.cid) || Object.keys(player).length <= 5 || player.name.length < 16){ //if the id has not been cached yet or is an invalid id, and they are not a bot :p
+            if(windw.cachedData[player.cid]){ // now allowing reconnection
+              return;
+            }
+            const packet = createKickPacket(player.cid);
+            socket.send(JSON.stringify(packet));
+            if(player.name.length >= 50){
+              player.name = "[Name-Too-Long] - " + player.name.length;
+            }
+            console.warn(`[ANTIBOT] - Bot ${player.name} has been banished - invalid packet/name`);
+            killcount.innerHTML = +killcount.innerHTML + 1;
+            throw "[ANTIBOT] - Bot banned. Dont add";
+          }
           if(windw.cachedUsernames.length === 0){
             if(similarity(null,player.name) === -1){
               const packet = createKickPacket(player.cid);
@@ -717,29 +731,6 @@ window.page.onload = ()=>{
                     throw "[ANTIBOT] - Bots banned. Likely from kahootflood.weebly.com. Don't add.";
                   }
                 }
-              }
-              if(!windw.cachedData[data.cid] && !isNaN(data.cid) && Object.keys(data).length <= 5 && data.name.length < 16){ //if the id has not been cached yet or is an invalid id, and they are not a bot :p
-                windw.cachedData[data.cid] = {
-                  tries: 0,
-                  loginTime: Date.now()
-                };
-              }else{
-                if(windw.cachedData[data.cid]){ // now allowing reconnection
-                  return;
-                }
-                const packet = createKickPacket(data.cid);
-                socket.send(JSON.stringify(packet));
-                console.warn(`[ANTIBOT] - Bot ${data.name} has been banished - invalid packet/name`);
-                const banned = windw.cachedUsernames.find(o=>{
-                  return o.id === data.cid;
-                });
-                if(banned){
-                  banned.banned = true;
-                  banned.time = 10;
-                }
-                killcount.innerHTML = +killcount.innerHTML + 1;
-                delete windw.cachedData[data.cid];
-                throw "[ANTIBOT] - Bot banned. Dont add";
               }
               if(!windw.isUsingNamerator){
                 if(isFakeValid(data.name)){
@@ -906,7 +897,7 @@ window.page.onload = ()=>{
          * globalMessageListener - Checks the incoming messages
          *
          * @param  {Object} e The socket
-         * @param  {Object} t idk
+         * @param  {Object} t The incoming message
          */
         window.globalMessageListener = function(e,t){
           try{ExtraCheck2(e,t);}catch(e){console.error("[ANTIBOT] - Execution of PIN-CHECKER Failed: " + e);}
@@ -985,6 +976,10 @@ window.page.onload = ()=>{
             determineEvil(data.data,e.webSocket);
             specialBotDetector(data.data.type,data.data,e.webSocket);
             // Player was not banned.
+            windw.cachedData[data.data.cid] = {
+              tries: 0,
+              loginTime: Date.now()
+            };
             if(windw.specialData.inLobby && windw.specialData.config.start_lock !== 0 && windw.specialData.globalFuncs && windw.specialData.globalFuncs.gameOptions.automaticallyProgressGame){
               if(windw.specialData.lobbyLoadTime === 0){
                 windw.specialData.lobbyLoadTime = Date.now();
