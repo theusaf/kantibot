@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.14.2
+// @version      2.14.3
 // @icon         https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
@@ -47,7 +47,7 @@ window.page.onload = ()=>{
         const container = document.createElement("div");
         container.id = "antibotwtr";
         const waterMark = document.createElement("p");
-        waterMark.innerHTML = "v2.14.2 @theusaf";
+        waterMark.innerHTML = "v2.14.3 @theusaf";
         const botText = document.createElement("p");
         botText.innerHTML = "0";
         botText.id = "killcount";
@@ -134,7 +134,7 @@ window.page.onload = ()=>{
                   delete windw.specialData.kahootCore.game.navigation.questionIndexMap[q.length];
                 }
               }">
-            <label for="antibot.config.counterCheats" title="Adds an additional 20 second question at the end to counter cheats. Note: Changing this mid-game may break the game.">Counter Kahoot Cheats</label>
+            <label for="antibot.config.counterCheats" title="Adds an additional 5 second question at the end to counter cheats. Note: Changing this mid-game may break the game.">Counter Kahoot Cheats</label>
           </div>
           <!-- CAPTCHA -->
           <div>
@@ -303,7 +303,7 @@ window.page.onload = ()=>{
             if(windw.specialData.config.counterCheats){
               quiz.questions.push({
                 question:"[ANTIBOT] - This poll is for countering Kahoot cheating sites.",
-                time:20000,
+                time:5000,
                 type:"survey",
                 isAntibotQuestion:true,
                 choices:[{answer:"OK",correct:true}]
@@ -312,10 +312,10 @@ window.page.onload = ()=>{
             if(windw.specialData.config.enableCAPTCHA){
               const answers = ["red","blue","yellow","green"],
                 images = [
-                  "https://cdn.discordapp.com/attachments/775828441127714837/798671584520568852/red.png",
-                  "https://cdn.discordapp.com/attachments/775828441127714837/798671580778594344/blue.png",
-                  "https://cdn.discordapp.com/attachments/775828441127714837/798671583178522685/yellow.png",
-                  "https://cdn.discordapp.com/attachments/775828441127714837/798671581962436619/green.png"
+                  "361bdde0-48cd-4a92-ae9f-486263ba8529", // red
+                  "9237bdd2-f281-4f04-b4e5-255e9055a194", // blue
+                  "d25c9d13-4147-4056-a722-e2a13fbb4af9", // yellow
+                  "2aca62f2-ead5-4197-9c63-34da0400703a" // green
                 ],
                 imageIndex = Math.floor(Math.random() * answers.length);
               quiz.questions.splice(0,0,{
@@ -325,7 +325,14 @@ window.page.onload = ()=>{
                 isAntibotQuestion: true,
                 AntibotCaptchaCorrectIndex: imageIndex,
                 choices:[{answer:"OK"},{answer:"OK"},{answer:"OK"},{answer:"OK"}],
-                image: images[imageIndex]
+                image: "https://media.kahoot.it/" + images[imageIndex],
+                imageMetadata: {
+                  width: 512,
+                  height: 512,
+                  id: images[imageIndex],
+                  contentType: "image/png",
+                  resources: ""
+                }
               });
             }
           },
@@ -865,6 +872,9 @@ window.page.onload = ()=>{
                   const controllers = windw.specialData.kahootCore.game.core.controllers,
                     answeredControllers = windw.specialData.CAPTCHA_IDS;
                   for(const id in controllers){
+                    if(controllers[id].isGhost || contollers[id].hasLeft){
+                      continue;
+                    }
                     if(!answeredControllers.has(id)){
                       const pack = createKickPacket(id);
                       e.webSocket.send(JSON.stringify(pack));
@@ -874,6 +884,8 @@ window.page.onload = ()=>{
                       delete controllers[id];
                     }
                   }
+                  // Prevent auto-lock from activating from this
+                  oldamount = 0;
                 }
                 break;
             }
