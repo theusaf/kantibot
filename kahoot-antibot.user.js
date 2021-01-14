@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.14.5
+// @version      2.14.6
 // @icon         https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
@@ -47,7 +47,7 @@ window.page.onload = ()=>{
         const container = document.createElement("div");
         container.id = "antibotwtr";
         const waterMark = document.createElement("p");
-        waterMark.innerHTML = "v2.14.5 @theusaf";
+        waterMark.innerHTML = "v2.14.6 @theusaf";
         const botText = document.createElement("p");
         botText.innerHTML = "0";
         botText.id = "killcount";
@@ -361,8 +361,8 @@ window.page.onload = ()=>{
           lockInterval: null, // The lock interval
           kahootCore: null, // Kahoot's core data
           globalFuncs: null, // Useful functions (starting quiz, etc)
-          CAPTCHA_IDS: null, // Players that answered the captcha
-          blockService1Data: new Set() // Bots that are suspicious in blockservice1
+          CAPTCHA_IDS: new Set, // Players that answered the captcha
+          blockService1Data: new Set // Bots that are suspicious in blockservice1
         };
         // loading localStorage info
         if(windw.localStorage.antibotConfig){
@@ -862,19 +862,21 @@ window.page.onload = ()=>{
                   // boot all who did not answer
                   const controllers = windw.specialData.kahootCore.game.core.controllers,
                     answeredControllers = windw.specialData.CAPTCHA_IDS;
-                  for(const id in controllers){
-                    if(controllers[id].isGhost || contollers[id].hasLeft){
-                      continue;
+                  setTimeout(()=>{
+                    for(const id in controllers){
+                      if(controllers[id].isGhost || controllers[id].hasLeft){
+                        continue;
+                      }
+                      if(!answeredControllers.has(id)){
+                        const pack = createKickPacket(id);
+                        e.webSocket.send(JSON.stringify(pack));
+                        killcount.innerHTML = +killcount.innerHTML + 1;
+                        console.error(`[ANTIBOT] - Bot ${controllers[id].name} banned. Did not answer the CAPTCHA.`);
+                        delete windw.cachedData[data.data.cid];
+                        delete controllers[id];
+                      }
                     }
-                    if(!answeredControllers.has(id)){
-                      const pack = createKickPacket(id);
-                      e.webSocket.send(JSON.stringify(pack));
-                      killcount.innerHTML = +killcount.innerHTML + 1;
-                      console.error("[ANTIBOT] - Bot banned. Did not answer the CAPTCHA.");
-                      delete windw.cachedData[data.data.cid];
-                      delete controllers[id];
-                    }
-                  }
+                  },250);
                   // Prevent auto-lock from activating from this
                   oldamount = 0;
                 }
@@ -1031,10 +1033,10 @@ window.page.onload = ()=>{
                 // BAN!
                 const packet = createKickPacket(data.data.cid);
                 e.webSocket.send(JSON.stringify(packet));
+                console.error(`[ANTIBOT] - Bot ${(windw.specialData.kahootCore.game.core.controllers[data.data.cid] || {}).name} banned. Failed the captcha.`);
                 delete windw.cachedData[data.data.cid];
                 delete windw.specialData.kahootCore.game.core.controllers[data.data.cid];
                 killcount.innerHTML = +killcount.innerHTML + 1;
-                console.error("[ANTIBOT] - Bot banned. Failed the captcha.");
               }
             }
             if(Date.now() - windw.specialData.startTime < 500 && windw.specialData.config.timeout){
