@@ -396,7 +396,7 @@ window.page.onload = ()=>{
             document.getElementById("antibot.config.blockformat1").checked = false;
             windw.specialData.config.banFormat1 = false;
           }
-          if(a.streakBonus == 1){
+          if(a.streakBonus === 1){
             document.getElementById("antibot.config.streakBonus").checked = true;
             windw.specialData.config.streakBonus = 1;
           }
@@ -479,7 +479,7 @@ window.page.onload = ()=>{
           }
           // if is a number of the same length
           if(s1){
-            if(!isNaN(s2) && !isNaN(s1) && s1.length == s2.length){
+            if(!isNaN(s2) && !isNaN(s1) && s1.length === s2.length){
               return 1;
             }
           }
@@ -503,7 +503,7 @@ window.page.onload = ()=>{
             shorter = s1;
           }
           const longerLength = longer.length;
-          if (longerLength == 0) {
+          if (longerLength === 0) {
             return 1.0;
           }
           return (longerLength - editDistance(longer, shorter)) / parseFloat(longerLength);
@@ -523,7 +523,7 @@ window.page.onload = ()=>{
           for (let i = 0; i <= s1.length; i++) {
             let lastValue = i;
             for (let j = 0; j <= s2.length; j++) {
-              if (i == 0){
+              if (i === 0){
                 costs[j] = j;
               }
               else {
@@ -780,7 +780,7 @@ window.page.onload = ()=>{
          * @param  {WebSocket} socket The websocket
          */
         function teamBotDetector(team,cid,socket){
-          if(team.length == 0 || team.indexOf("") != -1 || team.indexOf("Player 1") != -1 || team.join("") === "Youjustgotbotted" /* kahootflood.weebly.com */){
+          if(team.length === 0 || team.indexOf("") !== -1 || team.indexOf("Player 1") !== -1 || team.join("") === "Youjustgotbotted" /* kahootflood.weebly.com */){
             const packet = createKickPacket(cid);
             socket.send(JSON.stringify(packet));
             killcount.innerHTML = +killcount.innerHTML + 1;
@@ -1056,7 +1056,7 @@ window.page.onload = ()=>{
             if(windw.cachedData[data.data.cid].tries > 3){
               const kicker = createKickPacket(data.data.cid);
               e.webSocket.send(JSON.stringify(kicker));
-              const name = windw.cachedUsernames.filter(o=>{return o.id == data.data.cid;}).length ? windw.cachedUsernames.filter(o=>{return o.id == data.data.cid;})[0].name : "bot";
+              const name = windw.cachedUsernames.filter(o=>{return o.id === data.data.cid;}).length ? windw.cachedUsernames.filter(o=>{return o.id === data.data.cid;})[0].name : "bot";
               console.warn(`[ANTIBOT] - Bot ${name} banished. Seen spamming 2FA`);
               const banned = windw.cachedUsernames.find(o=>{
                 return o.id === windw.specialData.lastFakeUserID;
