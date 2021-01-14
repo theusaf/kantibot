@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.14.4
+// @version      2.14.5
 // @icon         https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
@@ -47,7 +47,7 @@ window.page.onload = ()=>{
         const container = document.createElement("div");
         container.id = "antibotwtr";
         const waterMark = document.createElement("p");
-        waterMark.innerHTML = "v2.14.4 @theusaf";
+        waterMark.innerHTML = "v2.14.5 @theusaf";
         const botText = document.createElement("p");
         botText.innerHTML = "0";
         botText.id = "killcount";
@@ -577,7 +577,7 @@ window.page.onload = ()=>{
          * @param  {WebSocket} socket The websocket
          */
         function determineEvil(player,socket){
-          if(isNaN(player.cid) || Object.keys(player).length <= 5 || player.name.length < 16){ //if the id has not been cached yet or is an invalid id, and they are not a bot :p
+          if(isNaN(player.cid) || Object.keys(player).length > 5 || player.name.length >= 16){ //if the id has not been cached yet or is an invalid id, and they are not a bot :p
             if(windw.cachedData[player.cid]){ // now allowing reconnection
               return;
             }
