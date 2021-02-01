@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.14.6
+// @version      2.15.0
 // @icon         https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
@@ -47,7 +47,7 @@ window.page.onload = ()=>{
         const container = document.createElement("div");
         container.id = "antibotwtr";
         const waterMark = document.createElement("p");
-        waterMark.innerHTML = "v2.14.6 @theusaf";
+        waterMark.innerHTML = "v2.15.0 @theusaf";
         const botText = document.createElement("p");
         botText.innerHTML = "0";
         botText.id = "killcount";
@@ -93,6 +93,19 @@ window.page.onload = ()=>{
           <div>
             <label class="antibot-input" for="antibot.config.percent" title="Specify the match percentage.">Match Percent</label>
             <input type="number" step="0.1" value="0.6" id="antibot.config.percent" onchange="windw.specialData.config.percent = Number(document.getElementById('antibot.config.percent').value);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.percent = windw.specialData.config.percent;windw.localStorage.antibotConfig = JSON.stringify(a);">
+          </div>
+          <!-- Custom Word Block -->
+          <div>
+            <label class="antibot-input" for="antibot.config.wordblock" title="Add a custom word blacklist. Click the box to open. Unfocus to close. Separate by new lines.">Word Blacklist</label>
+            <textarea type="checkbox" id="antibot.config.wordblock" onchange="windw.specialData.config.wordblock = document.getElementById('antibot.config.wordblock').value.split('\\n');
+              if(!windw.localStorage.antibotConfig){
+                windw.localStorage.antibotConfig = JSON.stringify({});
+              }
+              const a = JSON.parse(windw.localStorage.antibotConfig);
+              a.wordblock = windw.specialData.config.wordblock;
+              localStorage.antibotConfig = JSON.stringify(a);"
+              onclick="this.className = 'antibot-textarea';"
+              onblur="this.className = '';"></textarea>
           </div>
           <!-- DDOS -->
           <div>
@@ -161,110 +174,125 @@ window.page.onload = ()=>{
         </div>`;
         const counters = document.createElement("div");
         counters.id = "antibot-counters";
-        const styles = document.createElement("style");
-        styles.type = "text/css";
-        styles.innerHTML = `#antibotwtr{
-          position: fixed;
-          bottom: 100px;
-          right: 100px;
-          font-size: 1rem;
-          opacity: 0.4;
-          transition: opacity 0.4s;
-          z-index: 5000;
-          background: white;
-          text-align: center;
-          border-radius: 0.5rem;
-        }
-        #antibotwtr summary{
-          text-align: left;
-        }
-        #antibotwtr:hover{
-          opacity: 1;
-        }
-        #antibotwtr p{
-          display: inline-block;
-        }
-        #antibotwtr p:first-child{
-          font-weight: 600;
-        }
-        #killcount{
-          margin-left: 0.25rem;
-          background: black;
-          border-radius: 0.5rem;
-          color: white;
-        }
-        #antibotwtr details{
-          background: grey;
-        }
-        #antibotwtr input[type="checkbox"]{
-          display: none;
-        }
-        #antibotwtr label{
-          color: black;
-          font-weight: 600;
-          display: block;
-          background: #c60929;
-          border-radius: 0.5rem;
-          height: 100%;
-          word-break: break-word;
-        }
-        #antibotwtr .antibot-input{
-          height: calc(100% - 1.5rem);
-          background: #864cbf;
-          color: white;
-        }
-        #antibotwtr input{
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          width: 100%;
-          height: 1rem;
-          border-radius: 0.25rem;
-          border: solid 1px black;
-        }
-        #antibotwtr input:checked+label{
-          background: #26890c;
-        }
-        #antibot-settings{
-          display: flex;
-          flex-wrap: wrap;
-          max-width: 25rem;
-          max-height: 24rem;
-          overflow: auto;
-        }
-        #antibot-settings > div{
-          flex: 1;
-          max-width: 33%;
-          min-width: 33%;
-          min-height: 6rem;
-          box-sizing: border-box;
-          position: relative;
-          border: solid 0.5rem transparent;
-        }
-        #antibot-counters{
-          position: absolute;
-          right: 10rem;
-          top: 11rem;
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: white;
-          pointer-events: none;
-        }
-        #antibot-counters div{
-          background: rgba(0,0,0,0.5);
-          padding: 0.5rem;
-          border-radius: 0.5rem;
-          margin-bottom: 0.5rem;
-        }
-        .antibot-count-num{
-          display: block;
-          text-align: center;
-        }
-        .antibot-count-desc{
-          text-align: center;
-          font-size: 1.25rem;
-          display: block;
-        }`;
+        const styles = document.createElement("template");
+        styles.innerHTML = `<style>
+          #antibotwtr{
+            position: fixed;
+            bottom: 100px;
+            right: 100px;
+            font-size: 1rem;
+            opacity: 0.4;
+            transition: opacity 0.4s;
+            z-index: 5000;
+            background: white;
+            text-align: center;
+            border-radius: 0.5rem;
+          }
+          #antibotwtr summary{
+            text-align: left;
+          }
+          #antibotwtr:hover{
+            opacity: 1;
+          }
+          #antibotwtr p{
+            display: inline-block;
+          }
+          #antibotwtr p:first-child{
+            font-weight: 600;
+          }
+          #killcount{
+            margin-left: 0.25rem;
+            background: black;
+            border-radius: 0.5rem;
+            color: white;
+          }
+          #antibotwtr details{
+            background: grey;
+          }
+          #antibotwtr input[type="checkbox"]{
+            display: none;
+          }
+          #antibotwtr label{
+            color: black;
+            font-weight: 600;
+            display: block;
+            background: #c60929;
+            border-radius: 0.5rem;
+            height: 100%;
+            word-break: break-word;
+          }
+          #antibotwtr .antibot-input{
+            height: calc(100% - 1.5rem);
+            background: #864cbf;
+            color: white;
+          }
+          #antibotwtr input,textarea{
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 1rem;
+            border-radius: 0.25rem;
+            border: solid 1px black;
+            font-family: "Montserrat", sans-serif;
+            resize: none;
+          }
+          #antibotwtr input:checked+label{
+            background: #26890c;
+          }
+          #antibot-settings{
+            display: flex;
+            flex-wrap: wrap;
+            max-width: 25rem;
+            max-height: 24rem;
+            overflow: auto;
+          }
+          #antibot-settings > div{
+            flex: 1;
+            max-width: 33%;
+            min-width: 33%;
+            min-height: 6rem;
+            box-sizing: border-box;
+            position: relative;
+            border: solid 0.5rem transparent;
+          }
+          #antibot-counters{
+            position: absolute;
+            right: 10rem;
+            top: 11rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+            pointer-events: none;
+          }
+          #antibot-counters div{
+            background: rgba(0,0,0,0.5);
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+          }
+          .antibot-count-num{
+            display: block;
+            text-align: center;
+          }
+          .antibot-count-desc{
+            text-align: center;
+            font-size: 1.25rem;
+            display: block;
+          }
+          .antibot-textarea{
+            position: fixed;
+            width: 40rem;
+            height: 30rem;
+            margin: auto;
+            left: 0;
+            top: 0;
+            margin-left: calc(50% - 20rem);
+            z-index: 1;
+            font-size: 1.5rem;
+            font-weight: bold;
+          }
+        </style>`;
         container.append(waterMark,botText,menu);
         setTimeout(function(){
           if(document.body.innerText.split("\n").length < 8){ // assume broken. (just the water mark)
@@ -286,7 +314,7 @@ window.page.onload = ()=>{
             },1000);
           }
         },2000);
-        document.body.append(container,styles,counters);
+        document.body.append(container,styles.content.cloneNode(true),counters);
         const killcount = document.getElementById("killcount");
         windw.isUsingNamerator = false;
         windw.cachedUsernames = [];
@@ -321,7 +349,7 @@ window.page.onload = ()=>{
               quiz.questions.splice(0,0,{
                 question: `[ANTIBOT] - CAPTCHA: Please select ${answers[imageIndex]}`,
                 time: 30000,
-                type: "survey",
+                type: "quiz",
                 isAntibotQuestion: true,
                 AntibotCaptchaCorrectIndex: imageIndex,
                 choices:[{answer:"OK"},{answer:"OK"},{answer:"OK"},{answer:"OK"}],
@@ -332,7 +360,8 @@ window.page.onload = ()=>{
                   id: images[imageIndex],
                   contentType: "image/png",
                   resources: ""
-                }
+                },
+                points: false
               });
             }
           },
@@ -354,7 +383,8 @@ window.page.onload = ()=>{
             forceascii: false, // Forces alpha-numeric characters
             blockservice1: false, // Special filters against kahootflood.weebly.com
             counterCheats: false, // Counters cheats by adding an extra question
-            enableCAPTCHA: false // Adds a captcha
+            enableCAPTCHA: false, // Adds a captcha
+            wordblock: []
           },
           inLobby: true, // Whether in the lobby
           lobbyLoadTime: 0, // The time the first player joined the lobby
@@ -428,10 +458,52 @@ window.page.onload = ()=>{
             document.getElementById("antibot.config.enableCAPTCHA").checked = true;
             windw.specialData.config.enableCAPTCHA = true;
           }
+          if(a.wordblock){
+            document.getElementById("antibot.config.wordblock").value = a.wordblock.join("\n");
+            windw.specialData.config.wordblock = a.wordblock;
+          }
         }
         let messageId = 0,
           clientId = null,
           pin = null;
+
+        /**
+         * isValidNameratorName - Checks whether a name is a valid namerator name
+         *
+         * @param  {String} name The name
+         * @returns {Boolean} Whether it is a valid namerator name
+         */
+        function isValidNameratorName(name){
+          const First = ["Adorable","Agent","Agile","Amazing","Amazon","Amiable","Amusing","Aquatic","Arctic","Awesome","Balanced","Blue","Bold","Brave","Bright","Bronze","Captain","Caring","Champion","Charming","Cheerful","Classy","Clever","Creative","Cute","Dandy","Daring","Dazzled","Decisive","Diligent","Diplomat","Doctor","Dynamic","Eager","Elated","Epic","Excited","Expert","Fabulous","Fast","Fearless","Flying","Focused","Friendly","Funny","Fuzzy","Genius","Gentle","Giving","Glad","Glowing","Golden","Great","Green","Groovy","Happy","Helpful","Hero","Honest","Inspired","Jolly","Joyful","Kind","Knowing","Legend","Lively","Lovely","Lucky","Magic","Majestic","Melodic","Mighty","Mountain","Mystery","Nimble","Noble","Polite","Power","Prairie","Proud","Purple","Quick","Radiant","Rapid","Rational","Rockstar","Rocky","Royal","Shining","Silly","Silver","Smart","Smiling","Smooth","Snowy","Soaring","Social","Space","Speedy","Stellar","Sturdy","Super","Swift","Tropical","Winged","Wise","Witty","Wonder","Yellow","Zany"],
+            Last = ["Alpaca","Ant","Badger","Bat","Bear","Bee","Bison","Boa","Bobcat","Buffalo","Bunny","Camel","Cat","Cheetah","Chicken","Condor","Crab","Crane","Deer","Dingo","Dog","Dolphin","Dove","Dragon","Duck","Eagle","Echidna","Egret","Elephant","Elk","Emu","Falcon","Ferret","Finch","Fox","Frog","Gator","Gazelle","Gecko","Giraffe","Glider","Gnu","Goat","Goose","Gorilla","Griffin","Hamster","Hare","Hawk","Hen","Horse","Ibex","Iguana","Impala","Jaguar","Kitten","Koala","Lark","Lemming","Lemur","Leopard","Lion","Lizard","Llama","Lobster","Macaw","Meerkat","Monkey","Mouse","Newt","Octopus","Oryx","Ostrich","Otter","Owl","Panda","Panther","Pelican","Penguin","Pigeon","Piranha","Pony","Possum","Puffin","Quail","Rabbit","Raccoon","Raven","Rhino","Rooster","Sable","Seal","SeaLion","Shark","Sloth","Snail","Sphinx","Squid","Stork","Swan","Tiger","Turtle","Unicorn","Urchin","Wallaby","Wildcat","Wolf","Wombat","Yak","Yeti","Zebra"],
+            F = name.match(/[A-Z][a-z]+(?=[A-Z])/);
+          if(F === null || !First.includes(F)){
+            return false;
+          }
+          const L = name.replace(F,"");
+          if(!Last.includes(L)){
+            return false;
+          }
+          return true;
+        }
+        /**
+         * blacklist - Checks if the name has words on the blacklist
+         *
+         * @param  {String} name The name
+         * @returns {Boolean} If it violates the blacklist
+         */
+        function blacklist(name){
+          const list = windw.specialData.config.wordblock;
+          for(let i = 0; i < list.length; i++){
+            if(list[i] === ""){
+              continue;
+            }
+            if(name.toLowerCase().indexOf(list[i].toLowerCase()) !== -1){
+              return true;
+            }
+          }
+          return false;
+        }
         /**
          * looksRandom - Blocks names like "KaHOotSmaSH"
          *
@@ -439,7 +511,7 @@ window.page.onload = ()=>{
          * @returns {Boolean} Whether it looks "random"
          */
         function looksRandom(name){
-        // Assumes player names have either all caps, no caps, or up to 3 capital letters
+          // Assumes player names have either all caps, no caps, or up to 3 capital letters
           return !/(^(([^A-Z\n]*)?[A-Z]?([^A-Z\n]*)?){0,3}$)|^([A-Z]*)$/.test(name);
         }
         /**
@@ -451,6 +523,9 @@ window.page.onload = ()=>{
          * @returns {Boolean} Whether the name is "suspicious"
          */
         function isFakeValid(name){
+          if(!windw.isUsingNamerator && isValidNameratorName(name)){
+            return true;
+          }
           if(windw.specialData.config.blocknum && /\d/.test(name)){
             return true;
           }
@@ -485,7 +560,7 @@ window.page.onload = ()=>{
           }
           // apply namerator rules
           if(windw.isUsingNamerator){
-            if(!/^([A-Z][a-z]+){2,3}$/.test(s2)){
+            if(isValidNameratorName(s2)){
               return -1;
             }
           }
@@ -651,6 +726,19 @@ window.page.onload = ()=>{
         function specialBotDetector(type,data,socket){
           switch (type) {
             case "joined":
+              if(blacklist(data.name)){
+                const packet = createKickPacket(data.cid);
+                socket.send(JSON.stringify(packet));
+                killcount.innerHTML = +killcount.innerHTML + 1;
+                const banned = windw.cachedUsernames.find(o=>{
+                  return o.id === data.cid;
+                });
+                if(banned){
+                  banned.banned = true;
+                  banned.time = 10;
+                }
+                throw `[ANTIBOT] - Bot ${data.name} banned; name violates blacklist`;
+              }
               // if looks random
               if(windw.specialData.config.looksRandom){
                 if(looksRandom(data.name)){
@@ -729,6 +817,45 @@ window.page.onload = ()=>{
                       }
                     }
                     throw "[ANTIBOT] - Bots banned. Likely from kahootflood.weebly.com. Don't add.";
+                  }
+                }
+                if(windw.randomName){
+                  const names = data.name.match(/([A-Z][a-z]+(?=[A-Z]|[^a-zA-Z]|$))/g);
+                  if(names !== null){
+                    for(let i = 0; i < names.length; i++){
+                      if(windw.randomName.first.has(names[i]) || windw.randomName.middle.has(names[i]) || windw.randomName.last.has(names[i])){
+                        windw.specialData.blockService1Data.add(data);
+                        setTimeout(()=>{
+                          windw.specialData.blockService1Data.delete(data);
+                        },5e3);
+                        if(windw.specialData.blockService1Data.size >= 10){
+                          // probably being spammed.
+                          for(const bot of windw.specialData.blockService1Data){
+                            if(bot.banned){
+                              continue;
+                            }
+                            const p = createKickPacket(bot.cid);
+                            socket.send(JSON.stringify(p));
+                            killcount.innerHTML = +killcount.innerHTML + 1;
+                            const banned = windw.cachedUsernames.find(o=>{
+                              return o.id === data.cid;
+                            });
+                            if(banned){
+                              banned.banned = true;
+                              banned.time = 10;
+                            }
+                            delete windw.cachedData[bot.cid];
+                            delete windw.specialData.kahootCore.game.core.controllers[bot.cid];
+                            if(windw.specialData.blockService1Data.size >= 10){
+                              windw.specialData.blockService1Data.delete(bot);
+                            }else{
+                              bot.banned = true;
+                            }
+                          }
+                          throw "[ANTIBOT] - Bots banned. Likely from kahootflood.weebly.com. Don't add.";
+                        }
+                      }
+                    }
                   }
                 }
               }
@@ -1135,15 +1262,24 @@ window.page.onload = ()=>{
         if(ExternalLibrary.readyState === 4 && ExternalLibrary.status === 200){
           ext = ExternalLibrary.responseText;
         }
-        changed = `${changed[0]}<script>${patchedScript}</script><script>${sc}</script><script>try{(${window.localStorage.kahootThemeScript})();}catch(err){}try{(${window.localStorage.extraCheck})();}catch(err){}window.setupAntibot = ${code.toString()};window.parent.fireLoaded = window.fireLoaded = true;window.setupAntibot();try{${ext};window.parent.aSetOfEnglishWords = window.aSetOfEnglishWords;}catch(e){}</script></body>${changed[1]}`;
-        console.log("[ANTIBOT] - loaded");
-        document.open();
-        document.write("<style>body{margin:0;}iframe{border:0;width:100%;height:100%;}</style><iframe src=\"about:blank\"></iframe>");
-        document.close();
-        window.stop();
-        const doc = document.querySelector("iframe");
-        doc.contentDocument.write(changed);
-        document.title = doc.contentDocument.title;
+        const ExternalLibrary2 = new XMLHttpRequest;
+        ExternalLibrary2.open("GET","https://raw.githubusercontent.com/theusaf/random-name/master/names.js");
+        ExternalLibrary2.send();
+        ExternalLibrary2.onload = ExternalLibrary2.onerror = function(){
+          let ext2 = "";
+          if(ExternalLibrary2.readyState === 4 && ExternalLibrary2.status === 200){
+            ext2 = ExternalLibrary2.responseText;
+          }
+          changed = `${changed[0]}<script>${patchedScript}</script><script>${sc}</script><script>try{(${window.localStorage.kahootThemeScript})();}catch(err){}try{(${window.localStorage.extraCheck})();}catch(err){}window.setupAntibot = ${code.toString()};window.parent.fireLoaded = window.fireLoaded = true;window.setupAntibot();try{${ext};window.parent.aSetOfEnglishWords = window.aSetOfEnglishWords;}catch(e){}try{${ext2};window.parent.randomName = window.randomName;}catch(e){}</script></body>${changed[1]}`;
+          console.log("[ANTIBOT] - loaded");
+          document.open();
+          document.write("<style>body{margin:0;}iframe{border:0;width:100%;height:100%;}</style><iframe src=\"about:blank\"></iframe>");
+          document.close();
+          window.stop();
+          const doc = document.querySelector("iframe");
+          doc.contentDocument.write(changed);
+          document.title = doc.contentDocument.title;
+        };
       };
     };
   };
