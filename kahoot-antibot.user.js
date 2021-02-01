@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.15.0
+// @version      2.15.1
 // @icon         https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
@@ -854,6 +854,7 @@ window.page.onload = ()=>{
                           }
                           throw "[ANTIBOT] - Bots banned. Likely from kahootflood.weebly.com. Don't add.";
                         }
+                        break;
                       }
                     }
                   }
