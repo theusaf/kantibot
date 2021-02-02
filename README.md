@@ -13,7 +13,7 @@ This script is for Kahoot streamers who go AFK every once in a while. It finds i
 |KPC Version|Antibot Version|
 |-|-|
 |0.0.1 - 0.0.15|2.5.6+|
-|1.0.0 - 1.2.0|2.8.0+|
+|1.0.0+|2.8.0+|
 
 ## GitHub Repo
 <a href="https://github.com/theusaf/kahoot-antibot/tree/pin-checker"><img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="Kahoot Hacker Icon" height="100" width="100"></a>
