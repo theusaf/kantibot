@@ -64,11 +64,13 @@ window.PinCheckerMain = function(){
   windw.PinCheckerFalsePositive = false;
   windw.PinCheckerFalsePositiveTimeout = null;
 
-  if (document.querySelector("#antibotwtr")) {
-    const p = document.createElement("p");
-    p.innerHTML = "[KPC] v1.3.0";
-    document.querySelector("#antibotwtr")
-  }
+  setTimout(() => {
+    if (document.querySelector("#antibotwtr")) {
+      const p = document.createElement("p");
+      p.innerHTML = "[KPC] v1.3.0";
+      document.querySelector("#antibotwtr");
+    }
+  }, 250);
 
   /**
    * ResetGame - Reloads the page
