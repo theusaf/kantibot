@@ -389,20 +389,19 @@ window.PinCheckerMain = function(){
   };
 };
 
-function PinCheckerFalsePositiveReset() {
-  windw.PinCheckerFalsePositive = true;
-  clearTimeout(windw.PinCheckerFalsePositiveTimeout);
-  windw.PinCheckerFalsePositiveTimeout = setTimeout(function () {
-    windw.PinCheckerFalsePositive = false;
-  }, 15e3);
-}
-
 /**
  * PinCheckerInjector - Checks messages and stores the names of players who joined within the last few seconds
  *
  * @param  {String} message The websocket message
  */
 window.PinCheckerInjector = function(socket,message){
+  function PinCheckerFalsePositiveReset() {
+    windw.PinCheckerFalsePositive = true;
+    clearTimeout(windw.PinCheckerFalsePositiveTimeout);
+    windw.PinCheckerFalsePositiveTimeout = setTimeout(function () {
+      windw.PinCheckerFalsePositive = false;
+    }, 15e3);
+  }
   const windw = window.parent,
     data = JSON.parse(message.data)[0];
   if(!socket.webSocket.PinCheckClose){
