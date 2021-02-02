@@ -1,4 +1,6 @@
 # Kahoot Pin Checker
+<a href='https://ko-fi.com/D1D4385AU' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://cdn.ko-fi.com/cdn/kofi2.png?v=2' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+
 This script is for Kahoot streamers who go AFK every once in a while. It finds if the pin breaks and then reloads the page.
 
 ## Installation
@@ -12,4 +14,6 @@ This script is for Kahoot streamers who go AFK every once in a while. It finds i
 |-|-|
 |0.0.1 - 0.0.15|2.5.6+|
 |1.0.0 - 1.2.0|2.8.0+|
-|1.3.0|2.15.2+|
+
+## GitHub Repo
+<a href="https://github.com/theusaf/kahoot-antibot/tree/pin-checker"><img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="Kahoot Hacker Icon" height="100" width="100"></a>

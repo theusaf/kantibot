@@ -41,15 +41,15 @@ window.PinCheckerMain = function(){
           if(windw.localStorage.PinCheckerMode == "team"){
             a = document.querySelector("[data-functional-selector=launch-team-mode-button]");
           }
-					if(a && !a.disabled){
+          if(a && !a.disabled){
             a.click();
             windw.localStorage.PinCheckerAutoRelogin = false;
-						if(+windw.localStorage.PinCheckerLastQuizIndex <= windw.specialData.kahootCore.game.core.playList.length){
-							windw.specialData.kahootCore.game.navigation.currentQuizIndex = +windw.localStorage.PinCheckerLastQuizIndex;
-						}
+            if(+windw.localStorage.PinCheckerLastQuizIndex <= windw.specialData.kahootCore.game.core.playList.length){
+              windw.specialData.kahootCore.game.navigation.currentQuizIndex = +windw.localStorage.PinCheckerLastQuizIndex || 0;
+            }
             clearInterval(waiter);
-	          delete windw.localStorage.PinCheckerMode;
-						delete windw.localStorage.PinCheckerLastQuizIndex;
+            delete windw.localStorage.PinCheckerMode;
+            delete windw.localStorage.PinCheckerLastQuizIndex;
           }
         },500);
       }else{
@@ -60,15 +60,20 @@ window.PinCheckerMain = function(){
   windw.PinCheckerNameList = [];
   windw.PinCheckerPin = null;
   windw.PinCheckerSendIDs = {};
-	windw.specialData = windw.specialData || {};
+  windw.specialData = windw.specialData || {};
+  windw.PinCheckerFalsePositive = false;
+  windw.PinCheckerFalsePositiveTimeout = null;
 
   /**
    * ResetGame - Reloads the page
    */
   function ResetGame(message){
+    if (windw.PinCheckerFalsePositive) {
+      return console.log("[PIN-CHECKER] - Detected false-positive broken pin. Not restarting.");
+    }
     console.error(message || "[PIN-CHECKER] - Pin Broken. Attempting restart.");
     windw.localStorage.PinCheckerAutoRelogin = true;
-		windw.localStorage.PinCheckerLastQuizIndex = windw.specialData.kahootCore.game.navigation.currentQuizIndex;
+    windw.localStorage.PinCheckerLastQuizIndex = windw.specialData.kahootCore.game.navigation.currentQuizIndex;
     windw.document.write("<scr" + "ipt>" + `window.location = "https://play.kahoot.it/v2/${windw.location.search}";` + "</scr" + "ipt>");
   }
 
@@ -378,6 +383,14 @@ window.PinCheckerMain = function(){
   };
 };
 
+function PinCheckerFalsePositiveReset() {
+  windw.PinCheckerFalsePositive = true;
+  clearTimeout(windw.PinCheckerFalsePositiveTimeout);
+  windw.PinCheckerFalsePositiveTimeout = setTimeout(function () {
+    windw.PinCheckerFalsePositive = false;
+  }, 15e3);
+}
+
 /**
  * PinCheckerInjector - Checks messages and stores the names of players who joined within the last few seconds
  *
@@ -428,11 +441,14 @@ window.PinCheckerInjector = function(socket,message){
     }
   }catch(err){/* Unable to get pin, hidden */}
   if(data.data && data.data.type === "joined"){
+    PinCheckerFalsePositiveReset();
     windw.PinCheckerNameList.push(data.data.name);
     setTimeout(()=>{
       // remove after 20 seconds (for performance)
       windw.PinCheckerNameList.splice(0,1);
     },20e3);
+  }else if (data.data && data.data.id === 45) {
+    PinCheckerFalsePositiveReset();
   }
 };
 
@@ -458,11 +474,11 @@ if(!window.page){
       mainScript.open("GET","https://play.kahoot.it/"+script2);
       mainScript.send();
       mainScript.onload = ()=>{
-        const sc = mainScript.response;
-				// Access the core data
-	      const cr = /[a-z]\.game\.core/m,
-	        letter6 = sc.match(cr)[0].match(/[a-z](?=\.game)/)[0];
-	      sc = sc.replace(cr,`(()=>{
+        let sc = mainScript.response;
+        // Access the core data
+        const cr = /[a-z]\.game\.core/m,
+          letter6 = sc.match(cr)[0].match(/[a-z](?=\.game)/)[0];
+        sc = sc.replace(cr,`(()=>{
 	        if(typeof windw !== "undefined"){
 	          windw.specialData.kahootCore = ${letter6};
 	        }
