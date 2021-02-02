@@ -35,6 +35,12 @@ window.PinCheckerMain = function(){
         windw.localStorage.PinCheckerMode = "team";
       });
 
+      if (document.querySelector("#antibotwtr")) {
+        const p = document.createElement("p");
+        p.innerHTML = "[KPC] v1.3.0";
+        document.querySelector("#antibotwtr").append(p);
+      }
+
       if(windw.localStorage.PinCheckerAutoRelogin == "true"){
         const waiter = setInterval(()=>{
           let a = document.querySelector("[data-functional-selector=launch-button]");
@@ -63,14 +69,6 @@ window.PinCheckerMain = function(){
   windw.specialData = windw.specialData || {};
   windw.PinCheckerFalsePositive = false;
   windw.PinCheckerFalsePositiveTimeout = null;
-
-  setTimout(() => {
-    if (document.querySelector("#antibotwtr")) {
-      const p = document.createElement("p");
-      p.innerHTML = "[KPC] v1.3.0";
-      document.querySelector("#antibotwtr");
-    }
-  }, 250);
 
   /**
    * ResetGame - Reloads the page
