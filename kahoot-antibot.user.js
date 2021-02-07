@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.15.2
+// @version      2.15.3
 // @icon         https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
@@ -47,7 +47,7 @@ window.page.onload = ()=>{
         const container = document.createElement("div");
         container.id = "antibotwtr";
         const waterMark = document.createElement("p");
-        waterMark.innerHTML = "v2.15.2 @theusaf";
+        waterMark.innerHTML = "v2.15.3 @theusaf";
         const botText = document.createElement("p");
         botText.innerHTML = "0";
         botText.id = "killcount";
@@ -791,7 +791,7 @@ window.page.onload = ()=>{
                   windw.specialData.blockService1Data.add(data);
                   setTimeout(()=>{
                     windw.specialData.blockService1Data.delete(data);
-                  },5e3);
+                  },3e3);
                   if(windw.specialData.blockService1Data.size >= 10){
                     // probably being spammed.
                     for(const bot of windw.specialData.blockService1Data){
@@ -827,7 +827,7 @@ window.page.onload = ()=>{
                         windw.specialData.blockService1Data.add(data);
                         setTimeout(()=>{
                           windw.specialData.blockService1Data.delete(data);
-                        },5e3);
+                        },3e3);
                         if(windw.specialData.blockService1Data.size >= 10){
                           // probably being spammed.
                           for(const bot of windw.specialData.blockService1Data){
