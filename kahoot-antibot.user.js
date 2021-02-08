@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.15.3
+// @version      2.16.0
 // @icon         https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
@@ -47,7 +47,7 @@ window.page.onload = ()=>{
         const container = document.createElement("div");
         container.id = "antibotwtr";
         const waterMark = document.createElement("p");
-        waterMark.innerHTML = "v2.15.3 @theusaf";
+        waterMark.innerHTML = "v2.16.0 @theusaf";
         const botText = document.createElement("p");
         botText.innerHTML = "0";
         botText.id = "killcount";
@@ -84,6 +84,17 @@ window.page.onload = ()=>{
             <input type="checkbox" id="antibot.config.forceascii"></input>
             <label onclick="windw.specialData.config.forceascii = !windw.specialData.config.forceascii;if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.forceascii = windw.specialData.config.forceascii;windw.localStorage.antibotConfig = JSON.stringify(a);" for="antibot.config.forceascii" title="Marks names with non-alphanumeric characters as suspicious and bans them if multiple join.">Force Alphanumeric</label>
           </div>
+          <!-- Pattern Detection -->
+          <div>
+            <input type="checkbox" id="antibot.config.patterns" onchange="windw.specialData.config.patterns = document.getElementById('antibot.config.patterns').checked;
+              if(!windw.localStorage.antibotConfig){
+                windw.localStorage.antibotConfig = JSON.stringify({});
+              }
+              const a = JSON.parse(windw.localStorage.antibotConfig);
+              a.patterns = windw.specialData.config.patterns;
+              localStorage.antibotConfig = JSON.stringify(a);">
+            <label for="antibot.config.patterns" title="Blocks bots spammed with similar patterns.">Pattern Detection</label>
+          </div>
           <!-- Additional Question Time -->
           <div>
             <label class="antibot-input" for="antibot.config.teamtimeout" title="Add extra seconds to the question.">Additional Question Time</label>
@@ -97,7 +108,7 @@ window.page.onload = ()=>{
           <!-- Custom Word Block -->
           <div>
             <label class="antibot-input" for="antibot.config.wordblock" title="Add a custom word blacklist. Click the box to open. Unfocus to close. Separate by new lines.">Word Blacklist</label>
-            <textarea type="checkbox" id="antibot.config.wordblock" onchange="windw.specialData.config.wordblock = document.getElementById('antibot.config.wordblock').value.split('\\n');
+            <textarea id="antibot.config.wordblock" onchange="windw.specialData.config.wordblock = document.getElementById('antibot.config.wordblock').value.split('\\n');
               if(!windw.localStorage.antibotConfig){
                 windw.localStorage.antibotConfig = JSON.stringify({});
               }
@@ -384,7 +395,8 @@ window.page.onload = ()=>{
             blockservice1: false, // Special filters against kahootflood.weebly.com
             counterCheats: false, // Counters cheats by adding an extra question
             enableCAPTCHA: false, // Adds a captcha
-            wordblock: []
+            wordblock: [], // Blocks specific strings
+            patterns: false // Blocks based on patterns. If namerator is enabled, this is disabled.
           },
           inLobby: true, // Whether in the lobby
           lobbyLoadTime: 0, // The time the first player joined the lobby
@@ -392,7 +404,8 @@ window.page.onload = ()=>{
           kahootCore: null, // Kahoot's core data
           globalFuncs: null, // Useful functions (starting quiz, etc)
           CAPTCHA_IDS: new Set, // Players that answered the captcha
-          blockService1Data: new Set // Bots that are suspicious in blockservice1
+          blockService1Data: new Set, // Bots that are suspicious in blockservice1
+          patternData: {}
         };
         // loading localStorage info
         if(windw.localStorage.antibotConfig){
@@ -462,11 +475,65 @@ window.page.onload = ()=>{
             document.getElementById("antibot.config.wordblock").value = a.wordblock.join("\n");
             windw.specialData.config.wordblock = a.wordblock;
           }
+          if(a.patterns){
+            document.getElementById("antibot.config.patterns").checked = true;
+            windw.specialData.config.patterns = true;
+          }
         }
         let messageId = 0,
           clientId = null,
           pin = null;
 
+        /**
+         * getPatterns - Gets the patterns from a string
+         *
+         * @param  {String} string The string
+         * @returns {String} Pattern string
+         */
+        function getPatterns(string){
+          const isLetter = (char) => {
+              return /\p{L}/u.test(char);
+            },
+            isUppercaseLetter = (char) => {
+              return char.toUpperCase() === char;
+            },
+            isNumber = (char) => {
+              return /\p{N}/u.test(char);
+            };
+          let output = "",
+            mode = null,
+            count = 0;
+          for(let i = 0; i < string.length; i++){
+            const char = string[i];
+            let type = null;
+            if (isLetter(char)) {
+              if (isUppercaseLetter(char)) {
+                type = "C";
+              } else {
+                type = "L";
+              }
+            } else if (isNumber(char)) {
+              type = "D";
+            } else {
+              // special character
+              type = "U";
+            }
+            if (type !== mode) {
+              if (mode !== null) {
+                output += Math.floor(count / 3);
+              }
+              count = 0;
+              mode = type;
+              output += type;
+            } else {
+              count++;
+              if (i === string.length - 1) {
+                output += Math.floor(count / 3);
+              }
+            }
+          }
+          return output;
+        }
         /**
          * isValidNameratorName - Checks whether a name is a valid namerator name
          *
@@ -715,6 +782,42 @@ window.page.onload = ()=>{
               windw.loggedPlayers[player.cid] = true;
             }
           }
+          if (!windw.isUsingNamerator) {
+            const pattern = getPatterns(player.name);
+            if(typeof windw.specialData.patternData[pattern] === "undefined"){
+              windw.specialData.patternData[pattern] = new Set;
+            }
+            player.banned = false;
+            windw.specialData.patternData[pattern].add(player);
+            setTimeout(()=>{
+              windw.specialData.patternData[pattern].delete(player);
+            },4e3);
+            if(windw.specialData.patternData[pattern].size >= 15){
+              for(const bot of windw.specialData.patternData[pattern]){
+                if(bot.banned){
+                  continue;
+                }
+                const p = createKickPacket(bot.cid);
+                socket.send(JSON.stringify(p));
+                killcount.innerHTML = +killcount.innerHTML + 1;
+                const banned = windw.cachedUsernames.find(o=>{
+                  return o.id === player.cid;
+                });
+                if(banned){
+                  banned.banned = true;
+                  banned.time = 10;
+                }
+                delete windw.cachedData[bot.cid];
+                delete windw.specialData.kahootCore.game.core.controllers[bot.cid];
+                if(windw.specialData.patternData[pattern].size >= 30){
+                  windw.specialData.patternData[pattern].delete(bot);
+                }else{
+                  bot.banned = true;
+                }
+              }
+              throw "[ANTIBOT] - Bots banned, very similar patterns";
+            }
+          }
         }
         /**
          * specialBotDetector - Checks other information
@@ -810,7 +913,7 @@ window.page.onload = ()=>{
                       }
                       delete windw.cachedData[bot.cid];
                       delete windw.specialData.kahootCore.game.core.controllers[bot.cid];
-                      if(windw.specialData.blockService1Data.size >= 10){
+                      if(windw.specialData.blockService1Data.size >= 20){
                         windw.specialData.blockService1Data.delete(bot);
                       }else{
                         bot.banned = true;
@@ -828,7 +931,7 @@ window.page.onload = ()=>{
                         setTimeout(()=>{
                           windw.specialData.blockService1Data.delete(data);
                         },3e3);
-                        if(windw.specialData.blockService1Data.size >= 10){
+                        if(windw.specialData.blockService1Data.size >= 20){
                           // probably being spammed.
                           for(const bot of windw.specialData.blockService1Data){
                             if(bot.banned){
@@ -1210,10 +1313,26 @@ window.page.onload = ()=>{
         delete localStorage.extraCheck2;
       },
       mainScript = new XMLHttpRequest();
+    let changed, ext, ext2, sc,
+      load = 0;
+    function checkLoad(){
+      if(++load < 3){
+        return;
+      }
+      changed = `${changed[0]}<script>${patchedScript}</script><script>${sc}</script><script>try{(${window.localStorage.kahootThemeScript})();}catch(err){}try{(${window.localStorage.extraCheck})();}catch(err){}window.setupAntibot = ${code.toString()};window.parent.fireLoaded = window.fireLoaded = true;window.setupAntibot();try{${ext};window.parent.aSetOfEnglishWords = window.aSetOfEnglishWords;}catch(e){}try{${ext2};window.parent.randomName = window.randomName;}catch(e){}</script></body>${changed[1]}`;
+      console.log("[ANTIBOT] - loaded");
+      document.open();
+      document.write("<style>body{margin:0;}iframe{border:0;width:100%;height:100%;}</style><iframe src=\"about:blank\"></iframe>");
+      document.close();
+      window.stop();
+      const doc = document.querySelector("iframe");
+      doc.contentDocument.write(changed);
+      document.title = doc.contentDocument.title;
+    }
     mainScript.open("GET","https://play.kahoot.it/"+script2);
     mainScript.send();
     mainScript.onload = ()=>{
-      let sc = mainScript.response;
+      sc = mainScript.response;
       // Access the namerator option
       const nr = /=[a-z]\.namerator/gm,
         letter = sc.match(nr)[0].match(/[a-z](?=\.)/g)[0];
@@ -1249,40 +1368,41 @@ window.page.onload = ()=>{
         }
         return ${letter6}.game.core;
       })()`);
-      let changed = originalPage.split("</body>");
+      changed = originalPage.split("</body>");
+      checkLoad();
+    };
 
-      /**
-       * ExternalLibrary - Note: This script requires https://raw.githubusercontent.com/theusaf/a-set-of-english-words/master/index.js
-       * - This is a script that loads 275k english words into a set. (about 30MB ram?)
-       * @see https://github.com/theusaf/a-set-of-english-words
-       */
-      const ExternalLibrary = new XMLHttpRequest;
-      ExternalLibrary.open("GET","https://raw.githubusercontent.com/theusaf/a-set-of-english-words/master/index.js");
-      ExternalLibrary.send();
-      ExternalLibrary.onload = ExternalLibrary.onerror = function(){
-        let ext = "";
-        if(ExternalLibrary.readyState === 4 && ExternalLibrary.status === 200){
-          ext = ExternalLibrary.responseText;
-        }
-        const ExternalLibrary2 = new XMLHttpRequest;
-        ExternalLibrary2.open("GET","https://raw.githubusercontent.com/theusaf/random-name/master/names.js");
-        ExternalLibrary2.send();
-        ExternalLibrary2.onload = ExternalLibrary2.onerror = function(){
-          let ext2 = "";
-          if(ExternalLibrary2.readyState === 4 && ExternalLibrary2.status === 200){
-            ext2 = ExternalLibrary2.responseText;
-          }
-          changed = `${changed[0]}<script>${patchedScript}</script><script>${sc}</script><script>try{(${window.localStorage.kahootThemeScript})();}catch(err){}try{(${window.localStorage.extraCheck})();}catch(err){}window.setupAntibot = ${code.toString()};window.parent.fireLoaded = window.fireLoaded = true;window.setupAntibot();try{${ext};window.parent.aSetOfEnglishWords = window.aSetOfEnglishWords;}catch(e){}try{${ext2};window.parent.randomName = window.randomName;}catch(e){}</script></body>${changed[1]}`;
-          console.log("[ANTIBOT] - loaded");
-          document.open();
-          document.write("<style>body{margin:0;}iframe{border:0;width:100%;height:100%;}</style><iframe src=\"about:blank\"></iframe>");
-          document.close();
-          window.stop();
-          const doc = document.querySelector("iframe");
-          doc.contentDocument.write(changed);
-          document.title = doc.contentDocument.title;
-        };
-      };
+    /**
+     * External Libraries
+     * Note: This script requires https://raw.githubusercontent.com/theusaf/a-set-of-english-words/master/index.js
+     * - This is a script that loads 275k english words into a set. (about 30MB ram?)
+     * @see https://github.com/theusaf/a-set-of-english-words
+     *
+     * Also, it requires https://raw.githubusercontent.com/theusaf/random-name/master/names.js
+     * - Loads a bunch of names into sets.
+     * @see https://raw.githubusercontent.com/theusaf/random-name
+     *
+     * If these get removed or fail to load, this should not break the service, but will cause certain features to not work
+     */
+    const ExternalLibrary = new XMLHttpRequest;
+    ExternalLibrary.open("GET","https://raw.githubusercontent.com/theusaf/a-set-of-english-words/master/index.js");
+    ExternalLibrary.send();
+    ExternalLibrary.onload = ExternalLibrary.onerror = function(){
+      ext = "";
+      if(ExternalLibrary.readyState === 4 && ExternalLibrary.status === 200){
+        ext = ExternalLibrary.responseText;
+      }
+      checkLoad();
+    };
+    const ExternalLibrary2 = new XMLHttpRequest;
+    ExternalLibrary2.open("GET","https://raw.githubusercontent.com/theusaf/random-name/master/names.js");
+    ExternalLibrary2.send();
+    ExternalLibrary2.onload = ExternalLibrary2.onerror = function(){
+      ext2 = "";
+      if(ExternalLibrary2.readyState === 4 && ExternalLibrary2.status === 200){
+        ext2 = ExternalLibrary2.responseText;
+      }
+      checkLoad();
     };
   };
 };
