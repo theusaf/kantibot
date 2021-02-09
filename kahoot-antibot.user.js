@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.16.0
+// @version      2.16.1
 // @icon         https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
@@ -47,7 +47,7 @@ window.page.onload = ()=>{
         const container = document.createElement("div");
         container.id = "antibotwtr";
         const waterMark = document.createElement("p");
-        waterMark.innerHTML = "v2.16.0 @theusaf";
+        waterMark.innerHTML = "v2.16.1 @theusaf";
         const botText = document.createElement("p");
         botText.innerHTML = "0";
         botText.id = "killcount";
@@ -544,10 +544,10 @@ window.page.onload = ()=>{
           const First = ["Adorable","Agent","Agile","Amazing","Amazon","Amiable","Amusing","Aquatic","Arctic","Awesome","Balanced","Blue","Bold","Brave","Bright","Bronze","Captain","Caring","Champion","Charming","Cheerful","Classy","Clever","Creative","Cute","Dandy","Daring","Dazzled","Decisive","Diligent","Diplomat","Doctor","Dynamic","Eager","Elated","Epic","Excited","Expert","Fabulous","Fast","Fearless","Flying","Focused","Friendly","Funny","Fuzzy","Genius","Gentle","Giving","Glad","Glowing","Golden","Great","Green","Groovy","Happy","Helpful","Hero","Honest","Inspired","Jolly","Joyful","Kind","Knowing","Legend","Lively","Lovely","Lucky","Magic","Majestic","Melodic","Mighty","Mountain","Mystery","Nimble","Noble","Polite","Power","Prairie","Proud","Purple","Quick","Radiant","Rapid","Rational","Rockstar","Rocky","Royal","Shining","Silly","Silver","Smart","Smiling","Smooth","Snowy","Soaring","Social","Space","Speedy","Stellar","Sturdy","Super","Swift","Tropical","Winged","Wise","Witty","Wonder","Yellow","Zany"],
             Last = ["Alpaca","Ant","Badger","Bat","Bear","Bee","Bison","Boa","Bobcat","Buffalo","Bunny","Camel","Cat","Cheetah","Chicken","Condor","Crab","Crane","Deer","Dingo","Dog","Dolphin","Dove","Dragon","Duck","Eagle","Echidna","Egret","Elephant","Elk","Emu","Falcon","Ferret","Finch","Fox","Frog","Gator","Gazelle","Gecko","Giraffe","Glider","Gnu","Goat","Goose","Gorilla","Griffin","Hamster","Hare","Hawk","Hen","Horse","Ibex","Iguana","Impala","Jaguar","Kitten","Koala","Lark","Lemming","Lemur","Leopard","Lion","Lizard","Llama","Lobster","Macaw","Meerkat","Monkey","Mouse","Newt","Octopus","Oryx","Ostrich","Otter","Owl","Panda","Panther","Pelican","Penguin","Pigeon","Piranha","Pony","Possum","Puffin","Quail","Rabbit","Raccoon","Raven","Rhino","Rooster","Sable","Seal","SeaLion","Shark","Sloth","Snail","Sphinx","Squid","Stork","Swan","Tiger","Turtle","Unicorn","Urchin","Wallaby","Wildcat","Wolf","Wombat","Yak","Yeti","Zebra"],
             F = name.match(/[A-Z][a-z]+(?=[A-Z])/);
-          if(F === null || !First.includes(F)){
+          if(F === null || !First.includes(F[0])){
             return false;
           }
-          const L = name.replace(F,"");
+          const L = name.replace(F[0],"");
           if(!Last.includes(L)){
             return false;
           }
@@ -627,8 +627,11 @@ window.page.onload = ()=>{
           }
           // apply namerator rules
           if(windw.isUsingNamerator){
-            if(isValidNameratorName(s2)){
+            if(!isValidNameratorName(s2)){
               return -1;
+            }else{
+              // safe name
+              return 0;
             }
           }
           if(!s1){
@@ -782,7 +785,7 @@ window.page.onload = ()=>{
               windw.loggedPlayers[player.cid] = true;
             }
           }
-          if (!windw.isUsingNamerator) {
+          if (!windw.isUsingNamerator && windw.specialData.config.patterns) {
             const pattern = getPatterns(player.name);
             if(typeof windw.specialData.patternData[pattern] === "undefined"){
               windw.specialData.patternData[pattern] = new Set;
@@ -969,7 +972,7 @@ window.page.onload = ()=>{
                     if(windw.cachedData[windw.specialData.lastFakeUserID]){ // to get the first guy
                       const packet = createKickPacket(windw.specialData.lastFakeUserID);
                       socket.send(JSON.stringify(packet));
-                      delete windw.kahootCore.game.core.controllers[windw.specialData.lastFakeUserID];
+                      delete windw.specialData.kahootCore.game.core.controllers[windw.specialData.lastFakeUserID];
                       delete windw.cachedData[windw.specialData.lastFakeUserID];
                       const banned = windw.cachedUsernames.find(o=>{
                         return o.id === windw.specialData.lastFakeUserID;
