@@ -56,5 +56,21 @@
 <ul>
   <li>More Blocking Options (When new botting patterns are found).</li>
   <li>Prevent answers during team talk</li>
-  <li>Impove performance or edit the way Kahoot's timers work</li>
 </ul>
+<h2>Support for other play.kahoot.it scripts</h2>
+<p>If you are creating your own play.kahoot.it scripts, it will not work with Kahoot Antibot normally. You need to do the following:</p>
+<ol>
+ <li>Run at <code>document-start</code></li>
+ <li>Create or get <code>window.antibotAdditionalScripts</code> to <code>[]</code></li>
+ <li>Add your code as a function to the array</li>
+</ol>
+<strong>Example:</strong>
+<pre><code>
+// @run-at       document-start
+// ==/UserScript==
+
+window.antibotAdditionalScripts = window.antibotAdditionalScripts || [];
+window.antibotAdditionalScripts.push(()=>{
+  // code to run
+});
+</code></pre>
