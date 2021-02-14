@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kahoot AntiBot
 // @namespace    http://tampermonkey.net/
-// @version      2.16.1
+// @version      2.16.2
 // @icon         https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
@@ -23,6 +23,7 @@ if(window.localStorage.kahootThemeScript){
   console.log("[ANTIBOT] - Detected KonoSuba Theme");
 }
 document.write("[ANTIBOT] - Patching Kahoot. Please wait. If this screen stays blank for long periods of time, please force reload or clear your cache.");
+window.antibotAdditionalScripts = window.antibotAdditionalScripts || [];
 window.url = window.location.href;
 window.page = new XMLHttpRequest();
 window.page.open("GET",window.url);
@@ -47,7 +48,7 @@ window.page.onload = ()=>{
         const container = document.createElement("div");
         container.id = "antibotwtr";
         const waterMark = document.createElement("p");
-        waterMark.innerHTML = "v2.16.1 @theusaf";
+        waterMark.innerHTML = "v2.16.2 @theusaf";
         const botText = document.createElement("p");
         botText.innerHTML = "0";
         botText.id = "killcount";
@@ -1314,6 +1315,14 @@ window.page.onload = ()=>{
         delete localStorage.kahootThemeScript;
         delete localStorage.extraCheck;
         delete localStorage.extraCheck2;
+
+        for(let i = 0; i < windw.antibotAdditionalScripts.length; i++){
+          try{
+            windw.antibotAdditionalScripts[i]();
+          }catch(err){
+            console.error(err);
+          }
+        }
       },
       mainScript = new XMLHttpRequest();
     let changed, ext, ext2, sc,
