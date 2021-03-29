@@ -22,6 +22,7 @@ if(window.localStorage.extraCheck){
 if(window.localStorage.kahootThemeScript){
   console.log("[ANTIBOT] - Detected KonoSuba Theme");
 }
+// specialData.globalFuncs.showNotificationBar("error",{defaultMessage:"tarnation",id:"tarnation.tarnation"},time,center,values,upsellhandler);
 document.write("[ANTIBOT] - Patching Kahoot. Please wait. If this screen stays blank for long periods of time, please force reload or clear your cache.");
 window.antibotAdditionalScripts = window.antibotAdditionalScripts || [];
 window.url = window.location.href;
