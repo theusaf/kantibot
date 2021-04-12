@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Kahoot AntiBot
+// @name         KAntibot
 // @namespace    http://tampermonkey.net/
-// @version      2.16.3
+// @version      2.17.0
 // @icon         https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description  Remove all bots from a kahoot game.
 // @author       theusaf
@@ -22,8 +22,8 @@ if(window.localStorage.extraCheck){
 if(window.localStorage.kahootThemeScript){
   console.log("[ANTIBOT] - Detected KonoSuba Theme");
 }
-// specialData.globalFuncs.showNotificationBar("error",{defaultMessage:"tarnation",id:"tarnation.tarnation"},time,center,values,upsellhandler);
-document.write("[ANTIBOT] - Patching Kahoot. Please wait. If this screen stays blank for long periods of time, please force reload or clear your cache.");
+
+document.write(`<p id="antibot-loading-notice">[ANTIBOT] - Patching Kahoot. Please wait.</p><p>If this screen stays blank for a long time, report an issue in <a href="https://discord.gg/pPdvXU6">Discord</a>, <a href="https://github.com/theusaf/kantibot">GitHub</a>, or <a href="https://greasyfork.org/en/scripts/374093-kantibot">Greasyfork</a>.</p>`);
 window.antibotAdditionalScripts = window.antibotAdditionalScripts || [];
 window.url = window.location.href;
 window.page = new XMLHttpRequest();
@@ -35,7 +35,7 @@ window.page.onload = ()=>{
   let originalPage = window.page.response.replace(/><\/script><script .*?vendors.*?><\/script>/mg,"></script>");
   originalPage = originalPage.replace(/\/v2\/assets\/js\/main.*?(?=")/mg,"data:text/javascript,");
   const script = new XMLHttpRequest();
-  script.open("GET","https://play.kahoot.it/"+scriptURL);
+  script.open("GET",scriptURL);
   script.send();
   script.onload = ()=>{
     const patchedScriptRegex = /\.onMessage=function\([a-z],[a-z]\)\{/mg,
@@ -49,7 +49,7 @@ window.page.onload = ()=>{
         const container = document.createElement("div");
         container.id = "antibotwtr";
         const waterMark = document.createElement("p");
-        waterMark.innerHTML = "v2.16.3 @theusaf";
+        waterMark.innerHTML = "v2.17.0 @theusaf";
         const botText = document.createElement("p");
         botText.innerHTML = "0";
         botText.id = "killcount";
@@ -132,7 +132,7 @@ window.page.onload = ()=>{
           </div>
           <!-- Toggling Streak Bonus -->
           <div>
-            <input type="checkbox" id="antibot.config.streakBonus" onchange="windw.specialData.config.streakBonus = Number(document.getElementById('antibot.config.streakBonus').checked ? 1 : 2);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.streakBonus = windw.specialData.config.streakBonus;localStorage.antibotConfig = JSON.stringify(a);alert('When modifying this option, reload the page for it to take effect')">
+            <input type="checkbox" id="antibot.config.streakBonus" onchange="windw.specialData.config.streakBonus = Number(document.getElementById('antibot.config.streakBonus').checked ? 1 : 2);if(!windw.localStorage.antibotConfig){windw.localStorage.antibotConfig = JSON.stringify({});}const a = JSON.parse(windw.localStorage.antibotConfig);a.streakBonus = windw.specialData.config.streakBonus;localStorage.antibotConfig = JSON.stringify(a);kalert('When modifying this option, reload the page for it to take effect')">
             <label for="antibot.config.streakBonus" title="Toggle the Streak Bonus.">Toggle Streak Bonus</label>
           </div>
           <!-- Show Antibot Counters -->
@@ -151,7 +151,7 @@ window.page.onload = ()=>{
               localStorage.antibotConfig = JSON.stringify(a);
               if(a.counterCheats){
                 // enable cheats
-                alert('Changes may only take effect upon reload.');
+                kalert('Changes may only take effect upon reload.');
               }else{
                 // disable anti-cheat
                 const q = windw.specialData.globalQuizData.questions;
@@ -173,7 +173,7 @@ window.page.onload = ()=>{
               localStorage.antibotConfig = JSON.stringify(a);
               if(a.enableCAPTCHA){
                 // enable captcha
-                alert('Changes may only take effect upon reload.');
+                kalert('Changes may only take effect upon reload.');
               }else{
                 // disable captcha
                 const q = windw.specialData.globalQuizData.questions;
@@ -1312,6 +1312,15 @@ window.page.onload = ()=>{
             clearInterval(windw.specialData.lockInterval);
           }
         };
+        window.kalert = function(notice) {
+          // specialData.globalFuncs.showNotificationBar("error" or "notice", {defaultMessage: "the notice message", id:"antibot.notice"}, time (s), center (true/false, centers text), values (??), upsellhandler (?? function));
+          try {
+            windw.specialData.globalFuncs.showNotificationBar("error", {defaultMessage:notice, id:"antibot.notice"}, 3);
+          }catch(err) {
+            // fall back to alert
+            alert(notice);
+          }
+        }
         // remove loaded modules (allows turning off things to be a bit easier)
         delete localStorage.kahootThemeScript;
         delete localStorage.extraCheck;

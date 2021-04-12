@@ -1,4 +1,4 @@
-<h1>Kahoot AntiBot</h1>
+<h1>KAntibot</h1>
 <a href='https://ko-fi.com/D1D4385AU' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://cdn.ko-fi.com/cdn/kofi2.png?v=2' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
 <p>This script uses a "Levenshtein distance" formula to determine similarity, taken from <a href="https://stackoverflow.com/questions/10473745/compare-strings-javascript-return-of-likely">Stackoverflow.com</a></p>
 <hr>
