@@ -1351,7 +1351,7 @@ window.page.onload = ()=>{
       doc.contentDocument.write(changed);
       document.title = doc.contentDocument.title;
     }
-    mainScript.open("GET","https://play.kahoot.it/"+script2);
+    mainScript.open("GET",script2);
     mainScript.send();
     mainScript.onload = ()=>{
       sc = mainScript.response;
