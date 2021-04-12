@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Kahoot PIN Checker
+// @name         KPin Checker
 // @namespace    http://tampermonkey.net/
-// @version      1.3.0
+// @version      1.3.1
 // @description  Check the pin of a kahoot game.
 // @author       theusaf
 // @match        *://play.kahoot.it/*
@@ -37,7 +37,7 @@ window.PinCheckerMain = function(){
 
       if (document.querySelector("#antibotwtr")) {
         const p = document.createElement("p");
-        p.innerHTML = "[KPC] v1.3.0";
+        p.innerHTML = "[KPC] v1.3.1";
         document.querySelector("#antibotwtr").append(p);
       }
 
@@ -458,17 +458,17 @@ window.PinCheckerInjector = function(socket,message){
 };
 
 if(!window.page){
-  document.write("[PIN-CHECKER] - Patching Kahoot. Please wait. If this screen stays blank for long periods of time, please force reload or clear your cache.");
+  document.write(`<p id="pin-checker-loading-notice">[PIN-CHECKER] - Patching Kahoot. Please wait.</p><p>If this screen stays blank for a long time, report an issue in <a href="https://discord.gg/pPdvXU6">Discord</a>, <a href="https://github.com/theusaf/kantibot">GitHub</a>, or <a href="https://greasyfork.org/en/scripts/392154-kpin-checker">Greasyfork</a>.</p>`);
   const page = new XMLHttpRequest();
   page.open("GET",location.href);
   page.send();
   page.onload = function(){
     const scriptURL = page.response.match(/><\/script><script .*?vendors.*?><\/script>/mg)[0].substr(9).split("src=\"")[1].split("\"")[0],
-      script2 = page.response.match(/<\/script><script src="\/v2\/assets\/js\/main.*?(?=")/mg)[0].substr(22);
+      script2 = page.response.match(/\/v2\/assets\/js\/main.*?(?=")/mg)[0];
     let originalPage = page.response.replace(/><\/script><script .*?vendors.*?><\/script>/mg,"></script>");
     originalPage = originalPage.replace(/<\/script><script src="\/v2\/assets\/js\/main.*?(?=")/mg,"</script><script src=\"data:text/javascript,");
     const script = new XMLHttpRequest();
-    script.open("GET","https://play.kahoot.it/"+scriptURL);
+    script.open("GET",scriptURL);
     script.send();
     script.onload = ()=>{
       const patchedScriptRegex = /\.onMessage=function\([a-z],[a-z]\)\{/mg,
@@ -476,7 +476,7 @@ if(!window.page){
         letter2 = script.response.match(patchedScriptRegex)[0].match(/[a-z](?=\))/g)[0],
         patchedScript = script.response.replace(script.response.match(patchedScriptRegex)[0],`.onMessage=function(${letter1},${letter2}){window.globalMessageListener(${letter1},${letter2});`),
         mainScript = new XMLHttpRequest();
-      mainScript.open("GET","https://play.kahoot.it/"+script2);
+      mainScript.open("GET",script2);
       mainScript.send();
       mainScript.onload = ()=>{
         let sc = mainScript.response;
