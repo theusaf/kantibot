@@ -114,17 +114,6 @@ async function fetchVendorsScript(vendorsScriptURL) {
 async function fetchMainScript(mainScriptURL) {
   const mainScriptRequest = await makeHttpRequest(mainScriptURL);
   let mainScript = mainScriptRequest.response;
-  // Access the namerator option
-  const nameratorRegex = /=[a-z]\.namerator/gm,
-    nameratorLetter = mainScript.match(nameratorRegex)[0].match(/[a-z](?=\.)/g)[0];
-  mainScript = mainScript.replace(
-    mainScript.match(nameratorRegex)[0], // TODO: have a central data area
-    `=(()=>{
-      console.log(${nameratorLetter}.namerator);
-      windw.antibotData.isUsingNamerator = ${nameratorLetter}.namerator;
-      return ${nameratorLetter}.namerator;
-    })()`
-  );
   // Access the currentQuestionTimer and change the question time
   const currentQuestionTimerRegex = /currentQuestionTimer:[a-z]\.payload\.questionTime/gm,
     currentQuestionTimerLetter = mainScript.match(currentQuestionTimerRegex)[0].match(/[a-z](?=\.payload)/g)[0];
