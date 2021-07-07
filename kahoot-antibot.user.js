@@ -420,8 +420,6 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
     antibotData.settings[id] = value;
   }
 
-  function websocketMessageHandler(socket, message) {}
-
   function extraQuestionSetup(quiz) {
     if (getSetting("counterCheats")) {
       quiz.questions.push({
@@ -471,6 +469,110 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
     }
   }
 
+  function kickController(controller, reason="") {
+    console.error(`[ANTIBOT] - Kicked ${id}`);
+    sendData("/service/player", {
+      cid: `${id}`,
+      content: JSON.stringify({
+        kickCode: 1,
+        quizType: "quiz"
+      }),
+      gameid: getPin(),
+      host: "play.kahoot.it",
+      id: 10,
+      type: "message"
+    });
+  }
+
+  const sendChecks = [
+      function questionStartCheck(socket, data) {
+        if (data?.data?.id === 2) {
+          antibotData.runtimeData.questionStartTime = Date.now();
+          antibotData.runtimeData.captchaIds = new Set();
+        }
+      },
+      function restartCheck(socket, data) {
+        if (data?.data?.id === 5 ||
+          (data?.data?.id === 10 &&
+            data.data.content === "{}")) antibotData.runtimeData.lobbyLoadTime = 0;
+      },
+      function quizStartCheck(socket, data) {
+        if (data?.data?.id === 9 && antibotData.runtimeData.startLockElement) {
+          clearInterval(antibotData.runtimeData.startLockInterval);
+          antibotData.runtimeData.startLockElement.remove();
+          antibotData.runtimeData.startLockElement = null;
+        }
+      },
+      function questionEndCheck(socket, data) {
+        if (data?.data?.id === 4 &&
+          getCurrentQuestionIndex() === 0 &&
+          getQuizData().questions[0].isAntibotQuestion) {
+          const controllers = getControllers(),
+            answeredControllers = antibotData.runtimeData.captchaIds;
+          for(const id in controllers) {
+            if (controllers[id].isGhost || controllers[id].hasLeft) continue;
+            if (!answeredControllers.has(id)) {
+              kickController()
+            }
+          }
+        }
+      }
+    ],
+    receiveChecks = [
+
+    ];
+
+  function getClientId() {
+    return antibotData.kahootInternals.kahootCore.network.websocketInstance.getClientId();
+  }
+
+  function checkLocked() {
+    return antibotData.kahootInternals.kahootCore.game.core.isLocked;
+  }
+
+  function getCurrentQuestionIndex() {
+    return antibotData.kahootInternals.kahootCore.game.navigation.currentGameBlockIndex;
+  }
+
+  function getQuizData() {
+    return antibotData.kahootInternals.globalQuizData;
+  }
+
+  function getPin() {
+    return antibotData.kahootInternals.kahootCore.game.core.pin;
+  }
+
+  function getControllers() {
+    return antibotData.kahootInternals.kahootCore.game.core.controllers
+  }
+
+  function sendData(channel, data) {
+    return antibotData.kahootInternals.kahootCore.network.websocketInstance.publish(channel, data);
+  }
+
+  function websocketMessageHandler(socket, message) {
+    try {PinCheckerCheckMethod();} catch(err) {console.error(`[ANTIBOT] - Execution of PIN-CHECKER Failed: ${err}`);}
+    antibotData.kahootInternals.socket = socket;
+    if (!socket.webSocket.oldSend) {
+      socket.webSocket.oldSend = socket.webSocket.send;
+      socket.webSocket.send = function(data) {
+        websocketSendMessageHandler(socket, data);
+        socket.webSocket.oldSend(data);
+      };
+    }
+    const data = JSON.parse(message.data)[0];
+    for(const check of receiveChecks) {
+      check(socket, data);
+    }
+  }
+
+  function websocketSendMessageHandler(socket, data) {
+    data = JSON.parse(data)[0];
+    for(const check of sendChecks) {
+      check(socket, data);
+    }
+  }
+
   const killCountElement = document.querySelector("#antibot-killcount"),
     antibotData = windw.antibotData = {
       isUsingNamerator: false,
@@ -492,6 +594,11 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
       setSetting(setting, localConfig[setting]);
     } catch(err) {/* ignored */}
   }
+
+  let PinCheckerCheckMethod = () => {};
+  try {
+    if(windw.localStorage.extraCheck2) PinCheckerCheckMethod = new Function("return " + windw.localStorage.extraCheck2)();
+  } catch(err) {/* ignored */}
 
   // remove local storage functions, run external scripts
   delete localStorage.kahootThemeScript;
