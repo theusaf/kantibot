@@ -250,26 +250,26 @@ ${createSetting("Lobby Auto-Start Time", "number", "start_lock", "Specify the ma
 ${createSetting("Enable Streak Bonus Points", "checkbox", "streakBonus", "Enable answer streak bonus points (a feature removed by Kahoot!)")}
 ${createSetting("Show Antibot Timers", "checkbox", "counters", "Display Antibot Counters/Timers (Lobby Auto-Start, Auto-Lock, etc)")}
 ${createSetting("Counter Kahoot! Cheats", "checkbox", "counterCheats", "Adds an additional 5 second question at the end to counter cheats. Changing this mid-game may break the game", null, undefined, () => {
-    if (getSetting("counterCheats")) {
-      antibotData.methods.kahootAlert("Changes may only take effect upon reload.");
+    if (windw.antibotData.methods.getSetting("counterCheats")) {
+      windw.antibotData.methods.kahootAlert("Changes may only take effect upon reload.");
     } else {
       // disable anti-cheat
-      const q = antibotData.kahootInternals.globalQuizData.questions;
+      const q = windw.antibotData.kahootInternals.globalQuizData.questions;
       if(q[q.length - 1].isAntibotQuestion){
         q.splice(-1,1);
-        delete antibotData.kahootInternals.kahootCore.game.navigation.questionIndexMap[q.length];
+        delete windw.antibotData.kahootInternals.kahootCore.game.navigation.questionIndexMap[q.length];
       }
     }
   })}
 ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second poll at the start of the quiz. If players don't answer it correctly, they get banned. Changing this mid-game may break the game", null, undefined, () => {
-    if (getSetting("enableCAPTCHA")) {
-      antibotData.methods.kahootAlert("Changes may only take effect upon reload.");
+    if (windw.antibotData.methods.getSetting("enableCAPTCHA")) {
+      windw.antibotData.methods.kahootAlert("Changes may only take effect upon reload.");
     } else {
       // disable captcha
-      const q = antibotData.kahootInternals.globalQuizData.questions;
+      const q = windw.antibotData.kahootInternals.globalQuizData.questions;
       if(q[0].isAntibotQuestion){
         q.splice(0,1);
-        delete antibotData.kahootInternals.kahootCore.game.navigation.questionIndexMap[q.length];
+        delete windw.antibotData.kahootInternals.kahootCore.game.navigation.questionIndexMap[q.length];
       }
     }
   })}
@@ -397,7 +397,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
   document.body.append(UITemplate.content.cloneNode(true));
 
   function getSetting(id, def) {
-    const elem = document.querySelector(`#antibot.config.${id}`);
+    const elem = document.getElementById(`antibot.config.${id}`);
     if (elem.value === "") {
       return def;
     } else {
@@ -406,7 +406,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
   }
 
   function setSetting(id, value) {
-    const elem = document.querySelector(`#antibot.config.${id}`);
+    const elem = document.getElementById(`antibot.config.${id}`);
     if (elem.type === "checkbox") {
       value = !!value;
       elem.checked = value;
@@ -420,6 +420,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
     const localConfig = JSON.parse(windw.localStorage.antibotConfig || "{}");
     localConfig[id] = value;
     windw.localStorage.antibotConfig = JSON.stringify(localConfig);
+    antibotConfig.settings[id] = value;
   }
 
   function websocketMessageHandler(socket, message) {}
@@ -479,7 +480,9 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
       methods: {
         websocketMessageHandler,
         extraQuestionSetup,
-        kahootAlert
+        kahootAlert,
+        getSetting,
+        setSetting
       },
       settings: {},
       runtimeData: {},
@@ -489,9 +492,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
   for (const setting in localConfig) {
     try {
       const current = getSetting(setting);
-      if (current != localConfig[setting]) {
-        setSetting(setting, localConfig[setting]);
-      }
+      setSetting(setting, localConfig[setting]);
     } catch(err) {/* ignored */}
   }
 
