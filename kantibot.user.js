@@ -408,12 +408,18 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
   function setSetting(id, value) {
     const elem = document.querySelector(`#antibot.config.${id}`);
     if (elem.type === "checkbox") {
-      elem.checked = !!value;
+      value = !!value;
+      elem.checked = value;
     } else if (Array.isArray(value)) {
-      elem.value = value.join("\n");
+      value = value.join("\n");
+      elem.value = value;
     } else {
+      value = `${value}`;
       elem.value = value;
     }
+    const localConfig = JSON.parse(windw.localStorage.antibotConfig || "{}");
+    localConfig[id] = value;
+    windw.localStorage.antibotConfig = JSON.stringify(localConfig);
   }
 
   function websocketMessageHandler(socket, message) {}
@@ -478,10 +484,16 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
       settings: {},
       runtimeData: {},
       kahootInternals: {}
-    };
-
-  // load antibot settings
-
+    },
+    localConfig = JSON.parse(windw.localStorage.antibotConfig || "{}");
+  for (const setting in localConfig) {
+    try {
+      const current = getSetting(setting);
+      if (current != localConfig[setting]) {
+        setSetting(setting, localConfig[setting]);
+      }
+    } catch(err) {/* ignored */}
+  }
 
   // remove local storage functions, run external scripts
   delete localStorage.kahootThemeScript;
