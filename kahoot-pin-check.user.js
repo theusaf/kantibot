@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KPin Checker
 // @namespace    http://tampermonkey.net/
-// @version      1.3.1
+// @version      1.3.2
 // @description  Check the pin of a kahoot game.
 // @author       theusaf
 // @match        *://play.kahoot.it/*
@@ -457,7 +457,7 @@ window.PinCheckerInjector = function(socket,message){
   }
 };
 
-if(!window.page){
+if(!window.kantibotEnabled && !window.page){
   document.write(`<p id="pin-checker-loading-notice">[PIN-CHECKER] - Patching Kahoot. Please wait.</p><p>If this screen stays blank for a long time, report an issue in <a href="https://discord.gg/pPdvXU6">Discord</a>, <a href="https://github.com/theusaf/kantibot">GitHub</a>, or <a href="https://greasyfork.org/en/scripts/392154-kpin-checker">Greasyfork</a>.</p>`);
   const page = new XMLHttpRequest();
   page.open("GET",location.href);
