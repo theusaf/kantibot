@@ -1,6 +1,5 @@
 <h1>KAntibot</h1>
 <a href='https://ko-fi.com/D1D4385AU' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://cdn.ko-fi.com/cdn/kofi2.png?v=2' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
-<p>This script uses a "Levenshtein distance" formula to determine similarity, taken from <a href="https://stackoverflow.com/questions/10473745/compare-strings-javascript-return-of-likely">Stackoverflow.com</a></p>
 <hr>
 <b><h1>INSTALLATION</h1></b>
 <ol>
@@ -9,7 +8,7 @@
   <img src="https://cdn.discordapp.com/attachments/552323024083484700/665721774993834024/Screen_Shot_2020-01-11_at_4.59.39_PM.png" height="100" width="200">
   <li>Your script manager should ask to install it. Press install.</li>
   <img src="https://cdn.discordapp.com/attachments/552323024083484700/665721772481708032/Screen_Shot_2020-01-11_at_5.00.07_PM.png" height="100" width="200">
-  <li>Open a kahoot game. The antibot should be installed if you see some text that says "v2.x.y @theusaf at the bottom right.</li><img src="https://cdn.discordapp.com/attachments/552323024083484700/665600000318898214/Screen_Shot_2020-01-11_at_8.55.56_AM.png" height="100" width="200">
+  <li>Open a kahoot game. The antibot should be installed if you see some text that says "vx.y.z ©theusaf at the bottom right.</li><img src="https://cdn.discordapp.com/attachments/552323024083484700/665600000318898214/Screen_Shot_2020-01-11_at_8.55.56_AM.png" height="100" width="200">
   <li>Enjoy a bot-less game!</li>
 </ol>
 <hr>
@@ -47,8 +46,8 @@
 <h2>How to improve anti-botting:</h2>
 <p>Sometimes, just an antibot is not enough... Here are ways to prevent bots from joining your games to the best of your ability</p>
 <ol>
-  <li><b>Enable Friendly Names</b> - This brings out the most power of the antibot, blocking 99% of bots. (until someone realized how to bypass this)</li>
-  <li><b>Enable 2FA</b> - Many bots try to brute force this. The AntiBot detects this and can block them.</li>
+  <li><b>Enable Friendly Names</b> - This limits what names can be used, making the antibot more powerful</li>
+  <li><b>Enable 2FA</b> - Some bots try to brute force this. The Antibot detects this and can block them.</li>
   <li><b>Enable Team Mode</b> - While team mode no longer prevents most bots from joining, it can help filter out some bots that use the same patters for teams. Some bots may still not support team mode, so this will help.</li>
 </ol>
 <hr>
@@ -74,3 +73,14 @@ window.antibotAdditionalScripts.push(()=>{
   // code to run
 });
 </code></pre>
+
+<p>To detect if the antibot is active, you can check for the <code>kantibotEnabled</code> variable (v3.0.0+)</p>
+
+<hr>
+
+<h3>Contributors and Sources</h3>
+<ul>
+  <li><a href="https://stackoverflow.com/questions/10473745/compare-strings-javascript-return-of-likely">Compare Strings Javascript Return %of Likely - Stackoverflow</a></li>
+  <li><a href="https://www.youtube.com/channel/UCLlz8OJpHO_9XxKWOcWksew">epicmines33</a></li>
+  <li><a href="https://www.youtube.com/channel/UCRYSmku_9-SYRnxcDEa5AIA">stevehainesfib</a></li>
+</ul>
