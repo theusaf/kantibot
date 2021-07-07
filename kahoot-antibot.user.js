@@ -195,12 +195,14 @@ const kantibotProgramCode = () => {
       container.append(input, label);
       input.setAttribute("onclick", `
       const value = event.target.checked;
+      windw.antibotData.methods.setSetting(event.target.id.match(/\\w+$/)[0], value);
       (${callback.toString()})(event.target);
       `);
     } else {
       container.append(label, input);
       input.setAttribute("onchange", `
-      const value = event.target.nodeName === "TEXTAREA" ? event.target.value.split("\n") : event.target.type === "number" ? +event.target.value : event.target.value;
+      const value = event.target.nodeName === "TEXTAREA" ? event.target.value.split("\\n") : event.target.type === "number" ? +event.target.value : event.target.value;
+      windw.antibotData.methods.setSetting(event.target.id.match(/\\w+$/)[0], value);
       (${callback.toString()})(event.target);
       `);
       label.className = "antibot-input";
@@ -390,7 +392,11 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
     if (elem.value === "") {
       return def;
     } else {
-      return elem.type === "checkbox" ? elem.checked : elem.nodeName === "TEXTAREA" ? elem.value.split("\n") : elem.value;
+      return elem.type === "checkbox" ?
+        elem.checked :
+        elem.nodeName === "TEXTAREA" ?
+          elem.value.split("\n") :
+          elem.type === "number" ? +elem.value : elem.value;
     }
   }
 
@@ -400,7 +406,9 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
       value = !!value;
       elem.checked = value;
     } else if (Array.isArray(value)) {
-      value = value.join("\n");
+      elem.value = value.join("\n");
+    } else if (elem.type === "number") {
+      value = +value;
       elem.value = value;
     } else {
       value = `${value}`;
@@ -409,7 +417,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
     const localConfig = JSON.parse(windw.localStorage.antibotConfig || "{}");
     localConfig[id] = value;
     windw.localStorage.antibotConfig = JSON.stringify(localConfig);
-    antibotConfig.settings[id] = value;
+    antibotData.settings[id] = value;
   }
 
   function websocketMessageHandler(socket, message) {}
