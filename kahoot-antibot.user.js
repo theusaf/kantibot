@@ -463,6 +463,19 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
     return true;
   }
 
+  function isFakeValid(name){
+    if(!windw.isUsingNamerator && isValidNameratorName(name)){
+      return true;
+    }
+    if(windw.specialData.config.blocknum && /\d/.test(name)){
+      return true;
+    }
+    if(windw.specialData.config.forceascii && /[^\d\s\w_-]/.test(name)){
+      return true;
+    }
+    return /(^([A-Z][a-z]+){2,3}\d{1,2}$)|(^([A-Z][^A-Z\n]+?)+?(\d[a-z]+\d*?)$)|(^[a-zA-Z]+\d{4,}$)/.test(name);
+  }
+
   function editDistance(s1, s2) {
     s1 = s1.toLowerCase();
     s2 = s2.toLowerCase();
@@ -820,7 +833,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
       function randomNameCheck(socket, data) {
         if(!isEventJoinEvent(data) || !getSetting("looksRandom")) {return;}
         const player = data.data,
-          randomRegex = /(^(([^A-Z\n]*)?[A-Z]?([^A-Z\n]*)?){0,3}$)|^([A-Z]*)$/;
+          randomRegex = /(^(([^A-Z\n]*)?[A-Z]?([^A-Z\n]*)?){0,3}$)|^([A-Z]*)$/;
         if (!randomRegex.test(player.name)) {
           kickController(player.cid, "Name looks too random");
           throw new EvilBotJoinedError();
@@ -838,7 +851,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         if(!isEventJoinEvent(data) || !getSetting("blockservice1")) {return;}
         const player = data.data,
           englishWords = windw.aSetOfEnglishWords ?? new Set(),
-          names = windw.randomName,
+          names = windw.randomName,
           split = player.name.split(/\s|(?=[A-Z])/g),
           foundNames = Array.from(player.name.match(/([A-Z][a-z]+(?=[A-Z]|[^a-zA-Z]|$))/g) ?? []),
           detectionData = antibotData.runtimeData.englishWordDetectionData;
@@ -860,7 +873,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
             batchData(() => {
               for (const controller of detectionData) {
                 if (controller.banned) {continue;}
-                kickController(controller.cid);
+                kickController(controller.cid, "Appears to be a spam of randomized names");
                 if(detectionData.size >= TOTAL_SPAM_AMOUNT_THRESHOLD + 10){
                   detectionData.delete(controller);
                 }else{
@@ -870,6 +883,25 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
             });
             throw new EvilBotJoinedError();
           }
+        }
+      },
+      function fakeValidNameCheck(socket, data) {
+        if(!isEventJoinEvent(data) || isUsingNamerator()) {return;}
+        const player = data.data,
+          TIME_THRESHOLD = 5e3;
+        if (isFakeValid(player.name)) {
+          if (Date.now() - antibotData.runtimeData.lastFakeLoginTime < TIME_THRESHOLD) {
+            batchData(() => {
+              kickController(player.cid, "Uses a suspicious fake, 'valid' name");
+              const previous = getControllerById(antibotData.runtimeData.lastFakeUserID);
+              if (previous) {kickController(previous.cid, "Uses a suspicious fake, 'valid' name");}
+            });
+            antibotData.runtimeData.lastFakeLoginTime = Date.now();
+            antibotData.runtimeData.lastFakeUserID = player.cid;
+            throw new EvilBotJoinedError();
+          }
+          antibotData.runtimeData.lastFakeLoginTime = Date.now();
+          antibotData.runtimeData.lastFakeUserID = player.cid;
         }
       }
     ];
@@ -972,7 +1004,9 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         verifiedControllerNames: new Set(),
         unverifiedControllerNames: [],
         controllerNamePatternData: {},
-        englishWordDetectionData: new Set()
+        englishWordDetectionData: new Set(),
+        lastFakeLoginTime: 0,
+        lastFakeUserID: null
       },
       kahootInternals: {}
     },
