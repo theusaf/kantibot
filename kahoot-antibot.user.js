@@ -714,7 +714,17 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
           (data?.data?.id === 10 &&
             data.data.content === "{}")) {
           antibotData.runtimeData.lobbyLoadTime = 0;
-          // TODO: reset verifiedControllerNames?
+          const shouldResetData = antibotData.kahootInternals.kahootCore.game.core.gameSettings.gameOptions.requireRejoin;
+          if (shouldResetData) {
+            Object.assign(antibotData.runtimeData, {
+              controllerData: {},
+              captchaIds: new Set(),
+              englishWordDetectionData: new Set(),
+              controllerNamePatternData: {},
+              verifiedControllerNames: new Set,
+              unverifiedControllerNames: []
+            });
+          }
         }
       },
       function quizStartCheck(socket, data) {
@@ -831,7 +841,6 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
           playerData: player,
           timeAdded: Date.now()
         });
-        // TODO: figure out numbers that work here
         const PATTERN_SIZE_TEST = 15,
           PATTERN_REMOVE_TIME = 5e3;
         // remove removable controller data
@@ -990,6 +999,46 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
           kickController(player.cid, "Team names are suspicious", player);
           throw new EvilBotJoinedError();
         }
+      },
+      function lobbyAutoStartCheck(socket, data) {
+        if (antibotData.kahootInternals.kahootCore.game.navigation.page === "lobby" &&
+          antibotData.kahootInternals.kahootCore.game.core.gameSettings.gameOptions.automaticallyProgressGame &&
+          getSetting("start_lock", 0) !== 0) {
+          if (antibotData.runtimeData.lobbyLoadTime === 0) {
+            antibotData.runtimeData.lobbyLoadTime = Date.now();
+            if (getSetting("counters")) {
+              const container = document.createElement("div");
+              container.innerHTML = `<span class="antibot-count-num">${Math.round((windw.specialData.config.start_lock - (Date.now() - windw.specialData.lobbyLoadTime)/1000))}</span>
+                <span class="antibot-count-desc">Until Auto-Start</span>`;
+              const startLockInterval = setInterval(()=>{
+                let time = Math.round((getSetting("start_lock") - (Date.now() - antibotData.runtimeData.lobbyLoadTime) / 1e3));
+                if(time < 0){
+                  time = "Please Wait...";
+                }
+                container.querySelector(".antibot-count-num").innerHTML = time;
+              },1e3);
+              counters.append(container);
+              antibotData.runtimeData.startLockElement = container;
+              antibotData.runtimeData.startLockInterval = startLockInterval;
+            }
+          }
+          if (Date.now() - antibotData.runtimeData.lobbyLoadTime > getSetting("start_lock") * 1e3) {
+            const controllers = getControllers(),
+              realController = controllers.find((controller) => {
+                return !controller.isGhost && !controller.hasLeft;
+              });
+            if (!realController) {
+              antibotData.runtimeData.lobbyLoadTime = Date.now();
+            } else {
+              antibotData.kahootInternals.globalFuncs.startQuiz();
+              if (antibotData.runtimeData.startLockElement) {
+                clearInterval(antibotData.runtimeData.startLockInterval);
+                antibotData.runtimeData.startLockElement.remove();
+                antibotData.runtimeData.startLockElement = null;
+              }
+            }
+          }
+        }
       }
     ];
 
@@ -1097,7 +1146,8 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         captchaIds: new Set(),
         questionStartTime: 0,
         lobbyLoadTime: 0,
-        startLockElement: null
+        startLockElement: null,
+        startLockInterval: null
       },
       kahootInternals: {}
     },
