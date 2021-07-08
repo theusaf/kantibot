@@ -2,7 +2,7 @@
 // @name           KAntibot
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.0.2
+// @version        3.1.0
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -35,7 +35,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
  * Special thanks to
  * - epicmines33
  * - stevehainesfib
- * - https://stackoverflow.com/questions/10473745/compare-strings-javascript-return-of-likely
  *
  * for helping with contribution and testing of this project
  */
@@ -154,6 +153,30 @@ async function fetchMainScript(mainScriptURL) {
     }
     return ${coreDataLetter}.game.core;
   })()`);
+  mainScript = mainScript.replace(/counter:7/gm,`counter:(() => {
+    try {
+      let time = windw.antibotData.methods.getSetting("twoFactorTime", 7);
+      time = Math.floor(time);
+      if (time < 1) {
+        time = 1;
+      }
+      return time;
+    } catch(err) {
+      return 7;
+    }
+  })()`);
+  mainScript = mainScript.replace(/\(7\),/m, `((() => {
+    try {
+      let time = windw.antibotData.methods.getSetting("twoFactorTime", 7);
+      time = Math.floor(time);
+      if (time < 1) {
+        time = 1;
+      }
+      return time;
+    } catch(err) {
+      return 7;
+    }
+  })()),`);
   return mainScript;
 }
 
@@ -238,7 +261,7 @@ const kantibotProgramCode = () => {
   // create watermark
   const UITemplate = document.createElement("template");
   UITemplate.innerHTML = `<div id="antibotwtr">
-    <p>v3.0.2 ©theusaf</p>
+    <p>v3.1.0 ©theusaf</p>
     <p id="antibot-killcount">0</p>
     <details>
       <summary>config</summary>
@@ -250,17 +273,21 @@ ${createSetting("Additional Blocking Filters", "checkbox", "blockservice1", "Ena
 ${createSetting("Block Numbers", "checkbox", "blocknum", "Blocks names containing numbers, if multiple with numbers join within a short period of time")}
 ${createSetting("Force Alphanumeric Names", "checkbox", "forceascii", "Blocks names containing non-alphanumeric characters, if multiple join within a short period of time")}
 ${createSetting("Detect Patterns", "checkbox", "patterns", "Blocks bots spammed using similar patterns")}
-${createSetting("Additional Question Time", "number", "teamtimeout", "Adds extra seconds to a question", 0, input => input.setAttribute("step", 0))}
+${createSetting("Additional Question Time", "number", "teamtimeout", "Adds extra seconds to a question", 0, input => input.setAttribute("step", 1))}
+${createSetting("Two-Factor Auth Timer", "number", "twoFactorTime", "Specify the number of seconds for the two-factor auth. The first iteration will use the default 7 seconds, then will use your input", 7, input => {
+    input.setAttribute("step", 1);
+    input.setAttribute("min", 1);
+  })}
 ${createSetting("Name Match Percent", "number", "percent", "The percent to check name similarity before banning the bot.", 0.6, input => input.setAttribute("step", 0.1))}
 ${createSetting("Word Blacklist", "textarea", "wordblock", "Block names containing any from a list of words. Separate by new line.")}
 ${createSetting("Auto-Lock Threshold", "number", "ddos", "Specify the number of bots/minute to lock the game. Set to 0 to disable", 0, input => input.setAttribute("step", 1))}
 ${createSetting("Lobby Auto-Start Time", "number", "start_lock", "Specify the maximum amount of time for a lobby to stay open after a player joins. Set to 0 to disable", 0, input => input.setAttribute("step", 1))}
 ${createSetting("Enable Streak Bonus Points", "checkbox", "streakBonus", "Enable answer streak bonus points (a feature removed by Kahoot!)")}
 ${createSetting("Show Antibot Timers", "checkbox", "counters", "Display Antibot Counters/Timers (Lobby Auto-Start, Auto-Lock, etc)")}
-${createSetting("Counter Kahoot! Cheats", "checkbox", "counterCheats", "Adds an additional 5 second question at the end to counter cheats. Changing this mid-game may break the game", null, undefined, () => {
+${createSetting("Counter Kahoot! Cheats", "checkbox", "counterCheats", "Adds an additional 5 second question at the end to counter cheats. Changing this mid-game may break the game or will not apply until refresh", null, undefined, () => {
     windw.antibotData.methods.kahootAlert("Changes may only take effect upon reload.");
   })}
-${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second poll at the start of the quiz. If players don't answer it correctly, they get banned. Changing this mid-game may break the game", null, undefined, () => {
+${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second poll at the start of the quiz. If players don't answer it correctly, they get banned. Changing this mid-game may break the game or will not apply until refresh", null, undefined, () => {
     windw.antibotData.methods.kahootAlert("Changes may only take effect upon reload.");
   })}
       </div>
@@ -798,7 +825,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
           if (similarity(usernames[i].name, player.name) >= getSetting("percent", 0.6)) {
             batchData(() => {
               kickController(player.cid, "Name similar to other clients", player);
-              if(!usernames[i].banned) {kickController(usernames[i].cid, "Name similar to other clients", player);}
+              if(!usernames[i].banned) {kickController(usernames[i].cid, "Name similar to other clients", usernames[i]);}
             });
             throw new EvilBotJoinedError();
           }

@@ -28,6 +28,7 @@
   <li>Auto-start your game when auto-progress is enabled. (Enable it in the config). This will start the quiz if a player joins the lobby after the specified amount of time to prevent a never ending lobby.</li>
   <li>Counter cheating!</li>
   <li>Add a CAPTCHA to stop even more bots!</li>
+  <li>Change the two-factor authentification time!</li>
 </ul>
 <h3>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;Join us!</h3>
 <table style="border: solid 0.1rem black">
