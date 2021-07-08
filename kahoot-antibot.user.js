@@ -900,17 +900,25 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
           }),
           TOTAL_SPAM_AMOUNT_THRESHOLD = 30;
         if (findWord || findName) {
-          detectionData.add(player);
-          setTimeout(() => {detectionData.delete(player);}, 5e3);
+          detectionData.add({
+            playerData: player,
+            timeAdded: Date.now()
+          });
+          for (const controller of detectionData) {
+            if(Date.now() - controller.timeAdded > TOTAL_SPAM_AMOUNT_THRESHOLD) {
+              detectionData.delete(controller);
+            }
+          }
           if (detectionData.size > TOTAL_SPAM_AMOUNT_THRESHOLD) {
             batchData(() => {
               for (const controller of detectionData) {
-                if (controller.banned) {continue;}
-                kickController(controller.cid, "Appears to be a spam of randomized names", controller);
+                if (controller.playerData.banned) {continue;}
+                kickController(controller.playerData.cid, "Appears to be a spam of randomized names", controller.playerData);
                 if(detectionData.size >= TOTAL_SPAM_AMOUNT_THRESHOLD + 10){
                   detectionData.delete(controller);
                 }else{
-                  controller.banned = true;
+                  controller.playerData.banned = true;
+                  controller.timeAdded = Date.now();
                 }
               }
             });
