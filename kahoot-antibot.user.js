@@ -654,8 +654,8 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
     }
   }
 
-  function kickController(id, reason="") {
-    const controller = getControllerById(id),
+  function kickController(id, reason="", fallbackController) {
+    const controller = getControllerById(id) ?? fallbackController,
       name = controller?.name?.length > 30 ? controller.name.substr(0, 30) + "..." : controller?.name,
       banishedCachedData = antibotData.runtimeData.unverifiedControllerNames.find((controller) => {
         return controller.cid === id;
@@ -771,7 +771,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         const player = data.data;
         if (isNaN(player.cid) || Object.keys(player).length > 5 || player.name.length >= 16) {
           if (antibotData.runtimeData.controllerData[player.cid]) {return;}
-          kickController(player.cid, "Invalid name or information");
+          kickController(player.cid, "Invalid name or information", player);
           throw new EvilBotJoinedError();
         }
       },
@@ -780,7 +780,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         const player = data.data;
         if (antibotData.runtimeData.unverifiedControllerNames.length === 0) {
           if (similarity(null, player.name) === -1) {
-            kickController(player.cid, "Name violates namerator rules");
+            kickController(player.cid, "Name violates namerator rules", player);
             throw new EvilBotJoinedError();
           }
           antibotData.runtimeData.unverifiedControllerNames.push({
@@ -803,8 +803,8 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
           if (antibotData.runtimeData.verifiedControllerNames.has(usernames[i].name)) {continue;}
           if (similarity(usernames[i].name, player.name) >= getSetting("percent")) {
             batchData(() => {
-              kickController(player.cid);
-              if(!usernames[i].banned) {kickController(usernames[i].cid);}
+              kickController(player.cid, "Name similar to other clients", player);
+              if(!usernames[i].banned) {kickController(usernames[i].cid, "Name similar to other clients", player);}
             });
             throw new EvilBotJoinedError();
           }
@@ -831,7 +831,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
           batchData(() => {
             for (const controller of patternData[pattern]) {
               if (controller.banned) {continue;}
-              kickController(controller.cid, "Names have very similar patterns");
+              kickController(controller.cid, "Names have very similar patterns", controller);
               if(patternData[pattern].size >= PATTERN_SIZE_TEST + 10){
                 patternData[pattern].delete(controller);
               }else{
@@ -846,7 +846,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         if(!isEventJoinEvent(data)) {return;}
         const player = data.data;
         if(blacklist(player.name)) {
-          kickController(player.cid);
+          kickController(player.cid, "Name is blacklisted", player);
           throw new EvilBotJoinedError();
         }
       },
@@ -855,7 +855,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         const player = data.data,
           randomRegex = /(^(([^A-Z\n]*)?[A-Z]?([^A-Z\n]*)?){0,3}$)|^([A-Z]*)$/;
         if (!randomRegex.test(player.name)) {
-          kickController(player.cid, "Name looks too random");
+          kickController(player.cid, "Name looks too random", player);
           throw new EvilBotJoinedError();
         }
       },
@@ -863,7 +863,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         if(!isEventJoinEvent(data) || !getSetting("banFormat1")) {return;}
         const player = data.data;
         if(/[a-z0-9]+[^a-z0-9\s][a-z0-9]+/gi.test(player.name)) {
-          kickController(player.cid, "Name fits common bot format #1");
+          kickController(player.cid, "Name fits common bot format #1", player);
           throw new EvilBotJoinedError();
         }
       },
@@ -876,7 +876,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
           foundNames = Array.from(player.name.match(/([A-Z][a-z]+(?=[A-Z]|[^a-zA-Z]|$))/g) ?? []),
           detectionData = antibotData.runtimeData.englishWordDetectionData;
         if (player.name.replace(/[ᗩᗷᑕᗪEᖴGᕼIᒍKᒪᗰᑎOᑭᑫᖇᔕTᑌᐯᗯ᙭Yᘔ]/g, "").length / player.name.length < 0.5) {
-          kickController(player.cid, "Common bot bypass attempt");
+          kickController(player.cid, "Common bot bypass attempt", player);
           throw new EvilBotJoinedError();
         }
         const findWord = split.find((word) => englishWords.has(word)),
@@ -893,7 +893,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
             batchData(() => {
               for (const controller of detectionData) {
                 if (controller.banned) {continue;}
-                kickController(controller.cid, "Appears to be a spam of randomized names");
+                kickController(controller.cid, "Appears to be a spam of randomized names", controller);
                 if(detectionData.size >= TOTAL_SPAM_AMOUNT_THRESHOLD + 10){
                   detectionData.delete(controller);
                 }else{
@@ -914,7 +914,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
             batchData(() => {
               kickController(player.cid, "Uses a suspicious fake, 'valid' name");
               const previous = getControllerById(antibotData.runtimeData.lastFakeUserID);
-              if (previous) {kickController(previous.cid, "Uses a suspicious fake, 'valid' name");}
+              if (previous) {kickController(previous.cid, "Uses a suspicious fake, 'valid' name", player);}
             });
             antibotData.runtimeData.lastFakeLoginTime = Date.now();
             antibotData.runtimeData.lastFakeUserID = player.cid;
@@ -934,7 +934,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
           let choice = -1;
           try{choice = JSON.parse(player.content).choice;}catch(err){/* ignore */}
           if (choice !== getQuizData().questions[0].AntibotCaptchaCorrectIndex) {
-            kickController(player.cid, "Incorrectly answered the CAPTCHA");
+            kickController(player.cid, "Incorrectly answered the CAPTCHA", player);
             return;
           }
         }
@@ -943,7 +943,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
           throw new AnsweredTooQuicklyError();
         }
         if (controllerData && Date.now() - controllerData.loginTime < 1e3) {
-          kickController(player.cid, "Answered immediately after joining!");
+          kickController(player.cid, "Answered immediately after joining!", player);
           throw new AnsweredTooQuicklyError();
         }
       },
@@ -955,7 +955,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         if (controllerData) {
           controllerData.twoFactorAttempts++;
           if (controllerData.twoFactorAttempts > MAX_ATTEMPTS) {
-            kickController(player.cid, "Attempted to answer the two-factor code using brute force");
+            kickController(player.cid, "Attempted to answer the two-factor code using brute force", player);
           }
         }
       },
@@ -964,7 +964,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         const player = data.data,
           team = JSON.parse(player.content);
         if (team.length === 0 || team.indexOf("") !== -1 || team.indexOf("Player 1") === 0 || team.join("") === "Youjustgotbotted") {
-          kickController(player.cid);
+          kickController(player.cid, "Team names are suspicious", player);
           throw new EvilBotJoinedError();
         }
       }
