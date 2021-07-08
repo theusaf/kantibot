@@ -475,10 +475,10 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
     if(!windw.isUsingNamerator && isValidNameratorName(name)){
       return true;
     }
-    if(windw.specialData.config.blocknum && /\d/.test(name)){
+    if(getSetting("blocknum") && /\d/.test(name)){
       return true;
     }
-    if(windw.specialData.config.forceascii && /[^\d\s\w_-]/.test(name)){
+    if(getSetting("forceascii") && /[^\d\s\w_-]/.test(name)){
       return true;
     }
     return /(^([A-Z][a-z]+){2,3}\d{1,2}$)|(^([A-Z][^A-Z\n]+?)+?(\d[a-z]+\d*?)$)|(^[a-zA-Z]+\d{4,}$)/.test(name);
