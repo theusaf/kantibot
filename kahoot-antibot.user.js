@@ -898,8 +898,8 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
             name = capitalize(name);
             return names.first.has(name) || names.middle.has(name) || names.last.has(name);
           }),
-          TOTAL_SPAM_AMOUNT_THRESHOLD = 30,
-          TIME_TO_FORGET = 5e3;
+          TOTAL_SPAM_AMOUNT_THRESHOLD = 15,
+          TIME_TO_FORGET = 4e3;
         if (findWord || findName) {
           detectionData.add({
             playerData: player,
