@@ -768,7 +768,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
               }
             },1e3);
           }
-          setTimeout(unlockGame(),60e3);
+          setTimeout(unlockGame,60e3);
         }
       },
       function basicDataCheck(socket, data) {
