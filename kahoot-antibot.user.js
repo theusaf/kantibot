@@ -959,7 +959,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
           }
         }
       },
-      function teamChecker(socket, data) {
+      function teamCheck(socket, data) {
         if(!isEventTeamJoinEvent(data)) {return;}
         const player = data.data,
           team = JSON.parse(player.content);
