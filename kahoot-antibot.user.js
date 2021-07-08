@@ -814,8 +814,12 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
       },
       function randomNameCheck(socket, data) {
         if(!isEventJoinEvent(data) || !getSetting("looksRandom")) {return;}
-        const player = data.data;
-
+        const player = data.data,
+          randomRegex = /(^(([^A-Z\n]*)?[A-Z]?([^A-Z\n]*)?){0,3}$)|^([A-Z]*)$/;
+        if (!randomRegex.test(player.name)) {
+          kickController(player.cid, "Name looks too random");
+          throw new EvilBotJoinedError();
+        }
       }
     ];
 
