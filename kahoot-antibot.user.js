@@ -1001,6 +1001,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         }
       },
       function lobbyAutoStartCheck(socket, data) {
+        if(!isEventJoinEvent(data)) {return;}
         if (antibotData.kahootInternals.kahootCore.game.navigation.page === "lobby" &&
           antibotData.kahootInternals.kahootCore.game.core.gameSettings.gameOptions.automaticallyProgressGame &&
           getSetting("start_lock", 0) !== 0) {
