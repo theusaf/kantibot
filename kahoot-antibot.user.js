@@ -714,7 +714,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
           (data?.data?.id === 10 &&
             data.data.content === "{}")) {
           antibotData.runtimeData.lobbyLoadTime = 0;
-          const shouldResetData = antibotData.kahootInternals.kahootCore.game.core.gameSettings.gameOptions.requireRejoin;
+          const shouldResetData = antibotData.kahootInternals.kahootCore.game.core.gameSettings.gameOptions.requireRejoin;
           if (shouldResetData) {
             Object.assign(antibotData.runtimeData, {
               controllerData: {},
