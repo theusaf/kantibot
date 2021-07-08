@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name           KAntibot Dev
+// @name           KAntibot
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.0.0-pre1
+// @version        3.0.0
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
