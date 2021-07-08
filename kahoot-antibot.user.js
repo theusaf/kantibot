@@ -518,6 +518,19 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
     return output;
   }
 
+  function blacklist(name){
+    const list = getSetting("wordblock");
+    for(let i = 0; i < list.length; i++){
+      if(list[i] === ""){
+        continue;
+      }
+      if(name.toLowerCase().indexOf(list[i].toLowerCase()) !== -1){
+        return true;
+      }
+    }
+    return false;
+  }
+
   function getSetting(id, def) {
     if (antibotData.settings[id] ?? true) return antibotData.settings[id];
     const elem = document.getElementById(`antibot.config.${id}`);
@@ -603,7 +616,10 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
 
   function kickController(id, reason="") {
     const controller = getControllerById(id),
-      name = controller?.name?.length > 30 ? controller.name.substr(0, 30) + "..." : controller?.name;
+      name = controller?.name?.length > 30 ? controller.name.substr(0, 30) + "..." : controller?.name,
+      banishedCachedData = antibotData.runtimeData.unverifiedControllerNames.find((controller) => {
+        return o.cid === id;
+      });
     console.error(`[ANTIBOT] - Kicked ${name || id}${reason ? ` - ${reason}` : ""}`);
     sendData("/service/player", {
       cid: `${id}`,
@@ -617,6 +633,10 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
       type: "message"
     });
     antibotData.runtimeData.killCount++;
+    if (banishedCachedData) {
+      banishedCachedData.banned = true;
+      banishedCachedData.time = 10;
+    }
     if (controller) antibotData.kahootInternals.kahootCore.game.core.kickedControllers.push(controller);
     delete getControllers()[id];
   }
@@ -756,15 +776,25 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
           PATTERN_REMOVE_TIME = 5e3
         setTimeout(() => {patternData[pattern].delete(player)}, PATTERN_REMOVE_TIME);
         if (patternData[pattern].size >= PATTERN_SIZE_TEST) {
-          for (const controller of patternData[pattern]) {
-            if (controller.banned) continue;
-            kickController(controller.cid);
-            if(patternData[pattern].size >= PATTERN_SIZE_TEST * 2){
-              patternData[pattern].delete(controller);
-            }else{
-              controller.banned = true;
+          batchData(() => {
+            for (const controller of patternData[pattern]) {
+              if (controller.banned) continue;
+              kickController(controller.cid, "Names have very similar patterns");
+              if(patternData[pattern].size >= PATTERN_SIZE_TEST * 2){
+                patternData[pattern].delete(controller);
+              }else{
+                controller.banned = true;
+              }
             }
-          }
+          });
+          throw new EvilBotJoinedError();
+        }
+      },
+      function blacklistCheck(socket, data) {
+        if(!isEventJoinEvent(data)) return;
+        const player = data.data;
+        if(blacklist(player.name)) {
+          kickController(player.cid);
           throw new EvilBotJoinedError();
         }
       }
