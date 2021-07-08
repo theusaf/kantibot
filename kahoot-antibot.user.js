@@ -898,14 +898,15 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
             name = capitalize(name);
             return names.first.has(name) || names.middle.has(name) || names.last.has(name);
           }),
-          TOTAL_SPAM_AMOUNT_THRESHOLD = 30;
+          TOTAL_SPAM_AMOUNT_THRESHOLD = 30,
+          TIME_TO_FORGET = 5e3;
         if (findWord || findName) {
           detectionData.add({
             playerData: player,
             timeAdded: Date.now()
           });
           for (const controller of detectionData) {
-            if(Date.now() - controller.timeAdded > TOTAL_SPAM_AMOUNT_THRESHOLD) {
+            if(Date.now() - controller.timeAdded > TIME_TO_FORGET) {
               detectionData.delete(controller);
             }
           }
