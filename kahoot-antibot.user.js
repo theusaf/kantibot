@@ -2,7 +2,7 @@
 // @name           KAntibot
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.0.1
+// @version        3.0.2
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -238,7 +238,7 @@ const kantibotProgramCode = () => {
   // create watermark
   const UITemplate = document.createElement("template");
   UITemplate.innerHTML = `<div id="antibotwtr">
-    <p>v3.0.0 ©theusaf</p>
+    <p>v3.0.2 ©theusaf</p>
     <p id="antibot-killcount">0</p>
     <details>
       <summary>config</summary>
@@ -541,7 +541,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
   }
 
   function blacklist(name){
-    const list = getSetting("wordblock");
+    const list = getSetting("wordblock", []);
     for(let i = 0; i < list.length; i++){
       if(list[i] === ""){
         continue;
@@ -554,10 +554,13 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
   }
 
   function getSetting(id, def) {
-    if (antibotData.settings[id] ?? true) {return antibotData.settings[id];}
+    if (typeof antibotData.settings[id] !== "undefined") {return antibotData.settings[id];}
     const elem = document.getElementById(`antibot.config.${id}`);
     if (elem.value === "") {
-      return def;
+      if (elem.nodeName === "TEXTAREA") {return def ?? [];}
+      if (elem.type === "checkbox") {return def ?? false;}
+      if (elem.type === "number") {return def ?? 0;}
+      return def ?? "";
     } else {
       return elem.type === "checkbox" ?
         elem.checked :
@@ -792,7 +795,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         }
         for (const i in usernames) {
           if (antibotData.runtimeData.verifiedControllerNames.has(usernames[i].name)) {continue;}
-          if (similarity(usernames[i].name, player.name) >= getSetting("percent")) {
+          if (similarity(usernames[i].name, player.name) >= getSetting("percent", 0.6)) {
             batchData(() => {
               kickController(player.cid, "Name similar to other clients", player);
               if(!usernames[i].banned) {kickController(usernames[i].cid, "Name similar to other clients", player);}
@@ -863,7 +866,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         }
       },
       function commonBotFormatCheck1(socket, data) {
-        if(!isEventJoinEvent(data) || !getSetting("banFormat1")) {return;}
+        if(!isEventJoinEvent(data) || !getSetting("blockformat1")) {return;}
         const player = data.data;
         if(/[a-z0-9]+[^a-z0-9\s][a-z0-9]+/gi.test(player.name)) {
           kickController(player.cid, "Name fits common bot format #1", player);
@@ -890,6 +893,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
           }),
           TOTAL_SPAM_AMOUNT_THRESHOLD = 20,
           TIME_TO_FORGET = 4e3;
+        // TODO: This may cause many false-positives. Perhaps, check if all 'splits' are english words / names / numbers?
         if (findWord || findName) {
           detectionData.add({
             playerData: player,
@@ -989,10 +993,10 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
             antibotData.runtimeData.lobbyLoadTime = Date.now();
             if (getSetting("counters")) {
               const container = document.createElement("div");
-              container.innerHTML = `<span class="antibot-count-num">${Math.round((getSetting("start_lock") - (Date.now() - antibotData.runtimeData.lobbyLoadTime) / 1e3))}</span>
+              container.innerHTML = `<span class="antibot-count-num">${Math.round((getSetting("start_lock", 0) - (Date.now() - antibotData.runtimeData.lobbyLoadTime) / 1e3))}</span>
                 <span class="antibot-count-desc">Until Auto-Start</span>`;
               const startLockInterval = setInterval(()=>{
-                let time = Math.round((getSetting("start_lock") - (Date.now() - antibotData.runtimeData.lobbyLoadTime) / 1e3));
+                let time = Math.round((getSetting("start_lock", 0) - (Date.now() - antibotData.runtimeData.lobbyLoadTime) / 1e3));
                 if(time < 0){
                   time = "Please Wait...";
                 }
@@ -1003,7 +1007,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
               antibotData.runtimeData.startLockInterval = startLockInterval;
             }
           }
-          if (Date.now() - antibotData.runtimeData.lobbyLoadTime > getSetting("start_lock") * 1e3) {
+          if (Date.now() - antibotData.runtimeData.lobbyLoadTime > getSetting("start_lock", 0) * 1e3) {
             const controllers = getControllers(),
               realController = Object.values(controllers).find((controller) => {
                 return !controller.isGhost && !controller.hasLeft;
