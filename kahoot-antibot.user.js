@@ -689,6 +689,10 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
     return event.data?.id === 45;
   }
 
+  function isEventTwoFactorEvent(event) {
+    return event.data?.id === 50;
+  }
+
   const sendChecks = [
       function questionStartCheck(socket, data) {
         if (data?.data?.id === 2) {
@@ -937,6 +941,18 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         if (controllerData && Date.now() - controllerData.loginTime < 1e3) {
           kickController(player.cid, "Answered immediately after joining!");
           throw new AnsweredTooQuicklyError();
+        }
+      },
+      function twoFactorCheck(socket, data) {
+        if(!isEventTwoFactorEvent(data)) {return;}
+        const player = data.data,
+          controllerData = antibotData.runtimeData.controllerData[player.cid],
+          MAX_ATTEMPTS = 3;
+        if (controllerData) {
+          controllerData.twoFactorAttempts++;
+          if (controllerData.twoFactorAttempts > MAX_ATTEMPTS) {
+            kickController(player.cid);
+          }
         }
       }
     ];
