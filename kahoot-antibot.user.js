@@ -957,7 +957,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
       function fastAnswerCheck(socket, data) {
         if(!isEventAnswerEvent(data)) {return;}
         const player = data.data,
-          controllerData = antibotData.controllerData[player.cid];
+          controllerData = antibotData.runtimeData.controllerData[player.cid];
         if (getCurrentQuestionIndex() === 0 &&
           getQuizData().questions[0].isAntibotQuestion) {
           antibotData.runtimeData.captchaIds.add(player.cid);
