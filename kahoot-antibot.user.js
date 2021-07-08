@@ -1105,8 +1105,8 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
   }, 1e3);
   setInterval(function updateTwoFactorAuthInfo() {
     const controllerData = antibotData.runtimeData.controllerData;
-    for (const controller of controllerData) {
-      controller.tries = 0;
+    for (const cid in controllerData) {
+      controllerData[cid].tries = 0;
     }
   }, 10e3);
   setInterval(function updateOldKillCount() {
