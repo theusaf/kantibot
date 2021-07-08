@@ -821,7 +821,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
       },
       function addNameIfNotBanned(socket, data) {
         if(!isEventJoinEvent(data)) {return;}
-        const player = data.data
+        const player = data.data;
         antibotData.runtimeData.unverifiedControllerNames.push({
           name: player.name,
           cid: player.cid,
@@ -1007,7 +1007,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
             antibotData.runtimeData.lobbyLoadTime = Date.now();
             if (getSetting("counters")) {
               const container = document.createElement("div");
-              container.innerHTML = `<span class="antibot-count-num">${Math.round((windw.specialData.config.start_lock - (Date.now() - windw.specialData.lobbyLoadTime)/1000))}</span>
+              container.innerHTML = `<span class="antibot-count-num">${Math.round((getSetting("start_lock") - (Date.now() - antibotData.runtimeData.lobbyLoadTime) / 1e3))}</span>
                 <span class="antibot-count-desc">Until Auto-Start</span>`;
               const startLockInterval = setInterval(()=>{
                 let time = Math.round((getSetting("start_lock") - (Date.now() - antibotData.runtimeData.lobbyLoadTime) / 1e3));
