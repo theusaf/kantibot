@@ -398,6 +398,11 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
   counters.id = "antibot-counters";
   document.body.append(UITemplate.content.cloneNode(true), counters);
 
+  function capitalize(string) {
+    string = string.toLowerCase();
+    return string[0].toUpperCase() + string.slice(1);
+  }
+
   function similarity(s1, s2) {
     // remove numbers from name if name is not only a number
     if(isNaN(s1) && typeof(s1) !== "object" && !isUsingNamerator()){
@@ -794,7 +799,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
             for (const controller of patternData[pattern]) {
               if (controller.banned) {continue;}
               kickController(controller.cid, "Names have very similar patterns");
-              if(patternData[pattern].size >= PATTERN_SIZE_TEST * 2){
+              if(patternData[pattern].size >= PATTERN_SIZE_TEST + 10){
                 patternData[pattern].delete(controller);
               }else{
                 controller.banned = true;
@@ -819,6 +824,52 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         if (!randomRegex.test(player.name)) {
           kickController(player.cid, "Name looks too random");
           throw new EvilBotJoinedError();
+        }
+      },
+      function commonBotFormatCheck1(socket, data) {
+        if(!isEventJoinEvent(data) || !getSetting("banFormat1")) {return;}
+        const player = data.data;
+        if(/[a-z0-9]+[^a-z0-9\s][a-z0-9]+/gi.test(player.name)) {
+          kickController(player.cid, "Name fits common bot format #1");
+          throw new EvilBotJoinedError();
+        }
+      },
+      function specializedFormatCheck(socket, data) {
+        if(!isEventJoinEvent(data) || !getSetting("blockservice1")) {return;}
+        const player = data.data,
+          englishWords = windw.aSetOfEnglishWords ?? new Set(),
+          names = windw.randomName,
+          split = player.name.split(/\s|(?=[A-Z])/g),
+          foundNames = Array.from(player.name.match(/([A-Z][a-z]+(?=[A-Z]|[^a-zA-Z]|$))/g) ?? []),
+          detectionData = antibotData.runtimeData.englishWordDetectionData;
+        if (player.name.replace(/[ᗩᗷᑕᗪEᖴGᕼIᒍKᒪᗰᑎOᑭᑫᖇᔕTᑌᐯᗯ᙭Yᘔ]/g, "").length / player.name.length < 0.5) {
+          kickController(player.cid, "Common bot bypass attempt");
+          throw new EvilBotJoinedError();
+        }
+        const findWord = split.find((word) => englishWords.has(word)),
+          findName = foundNames.find((name) => {
+            if(!names) {return;}
+            name = capitalize(name);
+            return names.first.has(name) || names.middle.has(name) || names.last.has(name);
+          }),
+          TOTAL_SPAM_AMOUNT_THRESHOLD = 30;
+        if (findWord || findName) {
+          detectionData.add(player);
+          setTimeout(() => {detectionData.delete(player);}, 5e3);
+          if (detectionData.size > TOTAL_SPAM_AMOUNT_THRESHOLD) {
+            batchData(() => {
+              for (const controller of detectionData) {
+                if (controller.banned) {continue;}
+                kickController(controller.cid);
+                if(detectionData.size >= TOTAL_SPAM_AMOUNT_THRESHOLD + 10){
+                  detectionData.delete(controller);
+                }else{
+                  controller.banned = true;
+                }
+              }
+            });
+            throw new EvilBotJoinedError();
+          }
         }
       }
     ];
@@ -920,7 +971,8 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         controllerData: {},
         verifiedControllerNames: new Set(),
         unverifiedControllerNames: [],
-        controllerNamePatternData: {}
+        controllerNamePatternData: {},
+        englishWordDetectionData: new Set()
       },
       kahootInternals: {}
     },
