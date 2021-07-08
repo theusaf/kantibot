@@ -1,5 +1,6 @@
 // ==UserScript==
 // @name           KAntibot
+// @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
 // @version        3.1.0
