@@ -399,6 +399,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
   document.body.append(UITemplate.content.cloneNode(true), counters);
 
   function getSetting(id, def) {
+    if (antibotData.settings[id] ?? true) return antibotData.settings[id];
     const elem = document.getElementById(`antibot.config.${id}`);
     if (elem.value === "") {
       return def;
@@ -514,7 +515,10 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
       function restartCheck(socket, data) {
         if (data?.data?.id === 5 ||
           (data?.data?.id === 10 &&
-            data.data.content === "{}")) antibotData.runtimeData.lobbyLoadTime = 0;
+            data.data.content === "{}")) {
+          antibotData.runtimeData.lobbyLoadTime = 0;
+          // TODO: reset verifiedControllerNames?
+        }
       },
       function quizStartCheck(socket, data) {
         if (data?.data?.id === 9 && antibotData.runtimeData.startLockElement) {
@@ -529,7 +533,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
           getQuizData().questions[0].isAntibotQuestion) {
           const controllers = getControllers(),
             answeredControllers = antibotData.runtimeData.captchaIds;
-          antibotData.kahootInternals.kahootCore.network.websocketInstance.batch(() => {
+          batchData(() => {
             for(const id in controllers) {
               if (controllers[id].isGhost || controllers[id].hasLeft) continue;
               if (!answeredControllers.has(id)) {
@@ -576,9 +580,55 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         if (isNaN(player.cid) || Object.keys(player).length > 5 || player.name.length >= 16) {
           if (antibotData.runtimeData.controllerData[player.cid]) return;
           kickController(player.cid, "Invalid name or information");
+          throw new EvilBotJoinedError();
         }
+      },
+      function firstClientNameratorCheck(socket, data) {
+        if(!isEventJoinEvent(data)) return;
+        const player = data;
+        if (antibotData.runtimeData.unverifiedControllerNames.length === 0) {
+          if (similarity(null, player.name) === -1) {
+            kickController(player.cid, "Name violates namerator rules");
+            throw new EvilBotJoinedError();
+          }
+          antibotData.runtimeData.unverifiedControllerNames.push({
+            name: player.name,
+            cid: player.cid,
+            time: 10,
+            banned: false
+          });
+        }
+      },
+      function nameSimilarityCheck(socket, data) {
+        if(!isEventJoinEvent(data)) return;
+        const player = data,
+          usernames = antibotData.runtimeData.unverifiedControllerNames;
+        if (similarity(null, player.name) === -1) {
+          kickController(player.cid, "Name violates namerator rules");
+          throw new EvilBotJoinedError();
+        }
+        for (const i in usernames) {
+          if (antibotData.runtimeData.verifiedControllerNames.has(usernames[i].name)) continue;
+          if (similarity(usernames[i].name, player.name) >= getSetting("percent")) {
+            batchData(() => {
+              kickController(player.cid);
+              if(!usernames[i].banned) kickController(usernames[i].cid);
+            });
+            throw new EvilBotJoinedError();
+          }
+        }
+        antibotData.runtimeData.unverifiedControllerNames.push({
+          name: player.name,
+          cid: player.cid,
+          time: 10,
+          banned: false
+        });
       }
     ];
+
+  function batchData(callback) {
+    return antibotData.kahootInternals.kahootCore.network.websocketInstance.batch(callback);
+  }
 
   function getClientId() {
     return antibotData.kahootInternals.kahootCore.network.websocketInstance.getClientId();
@@ -671,7 +721,8 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         killCount: 0,
         oldKillCount: 0,
         controllerData: {},
-        verifiedControllerNames: [],
+        verifiedControllerNames: new Set(),
+        unverifiedControllerNames: [],
         controllerNamePatternData: {}
       },
       kahootInternals: {}
