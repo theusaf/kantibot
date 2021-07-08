@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KPin Checker
 // @namespace    http://tampermonkey.net/
-// @version      1.3.2
+// @version      1.3.3
 // @description  Check the pin of a kahoot game.
 // @author       theusaf
 // @match        *://play.kahoot.it/*
@@ -37,7 +37,7 @@ window.PinCheckerMain = function(){
 
       if (document.querySelector("#antibotwtr")) {
         const p = document.createElement("p");
-        p.innerHTML = "[KPC] v1.3.1";
+        p.innerHTML = "[KPC] v1.3.3";
         document.querySelector("#antibotwtr").append(p);
       }
 
@@ -48,10 +48,12 @@ window.PinCheckerMain = function(){
             a = document.querySelector("[data-functional-selector=launch-team-mode-button]");
           }
           if(a && !a.disabled){
+            const guestButton = document.querySelector("[data-functional-selector=play-as-guest-button]");
+            if (guestButton) {guestButton.click();}
             a.click();
             windw.localStorage.PinCheckerAutoRelogin = false;
-            if(+windw.localStorage.PinCheckerLastQuizIndex <= windw.specialData.kahootCore.game.core.playList.length){
-              windw.specialData.kahootCore.game.navigation.currentQuizIndex = +windw.localStorage.PinCheckerLastQuizIndex || 0;
+            if(+windw.localStorage.PinCheckerLastQuizIndex <= (windw.specialData.kahootCore || windw.antibotData.kahootInternals.kahootCore).game.core.playList.length){
+              (windw.specialData.kahootCore || windw.antibotData.kahootInternals.kahootCore).game.navigation.currentQuizIndex = +windw.localStorage.PinCheckerLastQuizIndex || 0;
             }
             clearInterval(waiter);
             delete windw.localStorage.PinCheckerMode;
@@ -79,7 +81,7 @@ window.PinCheckerMain = function(){
     }
     console.error(message || "[PIN-CHECKER] - Pin Broken. Attempting restart.");
     windw.localStorage.PinCheckerAutoRelogin = true;
-    windw.localStorage.PinCheckerLastQuizIndex = windw.specialData.kahootCore.game.navigation.currentQuizIndex;
+    windw.localStorage.PinCheckerLastQuizIndex = (windw.specialData.kahootCore || windw.antibotData.kahootInternals.kahootCore).game.navigation.currentQuizIndex;
     windw.document.write("<scr" + "ipt>" + `window.location = "https://play.kahoot.it/v2/${windw.location.search}";` + "</scr" + "ipt>");
   }
 
