@@ -1023,7 +1023,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
           }
           if (Date.now() - antibotData.runtimeData.lobbyLoadTime > getSetting("start_lock") * 1e3) {
             const controllers = getControllers(),
-              realController = controllers.find((controller) => {
+              realController = Object.values(controllers).find((controller) => {
                 return !controller.isGhost && !controller.hasLeft;
               });
             if (!realController) {
