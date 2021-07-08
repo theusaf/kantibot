@@ -258,28 +258,10 @@ ${createSetting("Lobby Auto-Start Time", "number", "start_lock", "Specify the ma
 ${createSetting("Enable Streak Bonus Points", "checkbox", "streakBonus", "Enable answer streak bonus points (a feature removed by Kahoot!)")}
 ${createSetting("Show Antibot Timers", "checkbox", "counters", "Display Antibot Counters/Timers (Lobby Auto-Start, Auto-Lock, etc)")}
 ${createSetting("Counter Kahoot! Cheats", "checkbox", "counterCheats", "Adds an additional 5 second question at the end to counter cheats. Changing this mid-game may break the game", null, undefined, () => {
-    if (windw.antibotData.methods.getSetting("counterCheats")) {
-      windw.antibotData.methods.kahootAlert("Changes may only take effect upon reload.");
-    } else {
-      // disable anti-cheat
-      const q = windw.antibotData.kahootInternals.globalQuizData.questions;
-      if(q[q.length - 1].isAntibotQuestion){
-        q.splice(-1,1);
-        delete windw.antibotData.kahootInternals.kahootCore.game.navigation.questionIndexMap[q.length];
-      }
-    }
+    windw.antibotData.methods.kahootAlert("Changes may only take effect upon reload.");
   })}
 ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second poll at the start of the quiz. If players don't answer it correctly, they get banned. Changing this mid-game may break the game", null, undefined, () => {
-    if (windw.antibotData.methods.getSetting("enableCAPTCHA")) {
-      windw.antibotData.methods.kahootAlert("Changes may only take effect upon reload.");
-    } else {
-      // disable captcha
-      const q = windw.antibotData.kahootInternals.globalQuizData.questions;
-      if(q[0].isAntibotQuestion){
-        q.splice(0,1);
-        delete windw.antibotData.kahootInternals.kahootCore.game.navigation.questionIndexMap[q.length];
-      }
-    }
+    windw.antibotData.methods.kahootAlert("Changes may only take effect upon reload.");
   })}
       </div>
     </details>
