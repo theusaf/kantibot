@@ -444,6 +444,20 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
     return (longerLength - editDistance(longer, shorter)) / parseFloat(longerLength);
   }
 
+  function isValidNameratorName(name){
+    const First = ["Adorable","Agent","Agile","Amazing","Amazon","Amiable","Amusing","Aquatic","Arctic","Awesome","Balanced","Blue","Bold","Brave","Bright","Bronze","Captain","Caring","Champion","Charming","Cheerful","Classy","Clever","Creative","Cute","Dandy","Daring","Dazzled","Decisive","Diligent","Diplomat","Doctor","Dynamic","Eager","Elated","Epic","Excited","Expert","Fabulous","Fast","Fearless","Flying","Focused","Friendly","Funny","Fuzzy","Genius","Gentle","Giving","Glad","Glowing","Golden","Great","Green","Groovy","Happy","Helpful","Hero","Honest","Inspired","Jolly","Joyful","Kind","Knowing","Legend","Lively","Lovely","Lucky","Magic","Majestic","Melodic","Mighty","Mountain","Mystery","Nimble","Noble","Polite","Power","Prairie","Proud","Purple","Quick","Radiant","Rapid","Rational","Rockstar","Rocky","Royal","Shining","Silly","Silver","Smart","Smiling","Smooth","Snowy","Soaring","Social","Space","Speedy","Stellar","Sturdy","Super","Swift","Tropical","Winged","Wise","Witty","Wonder","Yellow","Zany"],
+      Last = ["Alpaca","Ant","Badger","Bat","Bear","Bee","Bison","Boa","Bobcat","Buffalo","Bunny","Camel","Cat","Cheetah","Chicken","Condor","Crab","Crane","Deer","Dingo","Dog","Dolphin","Dove","Dragon","Duck","Eagle","Echidna","Egret","Elephant","Elk","Emu","Falcon","Ferret","Finch","Fox","Frog","Gator","Gazelle","Gecko","Giraffe","Glider","Gnu","Goat","Goose","Gorilla","Griffin","Hamster","Hare","Hawk","Hen","Horse","Ibex","Iguana","Impala","Jaguar","Kitten","Koala","Lark","Lemming","Lemur","Leopard","Lion","Lizard","Llama","Lobster","Macaw","Meerkat","Monkey","Mouse","Newt","Octopus","Oryx","Ostrich","Otter","Owl","Panda","Panther","Pelican","Penguin","Pigeon","Piranha","Pony","Possum","Puffin","Quail","Rabbit","Raccoon","Raven","Rhino","Rooster","Sable","Seal","SeaLion","Shark","Sloth","Snail","Sphinx","Squid","Stork","Swan","Tiger","Turtle","Unicorn","Urchin","Wallaby","Wildcat","Wolf","Wombat","Yak","Yeti","Zebra"],
+      F = name.match(/[A-Z][a-z]+(?=[A-Z])/);
+    if(F === null || !First.includes(F[0])){
+      return false;
+    }
+    const L = name.replace(F[0],"");
+    if(!Last.includes(L)){
+      return false;
+    }
+    return true;
+  }
+
   function editDistance(s1, s2) {
     s1 = s1.toLowerCase();
     s2 = s2.toLowerCase();
@@ -532,7 +546,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
   }
 
   function getSetting(id, def) {
-    if (antibotData.settings[id] ?? true) return antibotData.settings[id];
+    if (antibotData.settings[id] ?? true) {return antibotData.settings[id];}
     const elem = document.getElementById(`antibot.config.${id}`);
     if (elem.value === "") {
       return def;
@@ -617,8 +631,8 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
   function kickController(id, reason="") {
     const controller = getControllerById(id),
       name = controller?.name?.length > 30 ? controller.name.substr(0, 30) + "..." : controller?.name,
-      banishedCachedData = antibotData.runtimeData.unverifiedControllerNames.find((controller) => {
-        return o.cid === id;
+      banishedCachedData = antibotData.runtimeData.unverifiedControllerNames.find((controller) => {
+        return controller.cid === id;
       });
     console.error(`[ANTIBOT] - Kicked ${name || id}${reason ? ` - ${reason}` : ""}`);
     sendData("/service/player", {
@@ -637,15 +651,15 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
       banishedCachedData.banned = true;
       banishedCachedData.time = 10;
     }
-    if (controller) antibotData.kahootInternals.kahootCore.game.core.kickedControllers.push(controller);
+    if (controller) {antibotData.kahootInternals.kahootCore.game.core.kickedControllers.push(controller);}
     delete getControllers()[id];
   }
 
   function isEventJoinEvent(event) {
-    return data.data?.type === "joined";
+    return event.data?.type === "joined";
   }
 
-  const sendChecks = [
+  const sendChecks = [
       function questionStartCheck(socket, data) {
         if (data?.data?.id === 2) {
           antibotData.runtimeData.questionStartTime = Date.now();
@@ -671,11 +685,11 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         if (data?.data?.id === 4 &&
           getCurrentQuestionIndex() === 0 &&
           getQuizData().questions[0].isAntibotQuestion) {
-          const controllers = getControllers(),
+          const controllers = getControllers(),
             answeredControllers = antibotData.runtimeData.captchaIds;
           batchData(() => {
             for(const id in controllers) {
-              if (controllers[id].isGhost || controllers[id].hasLeft) continue;
+              if (controllers[id].isGhost || controllers[id].hasLeft) {continue;}
               if (!answeredControllers.has(id)) {
                 kickController(id, "Did not answer the CAPTCHA");
               }
@@ -684,8 +698,8 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         }
       }
     ],
-    receiveChecks = [
-      function ddosCheck(socket, data) {
+    receiveChecks = [
+      function ddosCheck() {
         if (!isLocked() && !antibotData.runtimeData.lockingGame && getSetting("ddos", 0) && antibotData.runtimeData.killCount - antibotData.runtimeData.oldKillCount > getSetting("ddos", 0) / 3) {
           lockGame();
           console.error("[ANTIBOT] - Detected bot spam, locking game for 1 minute");
@@ -715,16 +729,16 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         }
       },
       function basicDataCheck(socket, data) {
-        if(!isEventJoinEvent(data)) return;
+        if(!isEventJoinEvent(data)) {return;}
         const player = data.data;
         if (isNaN(player.cid) || Object.keys(player).length > 5 || player.name.length >= 16) {
-          if (antibotData.runtimeData.controllerData[player.cid]) return;
+          if (antibotData.runtimeData.controllerData[player.cid]) {return;}
           kickController(player.cid, "Invalid name or information");
           throw new EvilBotJoinedError();
         }
       },
       function firstClientNameratorCheck(socket, data) {
-        if(!isEventJoinEvent(data)) return;
+        if(!isEventJoinEvent(data)) {return;}
         const player = data.data;
         if (antibotData.runtimeData.unverifiedControllerNames.length === 0) {
           if (similarity(null, player.name) === -1) {
@@ -740,7 +754,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         }
       },
       function nameSimilarityCheck(socket, data) {
-        if(!isEventJoinEvent(data)) return;
+        if(!isEventJoinEvent(data)) {return;}
         const player = data.data,
           usernames = antibotData.runtimeData.unverifiedControllerNames;
         if (similarity(null, player.name) === -1) {
@@ -748,11 +762,11 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
           throw new EvilBotJoinedError();
         }
         for (const i in usernames) {
-          if (antibotData.runtimeData.verifiedControllerNames.has(usernames[i].name)) continue;
+          if (antibotData.runtimeData.verifiedControllerNames.has(usernames[i].name)) {continue;}
           if (similarity(usernames[i].name, player.name) >= getSetting("percent")) {
             batchData(() => {
               kickController(player.cid);
-              if(!usernames[i].banned) kickController(usernames[i].cid);
+              if(!usernames[i].banned) {kickController(usernames[i].cid);}
             });
             throw new EvilBotJoinedError();
           }
@@ -765,20 +779,20 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         });
       },
       function patternSimilarityCheck(socket, data) {
-        if(!isEventJoinEvent(data) || isUsingNamerator() || !getSetting("patterns")) return;
+        if(!isEventJoinEvent(data) || isUsingNamerator() || !getSetting("patterns")) {return;}
         const player = data.data,
-          pattern = getPatterns(player.name),
-          patternData = antibotData.runtimeData.controllerNamePatternData;
-        if (typeof patternData[pattern] === "undefined") patternData[pattern] = new Set();
+          pattern = getPatterns(player.name),
+          patternData = antibotData.runtimeData.controllerNamePatternData;
+        if (typeof patternData[pattern] === "undefined") {patternData[pattern] = new Set();}
         patternData[pattern].add(player);
         // TODO: figure out numbers that work here
-        const PATTERN_SIZE_TEST = 15,
-          PATTERN_REMOVE_TIME = 5e3
-        setTimeout(() => {patternData[pattern].delete(player)}, PATTERN_REMOVE_TIME);
+        const PATTERN_SIZE_TEST = 15,
+          PATTERN_REMOVE_TIME = 5e3;
+        setTimeout(() => {patternData[pattern].delete(player);}, PATTERN_REMOVE_TIME);
         if (patternData[pattern].size >= PATTERN_SIZE_TEST) {
           batchData(() => {
             for (const controller of patternData[pattern]) {
-              if (controller.banned) continue;
+              if (controller.banned) {continue;}
               kickController(controller.cid, "Names have very similar patterns");
               if(patternData[pattern].size >= PATTERN_SIZE_TEST * 2){
                 patternData[pattern].delete(controller);
@@ -791,21 +805,22 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         }
       },
       function blacklistCheck(socket, data) {
-        if(!isEventJoinEvent(data)) return;
+        if(!isEventJoinEvent(data)) {return;}
         const player = data.data;
         if(blacklist(player.name)) {
           kickController(player.cid);
           throw new EvilBotJoinedError();
         }
+      },
+      function randomNameCheck(socket, data) {
+        if(!isEventJoinEvent(data) || !getSetting("looksRandom")) {return;}
+        const player = data.data;
+
       }
     ];
 
   function batchData(callback) {
     return antibotData.kahootInternals.kahootCore.network.websocketInstance.batch(callback);
-  }
-
-  function getClientId() {
-    return antibotData.kahootInternals.kahootCore.network.websocketInstance.getClientId();
   }
 
   function lockGame() {
@@ -848,7 +863,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
   }
 
   function getControllers() {
-    return antibotData.kahootInternals.kahootCore.game.core.controllers
+    return antibotData.kahootInternals.kahootCore.game.core.controllers;
   }
 
   function sendData(channel, data) {
@@ -870,7 +885,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
       check(socket, data);
     }
     // if we get here, no errors thrown = bot not banned
-    if (data.data?.type !== "joined") return;
+    if (data.data?.type !== "joined") {return;}
     antibotData.runtimeData.controllerData[data.data.cid] = {
       loginTime: Date.now(),
       twoFactorAttempts: 0
@@ -909,7 +924,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
   for (const setting in localConfig) {
     try {
       const current = getSetting(setting);
-      setSetting(setting, localConfig[setting]);
+      setSetting(setting, localConfig[setting] ?? current);
     } catch(err) {/* ignored */}
   }
 
@@ -922,7 +937,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
 
   let PinCheckerCheckMethod = () => {};
   try {
-    if(windw.localStorage.extraCheck2) PinCheckerCheckMethod = new Function("return " + windw.localStorage.extraCheck2)();
+    if(windw.localStorage.extraCheck2) {PinCheckerCheckMethod = new Function("return " + windw.localStorage.extraCheck2)();}
   } catch(err) {/* ignored */}
 
   // remove local storage functions, run external scripts
