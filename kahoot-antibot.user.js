@@ -599,6 +599,10 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
       value = `${value}`;
       elem.value = value;
     }
+    // in case of certain things
+    if (elem.nodeName === "TEXTAREA" && typeof value === "string") {
+      value = value.split("\n");
+    }
     const localConfig = JSON.parse(windw.localStorage.antibotConfig || "{}");
     localConfig[id] = value;
     windw.localStorage.antibotConfig = JSON.stringify(localConfig);
