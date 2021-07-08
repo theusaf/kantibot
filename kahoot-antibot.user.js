@@ -167,6 +167,14 @@ const kantibotProgramCode = () => {
 
   }
 
+  class AnsweredTooQuicklyError extends Error {
+
+    constructor() {
+      super("Answer was too quick!");
+    }
+
+  }
+
   const windw = window.parent;
   window.windw = windw;
 
@@ -677,6 +685,10 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
     return event.data?.type === "joined";
   }
 
+  function isEventAnswerEvent(event) {
+    return event.data?.id === 45;
+  }
+
   const sendChecks = [
       function questionStartCheck(socket, data) {
         if (data?.data?.id === 2) {
@@ -903,6 +915,29 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
           antibotData.runtimeData.lastFakeLoginTime = Date.now();
           antibotData.runtimeData.lastFakeUserID = player.cid;
         }
+      },
+      function fastAnswerCheck(socket, data) {
+        if(!isEventAnswerEvent(data)) {return;}
+        const player = data.data,
+          controllerData = antibotData.controllerData[player.cid];
+        if (getCurrentQuestionIndex() === 0 &&
+          getQuizData().questions[0].isAntibotQuestion) {
+          antibotData.runtimeData.captchaIds.add(player.cid);
+          let choices = -1;
+          try{choice = JSON.parse(player.content).choice}catch(err){/* ignore */}
+          if (choice !== getQuizData().questions[0].AntibotCaptchaCorrectIndex) {
+            kickController(player.cid, "Incorrectly answered the CAPTCHA");
+            return;
+          }
+        }
+        if (Date.now() - antibotData.runtimeData.questionStartTime < 500 &&
+          getSetting("timeout")) {
+          throw new AnsweredTooQuicklyError();
+        }
+        if (controllerData && Date.now() - controllerData.loginTime < 1e3) {
+          kickController(player.cid, "Answered immediately after joining!");
+          throw new AnsweredTooQuicklyError();
+        }
       }
     ];
 
@@ -1006,7 +1041,11 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         controllerNamePatternData: {},
         englishWordDetectionData: new Set(),
         lastFakeLoginTime: 0,
-        lastFakeUserID: null
+        lastFakeUserID: null,
+        captchaIds: new Set(),
+        questionStartTime: 0,
+        lobbyLoadTime: 0,
+        startLockElement: null
       },
       kahootInternals: {}
     },
