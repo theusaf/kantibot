@@ -826,20 +826,29 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
           pattern = getPatterns(player.name),
           patternData = antibotData.runtimeData.controllerNamePatternData;
         if (typeof patternData[pattern] === "undefined") {patternData[pattern] = new Set();}
-        patternData[pattern].add(player);
+        patternData[pattern].add({
+          playerData: player,
+          timeAdded: Date.now()
+        });
         // TODO: figure out numbers that work here
         const PATTERN_SIZE_TEST = 15,
           PATTERN_REMOVE_TIME = 5e3;
-        setTimeout(() => {patternData[pattern].delete(player);}, PATTERN_REMOVE_TIME);
+        // remove removable controller data
+        for (const controller of patternData[pattern]) {
+          if(Date.now() - controller.timeAdded > PATTERN_REMOVE_TIME) {
+            patternData[pattern].delete(controller);
+          }
+        }
         if (patternData[pattern].size >= PATTERN_SIZE_TEST) {
           batchData(() => {
             for (const controller of patternData[pattern]) {
-              if (controller.banned) {continue;}
-              kickController(controller.cid, "Names have very similar patterns", controller);
+              if (controller.playerData.banned) {continue;}
+              kickController(controller.playerData.cid, "Names have very similar patterns", controller.playerData);
               if(patternData[pattern].size >= PATTERN_SIZE_TEST + 10){
                 patternData[pattern].delete(controller);
               }else{
-                controller.banned = true;
+                controller.playerData.banned = true;
+                controller.timeAdded = Date.now(); // updates the 'time added' to current time, since the spam is still ongoing
               }
             }
           });
