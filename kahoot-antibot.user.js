@@ -693,6 +693,10 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
     return event.data?.id === 50;
   }
 
+  function isEventTeamJoinEvent(event) {
+    return event.data?.id === 18;
+  }
+
   const sendChecks = [
       function questionStartCheck(socket, data) {
         if (data?.data?.id === 2) {
@@ -927,8 +931,8 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         if (getCurrentQuestionIndex() === 0 &&
           getQuizData().questions[0].isAntibotQuestion) {
           antibotData.runtimeData.captchaIds.add(player.cid);
-          let choices = -1;
-          try{choice = JSON.parse(player.content).choice}catch(err){/* ignore */}
+          let choice = -1;
+          try{choice = JSON.parse(player.content).choice;}catch(err){/* ignore */}
           if (choice !== getQuizData().questions[0].AntibotCaptchaCorrectIndex) {
             kickController(player.cid, "Incorrectly answered the CAPTCHA");
             return;
@@ -951,8 +955,17 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         if (controllerData) {
           controllerData.twoFactorAttempts++;
           if (controllerData.twoFactorAttempts > MAX_ATTEMPTS) {
-            kickController(player.cid);
+            kickController(player.cid, "Attempted to answer the two-factor code using brute force");
           }
+        }
+      },
+      function teamChecker(socket, data) {
+        if(!isEventTeamJoinEvent(data)) {return;}
+        const player = data.data,
+          team = JSON.parse(player.content);
+        if (team.length === 0 || team.indexOf("") !== -1 || team.indexOf("Player 1") === 0 || team.join("") === "Youjustgotbotted") {
+          kickController(player.cid);
+          throw new EvilBotJoinedError();
         }
       }
     ];
