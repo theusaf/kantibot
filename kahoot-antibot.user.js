@@ -6,7 +6,7 @@
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
-// @description:jp Kahootゲームから全てのボットを出して。
+// @description:ja Kahootゲームから全てのボットを出して。
 // @author         theusaf
 // @copyright      2018-2021, Daniel Lau (https://github.com/theusaf/kahoot-antibot)
 // @supportURL     https://discord.gg/pPdvXU6
