@@ -1086,9 +1086,29 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
     } catch(err) {/* ignored */}
   }
 
-  setInterval(function updateKillCountElement() {
+  setInterval(function updateStats() {
     killCountElement.innerHTML = antibotData.runtimeData.killCount;
+    const unverifiedControllerNames = antibotData.runtimeData.unverifiedControllerNames,
+      verifiedControllerNames = antibotData.runtimeData.verifiedControllerNames;
+    for (const i in unverifiedControllerNames) {
+      const data = unverifiedControllerNames[i];
+      if (data.time <= 0 && !data.banned && !verifiedControllerNames.has(data.name)) {
+        verifiedControllerNames.add(data.name);
+        continue;
+      }
+      if (data.time <= -20) {
+        unverifiedControllerNames.splice(i, 1);
+        continue;
+      }
+      data.time--;
+    }
   }, 1e3);
+  setInterval(function updateTwoFactorAuthInfo() {
+    const controllerData = antibotData.runtimeData.controllerData;
+    for (const controller of controllerData) {
+      controller.tries = 0;
+    }
+  }, 10e3);
   setInterval(function updateOldKillCount() {
     antibotData.runtimeData.oldKillCount = antibotData.runtimeData.killCount;
   }, 20e3);
