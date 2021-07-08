@@ -798,12 +798,6 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
             kickController(player.cid, "Name violates namerator rules", player);
             throw new EvilBotJoinedError();
           }
-          antibotData.runtimeData.unverifiedControllerNames.push({
-            name: player.name,
-            cid: player.cid,
-            time: 10,
-            banned: false
-          });
         }
       },
       function nameSimilarityCheck(socket, data) {
@@ -824,6 +818,10 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
             throw new EvilBotJoinedError();
           }
         }
+      },
+      function addNameIfNotBanned(socket, data) {
+        if(!isEventJoinEvent(data)) {return;}
+        const player = data.data
         antibotData.runtimeData.unverifiedControllerNames.push({
           name: player.name,
           cid: player.cid,
