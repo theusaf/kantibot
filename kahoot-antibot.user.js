@@ -398,6 +398,126 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
   counters.id = "antibot-counters";
   document.body.append(UITemplate.content.cloneNode(true), counters);
 
+  function similarity(s1, s2) {
+    // remove numbers from name if name is not only a number
+    if(isNaN(s1) && typeof(s1) !== "object" && !isUsingNamerator()){
+      s1 = s1.replace(/[0-9]/mg,"");
+    }
+    if(isNaN(s2) && typeof(s2) !== "object" && !isUsingNamerator()){
+      s2 = s2.replace(/[0-9]/mg,"");
+    }
+    if(!s2){
+      return 0;
+    }
+    // if is a number of the same length
+    if(s1){
+      if(!isNaN(s2) && !isNaN(s1) && s1.length === s2.length){
+        return 1;
+      }
+    }
+    // apply namerator rules
+    if(isUsingNamerator()){
+      if(!isValidNameratorName(s2)){
+        return -1;
+      }else{
+        // safe name
+        return 0;
+      }
+    }
+    if(!s1){
+      return;
+    }
+    // ignore case
+    s1 = s1.toLowerCase();
+    s2 = s2.toLowerCase();
+    let longer = s1,
+      shorter = s2;
+    // begin math to determine similarity
+    if (s1.length < s2.length) {
+      longer = s2;
+      shorter = s1;
+    }
+    const longerLength = longer.length;
+    if (longerLength === 0) {
+      return 1.0;
+    }
+    return (longerLength - editDistance(longer, shorter)) / parseFloat(longerLength);
+  }
+
+  function editDistance(s1, s2) {
+    s1 = s1.toLowerCase();
+    s2 = s2.toLowerCase();
+
+    const costs = new Array();
+    for (let i = 0; i <= s1.length; i++) {
+      let lastValue = i;
+      for (let j = 0; j <= s2.length; j++) {
+        if (i === 0){
+          costs[j] = j;
+        }
+        else {
+          if (j > 0) {
+            let newValue = costs[j - 1];
+            if (s1.charAt(i - 1) != s2.charAt(j - 1)){
+              newValue = Math.min(Math.min(newValue,lastValue),costs[j]) + 1;
+            }
+            costs[j - 1] = lastValue;
+            lastValue = newValue;
+          }
+        }
+      }
+      if (i > 0){
+        costs[s2.length] = lastValue;
+      }
+    }
+    return costs[s2.length];
+  }
+
+  function getPatterns(string){
+    const isLetter = (char) => {
+        return /\p{L}/u.test(char);
+      },
+      isUppercaseLetter = (char) => {
+        return char.toUpperCase() === char;
+      },
+      isNumber = (char) => {
+        return /\p{N}/u.test(char);
+      };
+    let output = "",
+      mode = null,
+      count = 0;
+    for(let i = 0; i < string.length; i++){
+      const char = string[i];
+      let type = null;
+      if (isLetter(char)) {
+        if (isUppercaseLetter(char)) {
+          type = "C";
+        } else {
+          type = "L";
+        }
+      } else if (isNumber(char)) {
+        type = "D";
+      } else {
+        // special character
+        type = "U";
+      }
+      if (type !== mode) {
+        if (mode !== null) {
+          output += Math.floor(count / 3);
+        }
+        count = 0;
+        mode = type;
+        output += type;
+      } else {
+        count++;
+        if (i === string.length - 1) {
+          output += Math.floor(count / 3);
+        }
+      }
+    }
+    return output;
+  }
+
   function getSetting(id, def) {
     if (antibotData.settings[id] ?? true) return antibotData.settings[id];
     const elem = document.getElementById(`antibot.config.${id}`);
@@ -576,7 +696,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
       },
       function basicDataCheck(socket, data) {
         if(!isEventJoinEvent(data)) return;
-        const player = data;
+        const player = data.data;
         if (isNaN(player.cid) || Object.keys(player).length > 5 || player.name.length >= 16) {
           if (antibotData.runtimeData.controllerData[player.cid]) return;
           kickController(player.cid, "Invalid name or information");
@@ -585,7 +705,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
       },
       function firstClientNameratorCheck(socket, data) {
         if(!isEventJoinEvent(data)) return;
-        const player = data;
+        const player = data.data;
         if (antibotData.runtimeData.unverifiedControllerNames.length === 0) {
           if (similarity(null, player.name) === -1) {
             kickController(player.cid, "Name violates namerator rules");
@@ -601,7 +721,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
       },
       function nameSimilarityCheck(socket, data) {
         if(!isEventJoinEvent(data)) return;
-        const player = data,
+        const player = data.data,
           usernames = antibotData.runtimeData.unverifiedControllerNames;
         if (similarity(null, player.name) === -1) {
           kickController(player.cid, "Name violates namerator rules");
@@ -623,6 +743,30 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
           time: 10,
           banned: false
         });
+      },
+      function patternSimilarityCheck(socket, data) {
+        if(!isEventJoinEvent(data) || isUsingNamerator() || !getSetting("patterns")) return;
+        const player = data.data,
+          pattern = getPatterns(player.name),
+          patternData = antibotData.runtimeData.controllerNamePatternData;
+        if (typeof patternData[pattern] === "undefined") patternData[pattern] = new Set();
+        patternData[pattern].add(player);
+        // TODO: figure out numbers that work here
+        const PATTERN_SIZE_TEST = 15,
+          PATTERN_REMOVE_TIME = 5e3
+        setTimeout(() => {patternData[pattern].delete(player)}, PATTERN_REMOVE_TIME);
+        if (patternData[pattern].size >= PATTERN_SIZE_TEST) {
+          for (const controller of patternData[pattern]) {
+            if (controller.banned) continue;
+            kickController(controller.cid);
+            if(patternData[pattern].size >= PATTERN_SIZE_TEST * 2){
+              patternData[pattern].delete(controller);
+            }else{
+              controller.banned = true;
+            }
+          }
+          throw new EvilBotJoinedError();
+        }
       }
     ];
 
@@ -651,6 +795,10 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
 
   function isLocked() {
     return antibotData.kahootInternals.kahootCore.game.core.isLocked;
+  }
+
+  function isUsingNamerator() {
+    return antibotData.kahootInternals.kahootCore.game.core.gameSettings.gameOptions.namerator;
   }
 
   function getCurrentQuestionIndex() {
