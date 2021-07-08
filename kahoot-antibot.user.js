@@ -2,7 +2,7 @@
 // @name           KAntibot
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.0.0
+// @version        3.0.1
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -1075,7 +1075,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
   }
 
   function websocketMessageHandler(socket, message) {
-    try {PinCheckerCheckMethod();} catch(err) {console.error(`[ANTIBOT] - Execution of PIN-CHECKER Failed: ${err}`);}
+    try {PinCheckerCheckMethod(socket, message);} catch(err) {console.error(`[ANTIBOT] - Execution of PIN-CHECKER Failed: ${err}`);}
     antibotData.kahootInternals.socket = socket;
     if (!socket.webSocket.oldSend) {
       socket.webSocket.oldSend = socket.webSocket.send;
