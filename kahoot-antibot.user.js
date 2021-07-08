@@ -158,6 +158,15 @@ async function fetchMainScript(mainScriptURL) {
 }
 
 const kantibotProgramCode = () => {
+
+  class EvilBotJoinedError extends Error {
+
+    constructor() {
+      super("Bot Banned, Ignore Join");
+    }
+
+  }
+
   const windw = window.parent;
   window.windw = windw;
 
@@ -385,7 +394,9 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
       font-weight: bold;
     }
   </style>`;
-  document.body.append(UITemplate.content.cloneNode(true));
+  const counters = document.createElement("div");
+  counters.id = "antibot-counters";
+  document.body.append(UITemplate.content.cloneNode(true), counters);
 
   function getSetting(id, def) {
     const elem = document.getElementById(`antibot.config.${id}`);
@@ -469,8 +480,10 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
     }
   }
 
-  function kickController(controller, reason="") {
-    console.error(`[ANTIBOT] - Kicked ${id}`);
+  function kickController(id, reason="") {
+    const controller = getControllerById(id),
+      name = controller?.name?.length > 30 ? controller.name.substr(0, 30) + "..." : controller?.name;
+    console.error(`[ANTIBOT] - Kicked ${name || id}${reason ? ` - ${reason}` : ""}`);
     sendData("/service/player", {
       cid: `${id}`,
       content: JSON.stringify({
@@ -482,6 +495,13 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
       id: 10,
       type: "message"
     });
+    antibotData.runtimeData.killCount++;
+    if (controller) antibotData.kahootInternals.kahootCore.game.core.kickedControllers.push(controller);
+    delete getControllers()[id];
+  }
+
+  function isEventJoinEvent(event) {
+    return data.data?.type === "joined";
   }
 
   const sendChecks = [
@@ -509,24 +529,77 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
           getQuizData().questions[0].isAntibotQuestion) {
           const controllers = getControllers(),
             answeredControllers = antibotData.runtimeData.captchaIds;
-          for(const id in controllers) {
-            if (controllers[id].isGhost || controllers[id].hasLeft) continue;
-            if (!answeredControllers.has(id)) {
-              kickController()
+          antibotData.kahootInternals.kahootCore.network.websocketInstance.batch(() => {
+            for(const id in controllers) {
+              if (controllers[id].isGhost || controllers[id].hasLeft) continue;
+              if (!answeredControllers.has(id)) {
+                kickController(id, "Did not answer the CAPTCHA");
+              }
             }
-          }
+          });
         }
       }
     ],
     receiveChecks = [
-
+      function ddosCheck(socket, data) {
+        if (!isLocked() && !antibotData.runtimeData.lockingGame && getSetting("ddos", 0) && antibotData.runtimeData.killCount - antibotData.runtimeData.oldKillCount > getSetting("ddos", 0) / 3) {
+          lockGame();
+          console.error("[ANTIBOT] - Detected bot spam, locking game for 1 minute");
+          const lockEnforcingInterval = setInterval(() => {
+            if (isLocked()) {
+              clearInterval(lockEnforcingInterval);
+              antibotData.runtimeData.lockingGame = false;
+            }
+            lockGame();
+          }, 250);
+          if(getSetting("counters")){
+            const ddosCounterElement = document.createElement("div");
+            let timeLeft = 60;
+            ddosCounterElement.innerHTML = `
+              <span class="antibot-count-num">60</span>
+              <span class="antibot-count-desc">Until Unlock</span>`;
+            counters.append(ddosCounterElement);
+            const ddosCounterInterval = setInterval(()=>{
+              ddosCounterElement.querySelector(".antibot-count-num").innerHTML = --timeLeft;
+              if(timeLeft <= 0){
+                clearInterval(ddosCounterInterval);
+                ddosCounterElement.remove();
+              }
+            },1e3);
+          }
+          setTimeout(unlockGame(),60e3);
+        }
+      },
+      function basicDataCheck(socket, data) {
+        if(!isEventJoinEvent(data)) return;
+        const player = data;
+        if (isNaN(player.cid) || Object.keys(player).length > 5 || player.name.length >= 16) {
+          if (antibotData.runtimeData.controllerData[player.cid]) return;
+          kickController(player.cid, "Invalid name or information");
+        }
+      }
     ];
 
   function getClientId() {
     return antibotData.kahootInternals.kahootCore.network.websocketInstance.getClientId();
   }
 
-  function checkLocked() {
+  function lockGame() {
+    antibotData.runtimeData.lockingGame = true;
+    sendData("/service/player", {
+      gameid: getPin(),
+      type: "lock"
+    });
+  }
+
+  function unlockGame() {
+    sendData("/service/player", {
+      gameid: getPin(),
+      type: "unlock"
+    });
+  }
+
+  function isLocked() {
     return antibotData.kahootInternals.kahootCore.game.core.isLocked;
   }
 
@@ -540,6 +613,10 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
 
   function getPin() {
     return antibotData.kahootInternals.kahootCore.game.core.pin;
+  }
+
+  function getControllerById(id) {
+    return getControllers()[id];
   }
 
   function getControllers() {
@@ -564,6 +641,12 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
     for(const check of receiveChecks) {
       check(socket, data);
     }
+    // if we get here, no errors thrown = bot not banned
+    if (data.data?.type !== "joined") return;
+    antibotData.runtimeData.controllerData[data.data.cid] = {
+      loginTime: Date.now(),
+      twoFactorAttempts: 0
+    };
   }
 
   function websocketSendMessageHandler(socket, data) {
@@ -584,7 +667,13 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         setSetting
       },
       settings: {},
-      runtimeData: {},
+      runtimeData: {
+        killCount: 0,
+        oldKillCount: 0,
+        controllerData: {},
+        verifiedControllerNames: [],
+        controllerNamePatternData: {}
+      },
       kahootInternals: {}
     },
     localConfig = JSON.parse(windw.localStorage.antibotConfig || "{}");
@@ -594,6 +683,13 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
       setSetting(setting, localConfig[setting]);
     } catch(err) {/* ignored */}
   }
+
+  setInterval(function updateKillCountElement() {
+    killCountElement.innerHTML = antibotData.runtimeData.killCount;
+  }, 1e3);
+  setInterval(function updateOldKillCount() {
+    antibotData.runtimeData.oldKillCount = antibotData.runtimeData.killCount;
+  }, 20e3);
 
   let PinCheckerCheckMethod = () => {};
   try {
