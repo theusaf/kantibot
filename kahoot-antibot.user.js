@@ -683,6 +683,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
     }
     if (controller) {antibotData.kahootInternals.kahootCore.game.core.kickedControllers.push(controller);}
     delete getControllers()[id];
+    delete antibotData.runtimeData.controllerData[id];
   }
 
   function isEventJoinEvent(event) {
