@@ -664,7 +664,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
       banishedCachedData = antibotData.runtimeData.unverifiedControllerNames.find((controller) => {
         return controller.cid === id;
       });
-    console.error(`[ANTIBOT] - Kicked ${name || id}${reason ? ` - ${reason}` : ""}`);
+    console.warn(`[ANTIBOT] - Kicked ${name || id}${reason ? ` - ${reason}` : ""}`);
     sendData("/service/player", {
       cid: `${id}`,
       content: JSON.stringify({
