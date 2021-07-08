@@ -124,10 +124,10 @@ async function fetchMainScript(mainScriptURL) {
     })()`
   );
   // Access the "NoStreakPoints", allowing it to be enabled
-  const noStreakPointsRegex = /[a-zA-Z]{2}\.NoStreakPoints/gm;
+  const noStreakPointsRegex = /[a-zA-Z]{2}\.NoStreakPoints}/gm;
   mainScript = mainScript.replace(
     mainScript.match(noStreakPointsRegex)[0],
-    "windw.antibotData.settings.streakBonus || 2"
+    "windw.antibotData.settings.streakBonus ? 1 : 2}"
   ); // yes = 1, no = 2
   // Access the StartQuiz function. Also gains direct access to the controllers!
   const startQuizRegex = /=[a-zA-Z]\.startQuiz/gm,
