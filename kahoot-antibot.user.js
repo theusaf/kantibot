@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.1.0
+// @version        3.1.1
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -40,7 +40,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
  * for helping with contribution and testing of this project
  */
 
-if(window.fireLoaded || (window.parent && window.parent.page)) {throw "[ANTIBOT] - page is loaded";}
+if(window.fireLoaded || window.parent?.kantibotEnabled || window.parent?.fireLoaded) {throw "[ANTIBOT] - page is loaded";}
 if(window.localStorage.extraCheck) {console.log("[ANTIBOT] - Detected PIN Checker");}
 if(window.localStorage.kahootThemeScript) {console.log("[ANTIBOT] - Detected KonoSuba Theme");}
 
