@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.1.1
+// @version        3.1.2
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -137,7 +137,7 @@ async function fetchMainScript(mainScriptURL) {
     return ${startQuizLetter}.startQuiz})()`
   );
   // Access the fetched quiz information. Allows the quiz to be modified when the quiz is fetched!
-  const fetchedQuizInformationRegex = /RETRIEVE_KAHOOT_ERROR",[\w\d]{2}=function\([a-z]\){return Object\([\w$\d]{2}\.[a-z]\)\([\w\d]{2},{response:[a-z]}\)}/gm,
+  const fetchedQuizInformationRegex = /RETRIEVE_KAHOOT_ERROR",([\w\d]{2}|\$\w)=function\([a-z]\){return Object\([\w$\d]{2}\.[a-z]\)\([\w\d]{2},{response:[a-z]}\)}/gm,
     fetchedQuizInformationLetter = mainScript.match(fetchedQuizInformationRegex)[0].match(/response:[a-z]/g)[0].split(":")[1],
     fetchedQuizInformationCode = mainScript.match(fetchedQuizInformationRegex)[0];
   mainScript = mainScript.replace(fetchedQuizInformationCode,`RETRIEVE_KAHOOT_ERROR",${fetchedQuizInformationCode.split("RETRIEVE_KAHOOT_ERROR\",")[1].split("response:")[0]}response:(()=>{
@@ -262,7 +262,7 @@ const kantibotProgramCode = () => {
   // create watermark
   const UITemplate = document.createElement("template");
   UITemplate.innerHTML = `<div id="antibotwtr">
-    <p>v3.1.1 ©theusaf</p>
+    <p>v3.1.2 ©theusaf</p>
     <p id="antibot-killcount">0</p>
     <details>
       <summary>config</summary>
