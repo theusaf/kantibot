@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.1.2-temp1
+// @version        3.1.3
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -205,8 +205,8 @@ async function fetchRuntimeScript(runtimeScriptURL) {
       console.log(${runtimeLetter}.src);
       if (/LobbyView/.test(${runtimeLetter}.src)) {
         console.log("Blocking LobbyView...");
+        ${runtimeLetter}.antibotRealSrc = ${runtimeLetter}.src;
         ${runtimeLetter}.src = "data:text/javascript,";
-        ${runtimeLetter}.ANTIBOT_FLAG = true;
       }`
     );
   let patchRegex2 = /clearTimeout\([a-z]\);var ([a-z])=([a-z])\[([a-z])\];/,
@@ -214,9 +214,10 @@ async function fetchRuntimeScript(runtimeScriptURL) {
   patchedRuntimeScript = patchedRuntimeScript.replace(
     runtimeMatches2[0],
     `${runtimeMatches2[0]}
-    if (/LobbyView/.test(${runtimeLetter}.src)) {
+    if (${runtimeLetter}.antibotRealSrc) {
       // "totally loaded correctly"
       ${runtimeMatches2[1]} = 0;
+      windw.antibotData.methods.patchLobbyView(${runtimeLetter}.antibotRealSrc);
     }`
   );
   return patchedRuntimeScript;
@@ -303,7 +304,7 @@ const kantibotProgramCode = () => {
   // create watermark
   const UITemplate = document.createElement("template");
   UITemplate.innerHTML = `<div id="antibotwtr">
-    <p>v3.1.2 ©theusaf</p>
+    <p>v3.1.3 ©theusaf</p>
     <p id="antibot-killcount">0</p>
     <details>
       <summary>config</summary>
@@ -456,6 +457,37 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
   const counters = document.createElement("div");
   counters.id = "antibot-counters";
   document.body.append(UITemplate.content.cloneNode(true), counters);
+
+  function makeHttpRequest(url) {
+    const request = new XMLHttpRequest();
+    request.open("GET", url);
+    request.send();
+    return new Promise((resolve, reject) => {
+      request.onerror = request.onload = () => {
+        if (request.readyState === 4 && request.status === 200) {
+          resolve(request);
+        } else {
+          reject(request);
+        }
+      };
+    });
+  }
+
+  async function patchLobbyView(url) {
+    const {response} = await makeHttpRequest(url);
+    const lobbyRegex = /\w=[a-z]\.startQuiz/,
+      lobbyLetter = response.match(lobbyRegex)[0].match(/[a-z](?=\.)/)[0],
+      patched = response.replace(
+        response.match(lobbyRegex)[0],
+        `${response.match(lobbyRegex)[0]},
+        ANTIBOT_PATCH = (() => {
+          windw.antibotData.kahootInternals.globalFuncs = ${lobbyLetter};
+        })()`
+      ),
+      script = document.createElement("script");
+    script.innerHTML = patched;
+    document.head.append(script);
+  }
 
   function capitalize(string) {
     string = string.toLowerCase();
@@ -1184,7 +1216,8 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         extraQuestionSetup,
         kahootAlert,
         getSetting,
-        setSetting
+        setSetting,
+        patchLobbyView
       },
       settings: {},
       runtimeData: {
