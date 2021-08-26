@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.1.2
+// @version        3.1.2-temp1
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -87,13 +87,16 @@ async function fetchMainPage() {
       .match(/><\/script><script .*?vendors.*?><\/script>/mg)[0]
       .substr(9).split("src=\"")[1].split("\"")[0],
     mainScriptURL = mainPageRequest.response.match(/\/v2\/assets\/js\/main.*?(?=")/mg)[0],
+    runtimeScriptURL = mainPageRequest.response.match(/\/v2\/assets\/js\/runtime.*?(?=")/mg)[0],
     originalPage = mainPageRequest.response
       .replace(/><\/script><script .*?vendors.*?><\/script>/mg, "></script>")
-      .replace(/(\/\/assets-cdn.kahoot.it\/player)?\/v2\/assets\/js\/main.*?(?=")/mg,"data:text/javascript,");
+      .replace(/(\/\/assets-cdn.kahoot.it\/player)?\/v2\/assets\/js\/main.*?(?=")/mg,"data:text/javascript,")
+      .replace(/(\/\/assets-cdn.kahoot.it\/player)?\/v2\/assets\/js\/runtime.*?(?=")/mg,"data:text/javascript,");
   return {
     page: originalPage,
     vendorsScriptURL,
-    mainScriptURL
+    mainScriptURL,
+    runtimeScriptURL
   };
 }
 
@@ -124,20 +127,30 @@ async function fetchMainScript(mainScriptURL) {
     })()`
   );
   // Access the "NoStreakPoints", allowing it to be enabled
-  const noStreakPointsRegex = /[a-zA-Z]{2}\.NoStreakPoints}/gm;
+  const noStreakPointsRegex = /([a-zA-Z]{1,2}\.)?[a-zA-Z]{1,2}\.NoStreakPoints}/gm;
   mainScript = mainScript.replace(
     mainScript.match(noStreakPointsRegex)[0],
     "windw.antibotData.settings.streakBonus ? 1 : 2}"
   ); // yes = 1, no = 2
-  // Access the StartQuiz function. Also gains direct access to the controllers!
-  const startQuizRegex = /=[a-zA-Z]\.startQuiz/gm,
-    startQuizLetter = mainScript.match(startQuizRegex)[0].match(/[a-zA-Z](?=\.)/g)[0];
-  mainScript = mainScript.replace(mainScript.match(startQuizRegex)[0],`=(()=>{
-    windw.antibotData.kahootInternals.globalFuncs = ${startQuizLetter};
-    return ${startQuizLetter}.startQuiz})()`
+
+  // debugging...
+  mainScript = mainScript.replace("startQuiz:function(e){", `startQuiz:function(e){console.log(e, "AAAA");`);
+
+  // Access global functions. Also gains direct access to the controllers?
+  const globalFuncRegex = /[a-zA-Z]={closeMenu.*?}}(?=})/,
+    globalFuncLetter = mainScript.match(globalFuncRegex)[0].match(/[a-zA-Z](?==)/)[0],
+    globalFuncMatch = mainScript.match(globalFuncRegex)[0];
+  mainScript = mainScript.replace(globalFuncMatch, `${globalFuncMatch},KANTIBOT_TEST = (() => {
+    const wait = setInterval(() => {
+      try {
+        windw.antibotData.kahootInternals.globalFuncs = ${globalFuncLetter};
+        clearInterval(wait);
+      } catch(e) {}
+    }, 250);
+  })()`
   );
   // Access the fetched quiz information. Allows the quiz to be modified when the quiz is fetched!
-  const fetchedQuizInformationRegex = /RETRIEVE_KAHOOT_ERROR",([\w\d]{2}|\$\w)=function\([a-z]\){return Object\([\w$\d]{2}\.[a-z]\)\([\w\d]{2},{response:[a-z]}\)}/gm,
+  const fetchedQuizInformationRegex = /RETRIEVE_KAHOOT_ERROR",([\w]{2}|\$\w)=function\([a-z]\){return Object\([\w$]{1,2}\.[a-z]\)\([\w\d]{1,2},{response:[a-z]}\)}/gm,
     fetchedQuizInformationLetter = mainScript.match(fetchedQuizInformationRegex)[0].match(/response:[a-z]/g)[0].split(":")[1],
     fetchedQuizInformationCode = mainScript.match(fetchedQuizInformationRegex)[0];
   mainScript = mainScript.replace(fetchedQuizInformationCode,`RETRIEVE_KAHOOT_ERROR",${fetchedQuizInformationCode.split("RETRIEVE_KAHOOT_ERROR\",")[1].split("response:")[0]}response:(()=>{
@@ -179,6 +192,34 @@ async function fetchMainScript(mainScriptURL) {
     }
   })()),`);
   return mainScript;
+}
+
+async function fetchRuntimeScript(runtimeScriptURL) {
+  let {response:runtimeScriptRequest} = await makeHttpRequest(runtimeScriptURL),
+    patchedRegex = /[a-z].src=[a-z]\([a-z]\);/,
+    runtimeLetter = runtimeScriptRequest.match(patchedRegex)[0].match(/[a-z](?=\.)/)[0],
+    runtimeCodeMatch = runtimeScriptRequest.match(patchedRegex)[0],
+    patchedRuntimeScript = runtimeScriptRequest.replace(
+      runtimeCodeMatch,
+      `${runtimeCodeMatch}
+      console.log(${runtimeLetter}.src);
+      if (/LobbyView/.test(${runtimeLetter}.src)) {
+        console.log("Blocking LobbyView...");
+        ${runtimeLetter}.src = "data:text/javascript,";
+        ${runtimeLetter}.ANTIBOT_FLAG = true;
+      }`
+    );
+  let patchRegex2 = /clearTimeout\([a-z]\);var ([a-z])=([a-z])\[([a-z])\];/,
+    runtimeMatches2 = patchedRuntimeScript.match(patchRegex2);
+  patchedRuntimeScript = patchedRuntimeScript.replace(
+    runtimeMatches2[0],
+    `${runtimeMatches2[0]}
+    if (/LobbyView/.test(${runtimeLetter}.src)) {
+      // "totally loaded correctly"
+      ${runtimeMatches2[1]} = 0;
+    }`
+  );
+  return patchedRuntimeScript;
 }
 
 const kantibotProgramCode = () => {
@@ -1220,12 +1261,14 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
 
 (async () => {
   console.log("[ANTIBOT - loading]");
-  const {page, vendorsScriptURL, mainScriptURL} = await fetchMainPage(),
+  const {page, vendorsScriptURL, mainScriptURL, runtimeScriptURL} = await fetchMainPage(),
     patchedVendorsScript = await fetchVendorsScript(vendorsScriptURL),
     patchedMainScript = await fetchMainScript(mainScriptURL),
+    patchedRuntimeScript = await fetchRuntimeScript(runtimeScriptURL),
     externalScripts = await Promise.all(requiredAssets.map((assetURL) => makeHttpRequest(assetURL).catch(() => ""))).then(data => data.map((result) => `<script>${result.response}</script>`).join(""));
   let completePage = page.split("</body>");
   completePage = `${completePage[0]}
+  <script>${patchedRuntimeScript}</script>
   <script>${patchedVendorsScript}</script>
   <script>${patchedMainScript}</script>
   <script>
