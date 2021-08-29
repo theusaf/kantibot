@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.1.4
+// @version        3.1.5
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -106,8 +106,7 @@ async function fetchVendorsScript(vendorsScriptURL) {
     vendorsScriptLetter1 = vendorsScriptRequest.response.match(patchedScriptRegex)[0].match(/[a-z](?=,)/g)[0],
     vendorsScriptLetter2 = vendorsScriptRequest.response.match(patchedScriptRegex)[0].match(/[a-z](?=\))/g)[0],
     patchedVendorsScript = vendorsScriptRequest.response
-      .replace(vendorsScriptRequest.response
-        .match(patchedScriptRegex)[0],
+      .replace(patchedScriptRegex,
       `.onMessage = function(${vendorsScriptLetter1},${vendorsScriptLetter2}){
           windw.antibotData.methods.websocketMessageHandler(${vendorsScriptLetter1},${vendorsScriptLetter2});`
       );
@@ -121,16 +120,16 @@ async function fetchMainScript(mainScriptURL) {
   const currentQuestionTimerRegex = /currentQuestionTimer:[a-z]\.payload\.questionTime/gm,
     currentQuestionTimerLetter = mainScript.match(currentQuestionTimerRegex)[0].match(/[a-z](?=\.payload)/g)[0];
   mainScript = mainScript.replace(
-    mainScript.match(currentQuestionTimerRegex)[0],
+    currentQuestionTimerRegex,
     `currentQuestionTimer:${currentQuestionTimerLetter}.payload.questionTime + (()=>{
-      return (windw.antibotData.settings.teamtime * 1000) || 0;
+      return (windw.antibotData.settings.teamtimeout * 1000) || 0;
     })()`
   );
   // Access the "NoStreakPoints", allowing it to be enabled
-  const noStreakPointsRegex = /([a-zA-Z]{1,2}\.)?[a-zA-Z]{1,2}\.NoStreakPoints}/gm;
+  const noStreakPointsRegex = /([a-zA-Z]{1,2}\.)?[a-zA-Z]{1,2}\.NoStreakPoints(?=[^=])/gm;
   mainScript = mainScript.replace(
-    mainScript.match(noStreakPointsRegex)[0],
-    "windw.antibotData.settings.streakBonus ? 1 : 2}"
+    noStreakPointsRegex,
+    "windw.antibotData.settings.streakBonus ? 1 : 2"
   ); // yes = 1, no = 2
 
   // debugging...
@@ -140,7 +139,7 @@ async function fetchMainScript(mainScriptURL) {
   const globalFuncRegex = /[a-zA-Z]={closeMenu.*?}}(?=})/,
     globalFuncLetter = mainScript.match(globalFuncRegex)[0].match(/[a-zA-Z](?==)/)[0],
     globalFuncMatch = mainScript.match(globalFuncRegex)[0];
-  mainScript = mainScript.replace(globalFuncMatch, `${globalFuncMatch},KANTIBOT_TEST = (() => {
+  mainScript = mainScript.replace(globalFuncRegex, `${globalFuncMatch},KANTIBOT_TEST = (() => {
     const wait = setInterval(() => {
       try {
         windw.antibotData.kahootInternals.globalFuncs = ${globalFuncLetter};
@@ -153,7 +152,7 @@ async function fetchMainScript(mainScriptURL) {
   const fetchedQuizInformationRegex = /RETRIEVE_KAHOOT_ERROR",([\w]{2}|\$\w)=function\([a-z]\){return Object\([\w$]{1,2}\.[a-z]\)\([\w\d]{1,2},{response:[a-z]}\)}/gm,
     fetchedQuizInformationLetter = mainScript.match(fetchedQuizInformationRegex)[0].match(/response:[a-z]/g)[0].split(":")[1],
     fetchedQuizInformationCode = mainScript.match(fetchedQuizInformationRegex)[0];
-  mainScript = mainScript.replace(fetchedQuizInformationCode,`RETRIEVE_KAHOOT_ERROR",${fetchedQuizInformationCode.split("RETRIEVE_KAHOOT_ERROR\",")[1].split("response:")[0]}response:(()=>{
+  mainScript = mainScript.replace(fetchedQuizInformationRegex,`RETRIEVE_KAHOOT_ERROR",${fetchedQuizInformationCode.split("RETRIEVE_KAHOOT_ERROR\",")[1].split("response:")[0]}response:(()=>{
     windw.antibotData.kahootInternals.globalQuizData = ${fetchedQuizInformationLetter};
     windw.antibotData.methods.extraQuestionSetup(${fetchedQuizInformationLetter});
     return ${fetchedQuizInformationLetter};
@@ -201,7 +200,7 @@ async function fetchRuntimeScript(runtimeScriptURL) {
     runtimeLetter = runtimeScriptRequest.match(patchedRegex)[0].match(/[a-z](?=\.)/)[0],
     runtimeCodeMatch = runtimeScriptRequest.match(patchedRegex)[0],
     patchedRuntimeScript = runtimeScriptRequest.replace(
-      runtimeCodeMatch,
+      patchedRegex,
       `${runtimeCodeMatch}
       console.log(${runtimeLetter}.src);
       if (/LobbyView/.test(${runtimeLetter}.src)) {
@@ -213,7 +212,7 @@ async function fetchRuntimeScript(runtimeScriptURL) {
   let patchRegex2 = /clearTimeout\([a-z]\);var ([a-z])=([a-z])\[([a-z])\];/,
     runtimeMatches2 = patchedRuntimeScript.match(patchRegex2);
   patchedRuntimeScript = patchedRuntimeScript.replace(
-    runtimeMatches2[0],
+    patchRegex2,
     `${runtimeMatches2[0]}
     if (${runtimeLetter}.antibotRealSrc) {
       // "totally loaded correctly"
@@ -305,7 +304,7 @@ const kantibotProgramCode = () => {
   // create watermark
   const UITemplate = document.createElement("template");
   UITemplate.innerHTML = `<div id="antibotwtr">
-    <p>v3.1.4 ©theusaf</p>
+    <p>v3.1.5 ©theusaf</p>
     <p id="antibot-killcount">0</p>
     <details>
       <summary>config</summary>
