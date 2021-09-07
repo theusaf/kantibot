@@ -87,24 +87,21 @@ async function fetchMainPage() {
       .match(/><\/script><script .*?vendors.*?><\/script>/mg)[0]
       .substr(9).split("src=\"")[1].split("\"")[0],
     mainScriptURL = mainPageRequest.response.match(/\/v2\/assets\/js\/main.*?(?=")/mg)[0],
-    runtimeScriptURL = mainPageRequest.response.match(/\/v2\/assets\/js\/runtime.*?(?=")/mg)[0],
     originalPage = mainPageRequest.response
       .replace(/><\/script><script .*?vendors.*?><\/script>/mg, "></script>")
-      .replace(/(\/\/assets-cdn.kahoot.it\/player)?\/v2\/assets\/js\/main.*?(?=")/mg,"data:text/javascript,")
-      .replace(/(\/\/assets-cdn.kahoot.it\/player)?\/v2\/assets\/js\/runtime.*?(?=")/mg,"data:text/javascript,");
+      .replace(/(\/\/assets-cdn.kahoot.it\/player)?\/v2\/assets\/js\/main.*?(?=")/mg,"data:text/javascript,");
   return {
     page: originalPage,
     vendorsScriptURL,
-    mainScriptURL,
-    runtimeScriptURL
+    mainScriptURL
   };
 }
 
 async function fetchVendorsScript(vendorsScriptURL) {
   const vendorsScriptRequest = await makeHttpRequest(vendorsScriptURL),
-    patchedScriptRegex = /\.onMessage=function\([a-z],[a-z]\)\{/mg,
-    vendorsScriptLetter1 = vendorsScriptRequest.response.match(patchedScriptRegex)[0].match(/[a-z](?=,)/g)[0],
-    vendorsScriptLetter2 = vendorsScriptRequest.response.match(patchedScriptRegex)[0].match(/[a-z](?=\))/g)[0],
+    patchedScriptRegex = /\.onMessage=function\([a-z_],[a-z_]\)\{/mg,
+    vendorsScriptLetter1 = vendorsScriptRequest.response.match(patchedScriptRegex)[0].match(/[a-z_](?=,)/g)[0],
+    vendorsScriptLetter2 = vendorsScriptRequest.response.match(patchedScriptRegex)[0].match(/[a-z_](?=\))/g)[0],
     patchedVendorsScript = vendorsScriptRequest.response
       .replace(patchedScriptRegex,
       `.onMessage = function(${vendorsScriptLetter1},${vendorsScriptLetter2}){
@@ -132,12 +129,9 @@ async function fetchMainScript(mainScriptURL) {
     "windw.antibotData.settings.streakBonus ? 1 : 2"
   ); // yes = 1, no = 2
 
-  // debugging...
-  mainScript = mainScript.replace("startQuiz:function(e){", `startQuiz:function(e){console.log(e, "AAAA");`);
-
   // Access global functions. Also gains direct access to the controllers?
-  const globalFuncRegex = /[a-zA-Z]={closeMenu.*?}}(?=})/,
-    globalFuncLetter = mainScript.match(globalFuncRegex)[0].match(/[a-zA-Z](?==)/)[0],
+  const globalFuncRegex = /\w{1,3}={startQuiz.*?}(?=,)/,
+    globalFuncLetter = mainScript.match(globalFuncRegex)[0].match(/\w{1,3}(?==)/)[0],
     globalFuncMatch = mainScript.match(globalFuncRegex)[0];
   mainScript = mainScript.replace(globalFuncRegex, `${globalFuncMatch},KANTIBOT_TEST = (() => {
     const wait = setInterval(() => {
@@ -149,14 +143,15 @@ async function fetchMainScript(mainScriptURL) {
   })()`
   );
   // Access the fetched quiz information. Allows the quiz to be modified when the quiz is fetched!
-  const fetchedQuizInformationRegex = /RETRIEVE_KAHOOT_ERROR",([\w]{2}|\$\w)=function\([a-z]\){return Object\([\w$]{1,2}\.[a-z]\)\([\w\d]{1,2},{response:[a-z]}\)}/gm,
+  // Note to future maintainer: if code switches back to using a function(){} rather than arrow function, see v3.1.5
+  const fetchedQuizInformationRegex = /RETRIEVE_KAHOOT_ERROR",.*?=>Object\([\w$]{1,2}\.[a-z]\)\([\w\d]{1,2},{response:[a-z]}\)/gm,
     fetchedQuizInformationLetter = mainScript.match(fetchedQuizInformationRegex)[0].match(/response:[a-z]/g)[0].split(":")[1],
     fetchedQuizInformationCode = mainScript.match(fetchedQuizInformationRegex)[0];
   mainScript = mainScript.replace(fetchedQuizInformationRegex,`RETRIEVE_KAHOOT_ERROR",${fetchedQuizInformationCode.split("RETRIEVE_KAHOOT_ERROR\",")[1].split("response:")[0]}response:(()=>{
     windw.antibotData.kahootInternals.globalQuizData = ${fetchedQuizInformationLetter};
     windw.antibotData.methods.extraQuestionSetup(${fetchedQuizInformationLetter});
     return ${fetchedQuizInformationLetter};
-  })()})}`);
+  })()})`);
   // Access the core data
   const coreDataRegex = /[a-z]\.game\.core/m,
     coreDataLetter = mainScript.match(coreDataRegex)[0].match(/[a-z](?=\.game)/)[0];
@@ -192,35 +187,6 @@ async function fetchMainScript(mainScriptURL) {
     }
   })()),`);
   return mainScript;
-}
-
-async function fetchRuntimeScript(runtimeScriptURL) {
-  let {response:runtimeScriptRequest} = await makeHttpRequest(runtimeScriptURL),
-    patchedRegex = /[a-z].src=[a-z]\([a-z]\);/,
-    runtimeLetter = runtimeScriptRequest.match(patchedRegex)[0].match(/[a-z](?=\.)/)[0],
-    runtimeCodeMatch = runtimeScriptRequest.match(patchedRegex)[0],
-    patchedRuntimeScript = runtimeScriptRequest.replace(
-      patchedRegex,
-      `${runtimeCodeMatch}
-      console.log(${runtimeLetter}.src);
-      if (/LobbyView/.test(${runtimeLetter}.src)) {
-        console.log("Blocking LobbyView...");
-        ${runtimeLetter}.antibotRealSrc = ${runtimeLetter}.src;
-        ${runtimeLetter}.src = "data:text/javascript,";
-      }`
-    );
-  let patchRegex2 = /clearTimeout\([a-z]\);var ([a-z])=([a-z])\[([a-z])\];/,
-    runtimeMatches2 = patchedRuntimeScript.match(patchRegex2);
-  patchedRuntimeScript = patchedRuntimeScript.replace(
-    patchRegex2,
-    `${runtimeMatches2[0]}
-    if (${runtimeLetter}.antibotRealSrc) {
-      // "totally loaded correctly"
-      ${runtimeMatches2[1]} = 0;
-      windw.antibotData.methods.patchLobbyView(${runtimeLetter}.antibotRealSrc);
-    }`
-  );
-  return patchedRuntimeScript;
 }
 
 const kantibotProgramCode = () => {
@@ -1293,15 +1259,13 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
 };
 
 (async () => {
-  console.log("[ANTIBOT - loading]");
-  const {page, vendorsScriptURL, mainScriptURL, runtimeScriptURL} = await fetchMainPage(),
+  console.log("[ANTIBOT - loading");
+  const {page, vendorsScriptURL, mainScriptURL} = await fetchMainPage(),
     patchedVendorsScript = await fetchVendorsScript(vendorsScriptURL),
     patchedMainScript = await fetchMainScript(mainScriptURL),
-    patchedRuntimeScript = await fetchRuntimeScript(runtimeScriptURL),
     externalScripts = await Promise.all(requiredAssets.map((assetURL) => makeHttpRequest(assetURL).catch(() => ""))).then(data => data.map((result) => `<script>${result.response}</script>`).join(""));
   let completePage = page.split("</body>");
   completePage = `${completePage[0]}
-  <script>${patchedRuntimeScript}</script>
   <script>${patchedVendorsScript}</script>
   <script>${patchedMainScript}</script>
   <script>
