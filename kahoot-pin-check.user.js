@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KPin Checker
 // @namespace    http://tampermonkey.net/
-// @version      1.3.3
+// @version      1.3.4
 // @description  Check the pin of a kahoot game.
 // @author       theusaf
 // @match        *://play.kahoot.it/*
@@ -37,7 +37,7 @@ window.PinCheckerMain = function(){
 
       if (document.querySelector("#antibotwtr")) {
         const p = document.createElement("p");
-        p.innerHTML = "[KPC] v1.3.3";
+        p.innerHTML = "[KPC] v1.3.4";
         document.querySelector("#antibotwtr").append(p);
       }
 
@@ -473,9 +473,9 @@ if(!window.kantibotEnabled && !window.page){
     script.open("GET",scriptURL);
     script.send();
     script.onload = ()=>{
-      const patchedScriptRegex = /\.onMessage=function\([a-z],[a-z]\)\{/mg,
-        letter1 = script.response.match(patchedScriptRegex)[0].match(/[a-z](?=,)/g)[0],
-        letter2 = script.response.match(patchedScriptRegex)[0].match(/[a-z](?=\))/g)[0],
+      const patchedScriptRegex = /\.onMessage=function\(\w,\w\)\{/mg,
+        letter1 = script.response.match(patchedScriptRegex)[0].match(/\w(?=,)/g)[0],
+        letter2 = script.response.match(patchedScriptRegex)[0].match(/\w(?=\))/g)[0],
         patchedScript = script.response.replace(script.response.match(patchedScriptRegex)[0],`.onMessage=function(${letter1},${letter2}){window.globalMessageListener(${letter1},${letter2});`),
         mainScript = new XMLHttpRequest();
       mainScript.open("GET",script2);
