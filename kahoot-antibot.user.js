@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.1.5
+// @version        3.1.6
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -155,31 +155,19 @@ async function fetchMainScript(mainScriptURL) {
     }
     return ${coreDataLetter}.game.core;
   })()`);
-  mainScript = mainScript.replace(/counter:7/gm,`counter:(() => {
-    try {
-      let time = windw.antibotData.methods.getSetting("twoFactorTime", 7);
-      time = Math.floor(time);
-      if (time < 1) {
-        time = 1;
+  // Access two factor stuff
+  const twoFactorRegex = /(const \w{1,2}=)7/;
+  mainScript = mainScript.replace(
+    twoFactorRegex,
+    `${mainScript.match(twoFactorRegex)[1]}(()=>{
+      const antibotConfig = JSON.parse(localStorage.antibotConfig || "{}"),
+        {twoFactorTime} = antibotConfig;
+      if (twoFactorTime) {
+        return +twoFactorTime;
+      } else {
+        return 7;
       }
-      return time;
-    } catch(err) {
-      return 7;
-    }
-  })()`);
-  const countFixRegex = /\(7\),(?=Object)/m
-  mainScript = mainScript.replace(countFixRegex, `((() => {
-    try {
-      let time = windw.antibotData.methods.getSetting("twoFactorTime", 7);
-      time = Math.floor(time);
-      if (time < 1) {
-        time = 1;
-      }
-      return time;
-    } catch(err) {
-      return 7;
-    }
-  })()),`);
+    })()`);
   return mainScript;
 }
 
@@ -264,7 +252,7 @@ const kantibotProgramCode = () => {
   // create watermark
   const UITemplate = document.createElement("template");
   UITemplate.innerHTML = `<div id="antibotwtr">
-    <p>v3.1.5 ©theusaf</p>
+    <p>v3.1.6 ©theusaf</p>
     <p id="antibot-killcount">0</p>
     <details>
       <summary>config</summary>
@@ -280,6 +268,8 @@ ${createSetting("Additional Question Time", "number", "teamtimeout", "Adds extra
 ${createSetting("Two-Factor Auth Timer", "number", "twoFactorTime", "Specify the number of seconds for the two-factor auth. The first iteration will use the default 7 seconds, then will use your input", 7, input => {
     input.setAttribute("step", 1);
     input.setAttribute("min", 1);
+  }, () => {
+    windw.antibotData.methods.kahootAlert("Changes will only take effect upon reload.");
   })}
 ${createSetting("Name Match Percent", "number", "percent", "The percent to check name similarity before banning the bot.", 0.6, input => input.setAttribute("step", 0.1))}
 ${createSetting("Word Blacklist", "textarea", "wordblock", "Block names containing any from a list of words. Separate by new line.")}
