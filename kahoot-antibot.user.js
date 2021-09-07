@@ -130,18 +130,12 @@ async function fetchMainScript(mainScriptURL) {
   ); // yes = 1, no = 2
 
   // Access global functions. Also gains direct access to the controllers?
-  const globalFuncRegex = /\w{1,3}={startQuiz.*?}(?=,)/,
-    globalFuncLetter = mainScript.match(globalFuncRegex)[0].match(/\w{1,3}(?==)/)[0],
+  const globalFuncRegex = /\w{1,3}=\({gameOptions:.*?startQuiz:(\w).*?}\)=>{/,
+    globalFuncLetter = mainScript.match(globalFuncRegex)[1]
     globalFuncMatch = mainScript.match(globalFuncRegex)[0];
-  mainScript = mainScript.replace(globalFuncRegex, `${globalFuncMatch},KANTIBOT_TEST = (() => {
-    const wait = setInterval(() => {
-      try {
-        windw.antibotData.kahootInternals.globalFuncs = ${globalFuncLetter};
-        clearInterval(wait);
-      } catch(e) {}
-    }, 250);
-  })()`
-  );
+  mainScript = mainScript.replace(
+    globalFuncRegex,
+    `${globalFuncMatch}windw.antibotData.globalFuncs = {startQuiz:${globalFuncLetter}};`);
   // Access the fetched quiz information. Allows the quiz to be modified when the quiz is fetched!
   // Note to future maintainer: if code switches back to using a function(){} rather than arrow function, see v3.1.5
   const fetchedQuizInformationRegex = /RETRIEVE_KAHOOT_ERROR",.*?=>Object\([\w$]{1,2}\.[a-z]\)\([\w\d]{1,2},{response:[a-z]}\)/gm,
