@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.1.6
+// @version        3.1.7
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -99,9 +99,9 @@ async function fetchMainPage() {
 
 async function fetchVendorsScript(vendorsScriptURL) {
   const vendorsScriptRequest = await makeHttpRequest(vendorsScriptURL),
-    patchedScriptRegex = /\.onMessage=function\([a-z_],[a-z_]\)\{/mg,
-    vendorsScriptLetter1 = vendorsScriptRequest.response.match(patchedScriptRegex)[0].match(/[a-z_](?=,)/g)[0],
-    vendorsScriptLetter2 = vendorsScriptRequest.response.match(patchedScriptRegex)[0].match(/[a-z_](?=\))/g)[0],
+    patchedScriptRegex = /\.onMessage=function\(\w,\w\)\{/mg,
+    vendorsScriptLetter1 = vendorsScriptRequest.response.match(patchedScriptRegex)[0].match(/\w(?=,)/g)[0],
+    vendorsScriptLetter2 = vendorsScriptRequest.response.match(patchedScriptRegex)[0].match(/\w(?=\))/g)[0],
     patchedVendorsScript = vendorsScriptRequest.response
       .replace(patchedScriptRegex,
       `.onMessage = function(${vendorsScriptLetter1},${vendorsScriptLetter2}){
@@ -252,7 +252,7 @@ const kantibotProgramCode = () => {
   // create watermark
   const UITemplate = document.createElement("template");
   UITemplate.innerHTML = `<div id="antibotwtr">
-    <p>v3.1.6 ©theusaf</p>
+    <p>v3.1.7 ©theusaf</p>
     <p id="antibot-killcount">0</p>
     <details>
       <summary>config</summary>
