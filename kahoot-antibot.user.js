@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.1.7
+// @version        3.1.8
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -123,7 +123,7 @@ async function fetchMainScript(mainScriptURL) {
     })()`
   );
   // Access the "NoStreakPoints", allowing it to be enabled
-  const noStreakPointsRegex = /([a-zA-Z]{1,2}\.)?[a-zA-Z]{1,2}\.NoStreakPoints(?=[^=])/gm;
+  const noStreakPointsRegex = /(\w{1,2}\.)?\w{1,2}\.NoStreakPoints(?=[^=])/gm;
   mainScript = mainScript.replace(
     noStreakPointsRegex,
     "windw.antibotData.settings.streakBonus ? 1 : 2"
@@ -131,7 +131,7 @@ async function fetchMainScript(mainScriptURL) {
 
   // Access global functions. Also gains direct access to the controllers?
   const globalFuncRegex = /\w{1,3}=\({gameOptions:.*?startQuiz:(\w).*?}\)=>{/,
-    globalFuncLetter = mainScript.match(globalFuncRegex)[1]
+    globalFuncLetter = mainScript.match(globalFuncRegex)[1],
     globalFuncMatch = mainScript.match(globalFuncRegex)[0];
   mainScript = mainScript.replace(
     globalFuncRegex,
@@ -252,7 +252,7 @@ const kantibotProgramCode = () => {
   // create watermark
   const UITemplate = document.createElement("template");
   UITemplate.innerHTML = `<div id="antibotwtr">
-    <p>v3.1.7 ©theusaf</p>
+    <p>v3.1.8 ©theusaf</p>
     <p id="antibot-killcount">0</p>
     <details>
       <summary>config</summary>
