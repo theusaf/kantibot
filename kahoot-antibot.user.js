@@ -155,6 +155,13 @@ async function fetchMainScript(mainScriptURL) {
     }
     return ${coreDataLetter}.game.core;
   })()`);
+  // Access game settings (somehow removed from the core data...)
+  const gameSettingsRegex = /getGameOptions\(\){/;
+    // gameSettingsLetter = mainScript.match(gameSettingsRegex)[0].match(/[a-z](?=\.payload)/)[0];
+  mainScript = mainScript.replace(gameSettingsRegex, `getGameOptions() {
+    if (typeof windw !== "undefined") {
+      windw.antibotData.kahootInternals.gameOptions = this;
+    }`);
   // Access two factor stuff
   const twoFactorRegex = /(const [$\w]{1,2}=)7/;
   mainScript = mainScript.replace(
@@ -252,7 +259,7 @@ const kantibotProgramCode = () => {
   // create watermark
   const UITemplate = document.createElement("template");
   UITemplate.innerHTML = `<div id="antibotwtr">
-    <p>v3.1.8 ©theusaf</p>
+    <p>v3.1.9 ©theusaf</p>
     <p id="antibot-killcount">0</p>
     <details>
       <summary>config</summary>
@@ -604,6 +611,18 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
     return false;
   }
 
+  function getKahootSetting(id) {
+    try {
+      return antibotData.kahootInternals.kahootCore.game.core.gameSettings.gameOptions[id];
+    } catch (e) {
+      try {
+        return antibotData.kahootInternals.gameOptions.getGameOptions().optionsState[id].on
+      } catch (e) {
+        return false;
+      }
+    }
+  }
+
   function getSetting(id, def) {
     if (typeof antibotData.settings[id] !== "undefined") {return antibotData.settings[id];}
     const elem = document.getElementById(`antibot.config.${id}`);
@@ -750,7 +769,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
           (data?.data?.id === 10 &&
             data.data.content === "{}")) {
           antibotData.runtimeData.lobbyLoadTime = 0;
-          const shouldResetData = antibotData.kahootInternals.kahootCore.game.core.gameSettings.gameOptions.requireRejoin;
+          const shouldResetData = getKahootSetting("requireRejoin");
           if (shouldResetData) {
             Object.assign(antibotData.runtimeData, {
               controllerData: {},
@@ -1038,7 +1057,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
       function lobbyAutoStartCheck(socket, data) {
         if(!isEventJoinEvent(data)) {return;}
         if (antibotData.kahootInternals.kahootCore.game.navigation.page === "lobby" &&
-          antibotData.kahootInternals.kahootCore.game.core.gameSettings.gameOptions.automaticallyProgressGame &&
+          getKahootSetting("automaticallyProgressGame") &&
           getSetting("start_lock", 0) !== 0) {
           if (antibotData.runtimeData.lobbyLoadTime === 0) {
             antibotData.runtimeData.lobbyLoadTime = Date.now();
@@ -1102,7 +1121,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
   }
 
   function isUsingNamerator() {
-    return antibotData.kahootInternals.kahootCore.game.core.gameSettings.gameOptions.namerator;
+    return getKahootSetting("namerator");
   }
 
   function getCurrentQuestionIndex() {
@@ -1167,7 +1186,8 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         kahootAlert,
         getSetting,
         setSetting,
-        patchLobbyView
+        patchLobbyView,
+        getKahootSetting
       },
       settings: {},
       runtimeData: {
