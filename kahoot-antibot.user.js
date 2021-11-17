@@ -135,7 +135,7 @@ async function fetchMainScript(mainScriptURL) {
     globalFuncMatch = mainScript.match(globalFuncRegex)[0];
   mainScript = mainScript.replace(
     globalFuncRegex,
-    `${globalFuncMatch}windw.antibotData.globalFuncs = {startQuiz:${globalFuncLetter}};`);
+    `${globalFuncMatch}windw.antibotData.kahootInternals.globalFuncs = {startQuiz:${globalFuncLetter}};`);
   // Access the fetched quiz information. Allows the quiz to be modified when the quiz is fetched!
   // Note to future maintainer: if code switches back to using a function(){} rather than arrow function, see v3.1.5
   const fetchedQuizInformationRegex = /RETRIEVE_KAHOOT_ERROR",.*?=>Object\([$\w]{1,2}\.[a-z]\)\([$\w\d]{1,2},{response:[a-z]}\)/gm,
