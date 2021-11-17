@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.1.9
+// @version        3.2.0
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -46,6 +46,7 @@ if(window.localStorage.kahootThemeScript) {console.log("[ANTIBOT] - Detected Kon
 
 document.write("<p id=\"antibot-loading-notice\">[ANTIBOT] - Patching Kahoot. Please wait.</p><p>If this screen stays blank for a long time, report an issue in <a href=\"https://discord.gg/pPdvXU6\">Discord</a>, <a href=\"https://github.com/theusaf/kantibot\">GitHub</a>, or <a href=\"https://greasyfork.org/en/scripts/374093-kantibot\">Greasyfork</a>.</p>");
 window.antibotAdditionalScripts = window.antibotAdditionalScripts || [];
+window.antibotAdditionalReplacements = window.antibotAdditionalReplacements || [];
 window.kantibotEnabled = true;
 
 /**
@@ -175,6 +176,11 @@ async function fetchMainScript(mainScriptURL) {
         return 7;
       }
     })()`);
+
+  // other replacements
+  for (const func of window.antibotAdditionalReplacements) {
+    mainScript = func(mainScript);
+  }
   return mainScript;
 }
 
@@ -259,7 +265,7 @@ const kantibotProgramCode = () => {
   // create watermark
   const UITemplate = document.createElement("template");
   UITemplate.innerHTML = `<div id="antibotwtr">
-    <p>v3.1.9 ©theusaf</p>
+    <p>v3.2.0 ©theusaf</p>
     <p id="antibot-killcount">0</p>
     <details>
       <summary>config</summary>
