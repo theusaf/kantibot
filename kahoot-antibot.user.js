@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.1.8
+// @version        3.1.9
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -99,7 +99,7 @@ async function fetchMainPage() {
 
 async function fetchVendorsScript(vendorsScriptURL) {
   const vendorsScriptRequest = await makeHttpRequest(vendorsScriptURL),
-    patchedScriptRegex = /\.onMessage=function\(\w,\w\)\{/mg,
+    patchedScriptRegex = /\.onMessage=function\([$\w],[$\w]\)\{/mg,
     vendorsScriptLetter1 = vendorsScriptRequest.response.match(patchedScriptRegex)[0].match(/\w(?=,)/g)[0],
     vendorsScriptLetter2 = vendorsScriptRequest.response.match(patchedScriptRegex)[0].match(/\w(?=\))/g)[0],
     patchedVendorsScript = vendorsScriptRequest.response
@@ -123,14 +123,14 @@ async function fetchMainScript(mainScriptURL) {
     })()`
   );
   // Access the "NoStreakPoints", allowing it to be enabled
-  const noStreakPointsRegex = /(\w{1,2}\.)?\w{1,2}\.NoStreakPoints(?=[^=])/gm;
+  const noStreakPointsRegex = /([$\w]{1,2}\.)?[$\w]{1,2}\.NoStreakPoints(?=[^=])/gm;
   mainScript = mainScript.replace(
     noStreakPointsRegex,
     "windw.antibotData.settings.streakBonus ? 1 : 2"
   ); // yes = 1, no = 2
 
   // Access global functions. Also gains direct access to the controllers?
-  const globalFuncRegex = /\w{1,3}=\({gameOptions:.*?startQuiz:(\w).*?}\)=>{/,
+  const globalFuncRegex = /[$\w]{1,3}=\({gameOptions:.*?startQuiz:([$\w]).*?}\)=>{/,
     globalFuncLetter = mainScript.match(globalFuncRegex)[1],
     globalFuncMatch = mainScript.match(globalFuncRegex)[0];
   mainScript = mainScript.replace(
@@ -138,7 +138,7 @@ async function fetchMainScript(mainScriptURL) {
     `${globalFuncMatch}windw.antibotData.globalFuncs = {startQuiz:${globalFuncLetter}};`);
   // Access the fetched quiz information. Allows the quiz to be modified when the quiz is fetched!
   // Note to future maintainer: if code switches back to using a function(){} rather than arrow function, see v3.1.5
-  const fetchedQuizInformationRegex = /RETRIEVE_KAHOOT_ERROR",.*?=>Object\([\w$]{1,2}\.[a-z]\)\([\w\d]{1,2},{response:[a-z]}\)/gm,
+  const fetchedQuizInformationRegex = /RETRIEVE_KAHOOT_ERROR",.*?=>Object\([$\w]{1,2}\.[a-z]\)\([$\w\d]{1,2},{response:[a-z]}\)/gm,
     fetchedQuizInformationLetter = mainScript.match(fetchedQuizInformationRegex)[0].match(/response:[a-z]/g)[0].split(":")[1],
     fetchedQuizInformationCode = mainScript.match(fetchedQuizInformationRegex)[0];
   mainScript = mainScript.replace(fetchedQuizInformationRegex,`RETRIEVE_KAHOOT_ERROR",${fetchedQuizInformationCode.split("RETRIEVE_KAHOOT_ERROR\",")[1].split("response:")[0]}response:(()=>{
@@ -156,7 +156,7 @@ async function fetchMainScript(mainScriptURL) {
     return ${coreDataLetter}.game.core;
   })()`);
   // Access two factor stuff
-  const twoFactorRegex = /(const \w{1,2}=)7/;
+  const twoFactorRegex = /(const [$\w]{1,2}=)7/;
   mainScript = mainScript.replace(
     twoFactorRegex,
     `${mainScript.match(twoFactorRegex)[1]}(()=>{
