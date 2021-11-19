@@ -124,13 +124,6 @@ async function fetchMainScript(mainScriptURL) {
     })()`
   );
 
-  // Access the "NoStreakPoints", allowing it to be enabled
-  // const noStreakPointsRegex = /([$\w]{1,2}\.)?[$\w]{1,2}\.NoStreakPoints(?=[^=])/gm;
-  // mainScript = mainScript.replace(
-  //   noStreakPointsRegex,
-  //   "windw.antibotData.settings.streakBonus ? 1 : 2"
-  // ); // yes = 1, no = 2
-
   // Access global functions. Also gains direct access to the controllers?
   const globalFuncRegex = /[$\w]{1,3}=\({gameOptions:.*?startQuiz:([$\w]).*?}\)=>{/,
     globalFuncLetter = mainScript.match(globalFuncRegex)[1],
@@ -289,7 +282,6 @@ ${createSetting("Name Match Percent", "number", "percent", "The percent to check
 ${createSetting("Word Blacklist", "textarea", "wordblock", "Block names containing any from a list of words. Separate by new line.")}
 ${createSetting("Auto-Lock Threshold", "number", "ddos", "Specify the number of bots/minute to lock the game. Set to 0 to disable", 0, input => input.setAttribute("step", 1))}
 ${createSetting("Lobby Auto-Start Time", "number", "start_lock", "Specify the maximum amount of time for a lobby to stay open after a player joins. Set to 0 to disable", 0, input => input.setAttribute("step", 1))}
-<!-- REMOVED: Completely removed from Kahoot! createSetting("Enable Streak Bonus Points", "checkbox", "streakBonus", "Enable answer streak bonus points (a feature removed by Kahoot!)" -->
 ${createSetting("Show Antibot Timers", "checkbox", "counters", "Display Antibot Counters/Timers (Lobby Auto-Start, Auto-Lock, etc)")}
 ${createSetting("Counter Kahoot! Cheats", "checkbox", "counterCheats", "Adds an additional 5 second question at the end to counter cheats. Changing this mid-game may break the game or will not apply until refresh", null, undefined, () => {
     windw.antibotData.methods.kahootAlert("Changes may only take effect upon reload.");
