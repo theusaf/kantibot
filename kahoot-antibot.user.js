@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.2.1
+// @version        3.2.2
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -158,7 +158,7 @@ async function fetchMainScript(mainScriptURL) {
       windw.antibotData.kahootInternals.gameOptions = this;
     }`);
   // Access two factor stuff
-  const twoFactorRegex = /(const [$\w]{1,2}=)7/;
+  const twoFactorRegex = /(const [$\w]+=)7/;
   mainScript = mainScript.replace(
     twoFactorRegex,
     `${mainScript.match(twoFactorRegex)[1]}(()=>{
@@ -259,7 +259,7 @@ const kantibotProgramCode = () => {
   // create watermark
   const UITemplate = document.createElement("template");
   UITemplate.innerHTML = `<div id="antibotwtr">
-    <p>v3.2.1 ©theusaf</p>
+    <p>v3.2.2 ©theusaf</p>
     <p id="antibot-killcount">0</p>
     <details>
       <summary>config</summary>
