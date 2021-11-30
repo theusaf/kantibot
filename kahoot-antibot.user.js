@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.2.2
+// @version        3.2.3
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -125,7 +125,7 @@ async function fetchMainScript(mainScriptURL) {
   );
 
   // Access global functions. Also gains direct access to the controllers?
-  const globalFuncRegex = /[$\w]{1,3}=\({gameOptions:.*?startQuiz:([$\w]).*?}\)=>{/,
+  const globalFuncRegex = /\({[^"`]*?startQuiz:(\w+).*?}\)=>{(?=var)/,
     globalFuncLetter = mainScript.match(globalFuncRegex)[1],
     globalFuncMatch = mainScript.match(globalFuncRegex)[0];
   mainScript = mainScript.replace(
@@ -259,7 +259,7 @@ const kantibotProgramCode = () => {
   // create watermark
   const UITemplate = document.createElement("template");
   UITemplate.innerHTML = `<div id="antibotwtr">
-    <p>v3.2.2 ©theusaf</p>
+    <p>v3.2.3 ©theusaf</p>
     <p id="antibot-killcount">0</p>
     <details>
       <summary>config</summary>
