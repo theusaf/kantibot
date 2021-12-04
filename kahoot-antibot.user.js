@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.2.3
+// @version        3.2.4
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -259,7 +259,7 @@ const kantibotProgramCode = () => {
   // create watermark
   const UITemplate = document.createElement("template");
   UITemplate.innerHTML = `<div id="antibotwtr">
-    <p>v3.2.3 ©theusaf</p>
+    <p>v3.2.4 ©theusaf</p>
     <p id="antibot-killcount">0</p>
     <details>
       <summary>config</summary>
@@ -381,6 +381,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
       font-weight: 700;
       color: white;
       pointer-events: none;
+      z-index: 1;
     }
     #antibot-counters div {
       background: rgba(0,0,0,0.5);
@@ -616,6 +617,7 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
     } catch (e) {
       try {
         return antibotData.kahootInternals.gameOptions.getGameOptions().optionsState[id].on
+          ?? antibotData.kahootInternals.gameOptions.getGameOptions().optionsState[id];
       } catch (e) {
         return false;
       }
