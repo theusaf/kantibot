@@ -9,7 +9,7 @@
 // @description:es eliminar todos los bots de un Kahoot! juego.
 // @description:ja Kahootゲームから全てのボットを出して。
 // @author         theusaf
-// @copyright      2018-2021, Daniel Lau (https://github.com/theusaf/kahoot-antibot)
+// @copyright      2018-2022, Daniel Lau (https://github.com/theusaf/kahoot-antibot)
 // @supportURL     https://discord.gg/pPdvXU6
 // @match          *://play.kahoot.it/*
 // @exclude        *://play.kahoot.it/v2/assets/*
@@ -22,7 +22,7 @@
 
 MIT LICENSE TEXT
 
-Copyright 2018-2021 theusaf
+Copyright 2018-2022 theusaf
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
