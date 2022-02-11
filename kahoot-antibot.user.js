@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.2.5
+// @version        3.2.6
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -133,8 +133,8 @@ async function fetchMainScript(mainScriptURL) {
     `${globalFuncMatch}windw.antibotData.kahootInternals.globalFuncs = {startQuiz:${globalFuncLetter}};`);
   // Access the fetched quiz information. Allows the quiz to be modified when the quiz is fetched!
   // Note to future maintainer: if code switches back to using a function(){} rather than arrow function, see v3.1.5
-  const fetchedQuizInformationRegex = /RETRIEVE_KAHOOT_ERROR",.*?=>Object\([$\w]{1,2}\.[a-z]\)\([$\w\d]{1,2},{response:[a-z]}\)/gm,
-    fetchedQuizInformationLetter = mainScript.match(fetchedQuizInformationRegex)[0].match(/response:[a-z]/g)[0].split(":")[1],
+  const fetchedQuizInformationRegex = /RETRIEVE_KAHOOT_ERROR",.*?=>Object\([$\w]{1,2}\.[a-z]\)\([$\w\d]{1,2},{response:\w{1,2}}\)/gm,
+    fetchedQuizInformationLetter = mainScript.match(fetchedQuizInformationRegex)[0].match(/response:\w{1,2}/g)[0].split(":")[1],
     fetchedQuizInformationCode = mainScript.match(fetchedQuizInformationRegex)[0];
   mainScript = mainScript.replace(fetchedQuizInformationRegex,`RETRIEVE_KAHOOT_ERROR",${fetchedQuizInformationCode.split("RETRIEVE_KAHOOT_ERROR\",")[1].split("response:")[0]}response:(()=>{
     windw.antibotData.kahootInternals.globalQuizData = ${fetchedQuizInformationLetter};
@@ -259,7 +259,7 @@ const kantibotProgramCode = () => {
   // create watermark
   const UITemplate = document.createElement("template");
   UITemplate.innerHTML = `<div id="antibotwtr">
-    <p>v3.2.5 ©theusaf</p>
+    <p>v3.2.6 ©theusaf</p>
     <p id="antibot-killcount">0</p>
     <details>
       <summary>config</summary>
@@ -289,6 +289,7 @@ ${createSetting("Counter Kahoot! Cheats", "checkbox", "counterCheats", "Adds an 
 ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second poll at the start of the quiz. If players don't answer it correctly, they get banned. Changing this mid-game may break the game or will not apply until refresh", null, undefined, () => {
     windw.antibotData.methods.kahootAlert("Changes may only take effect upon reload.");
   })}
+${createSetting("Reduce False-Positivess", "checkbox", "reduceFalsePositives", "Makes some checks less strict to attempt to reduce the number of false-positives banned.")}
       </div>
     </details>
   </div>
@@ -876,6 +877,14 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
           }
         }
       },
+      function blacklistCheck(socket, data) {
+        if(!isEventJoinEvent(data)) {return;}
+        const player = data.data;
+        if(blacklist(player.name)) {
+          kickController(player.cid, "Name is blacklisted", player);
+          throw new EvilBotJoinedError();
+        }
+      },
       function addNameIfNotBanned(socket, data) {
         if(!isEventJoinEvent(data)) {return;}
         const player = data.data;
@@ -891,6 +900,13 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         const player = data.data,
           pattern = getPatterns(player.name),
           patternData = antibotData.runtimeData.controllerNamePatternData;
+        if (getSetting("reduceFalsePositives")) {
+          if (pattern[0] === "L") {
+            if (!isNaN(pattern.slice(1))) {
+              return;
+            }
+          }
+        }
         if (typeof patternData[pattern] === "undefined") {patternData[pattern] = new Set();}
         patternData[pattern].add({
           playerData: player,
@@ -920,14 +936,6 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
           throw new EvilBotJoinedError();
         }
       },
-      function blacklistCheck(socket, data) {
-        if(!isEventJoinEvent(data)) {return;}
-        const player = data.data;
-        if(blacklist(player.name)) {
-          kickController(player.cid, "Name is blacklisted", player);
-          throw new EvilBotJoinedError();
-        }
-      },
       function randomNameCheck(socket, data) {
         if(!isEventJoinEvent(data) || !getSetting("looksRandom")) {return;}
         const player = data.data,
@@ -950,22 +958,31 @@ ${createSetting("Enable CAPTCHA", "checkbox", "enableCAPTCHA", "Adds a 30 second
         const player = data.data,
           englishWords = windw.aSetOfEnglishWords ?? new Set(),
           names = windw.randomName,
-          split = player.name.split(/\s|(?=[A-Z])/g),
+          split = player.name.split(/\s|(?=[A-Z0-9])/g),
           foundNames = Array.from(player.name.match(/([A-Z][a-z]+(?=[A-Z]|[^a-zA-Z]|$))/g) ?? []),
           detectionData = antibotData.runtimeData.englishWordDetectionData;
         if (player.name.replace(/[ᗩᗷᑕᗪEᖴGᕼIᒍKᒪᗰᑎOᑭᑫᖇᔕTᑌᐯᗯ᙭Yᘔ]/g, "").length / player.name.length < 0.5) {
           kickController(player.cid, "Common bot bypass attempt", player);
           throw new EvilBotJoinedError();
         }
-        const findWord = split.find((word) => englishWords.has(word)),
-          findName = foundNames.find((name) => {
+        let findWord, findName;
+        if (getSetting("reduceFalsePositives") && split.length > 1) {
+          findWord = split.every((word) => englishWords.has(word)) || !isNaN(word);
+          findName = split.every((word) => {
+            if (!names) {return;}
+            const name = capitalize(word);
+            return names.first.has(name) || names.middle.has(name) || names.last.has(name) || !isNaN(word);
+          });
+        } else {
+          findWord = split.find((word) => englishWords.has(word));
+          findName = foundNames.find((word) => {
             if(!names) {return;}
-            name = capitalize(name);
+            const name = capitalize(word);
             return names.first.has(name) || names.middle.has(name) || names.last.has(name);
-          }),
-          TOTAL_SPAM_AMOUNT_THRESHOLD = 20,
+          });
+        }
+        const TOTAL_SPAM_AMOUNT_THRESHOLD = 20,
           TIME_TO_FORGET = 4e3;
-        // TODO: This may cause many false-positives. Perhaps, check if all 'splits' are english words / names / numbers?
         if (findWord || findName) {
           detectionData.add({
             playerData: player,
