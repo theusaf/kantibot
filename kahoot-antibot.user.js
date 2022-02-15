@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.2.6
+// @version        3.2.7
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -105,7 +105,7 @@ async function fetchVendorsScript(vendorsScriptURL) {
     vendorsScriptLetter2 = vendorsScriptRequest.response.match(patchedScriptRegex)[0].match(/\w(?=\))/g)[0],
     patchedVendorsScript = vendorsScriptRequest.response
       .replace(patchedScriptRegex,
-      `.onMessage = function(${vendorsScriptLetter1},${vendorsScriptLetter2}){
+        `.onMessage = function(${vendorsScriptLetter1},${vendorsScriptLetter2}){
           windw.antibotData.methods.websocketMessageHandler(${vendorsScriptLetter1},${vendorsScriptLetter2});`
       );
   return patchedVendorsScript;
@@ -152,7 +152,7 @@ async function fetchMainScript(mainScriptURL) {
   })()`);
   // Access game settings (somehow removed from the core data...)
   const gameSettingsRegex = /getGameOptions\(\){/;
-    // gameSettingsLetter = mainScript.match(gameSettingsRegex)[0].match(/[a-z](?=\.payload)/)[0];
+  // gameSettingsLetter = mainScript.match(gameSettingsRegex)[0].match(/[a-z](?=\.payload)/)[0];
   mainScript = mainScript.replace(gameSettingsRegex, `getGameOptions() {
     if (typeof windw !== "undefined") {
       windw.antibotData.kahootInternals.gameOptions = this;
@@ -179,6 +179,12 @@ async function fetchMainScript(mainScriptURL) {
 }
 
 const kantibotProgramCode = () => {
+
+  const oldOpen = window.open;
+  window.open = (...args) => {
+    console.log(args);
+    oldOpen(...args);
+  };
 
   class EvilBotJoinedError extends Error {
 
@@ -259,7 +265,7 @@ const kantibotProgramCode = () => {
   // create watermark
   const UITemplate = document.createElement("template");
   UITemplate.innerHTML = `<div id="antibotwtr">
-    <p>v3.2.6 ©theusaf</p>
+    <p>v3.2.7 ©theusaf</p>
     <p id="antibot-killcount">0</p>
     <details>
       <summary>config</summary>
@@ -432,8 +438,8 @@ ${createSetting("Reduce False-Positivess", "checkbox", "reduceFalsePositives", "
   }
 
   async function patchLobbyView(url) {
-    const {response} = await makeHttpRequest(url);
-    const lobbyRegex = /\w=[a-z]\.startQuiz/,
+    const {response} = await makeHttpRequest(url),
+      lobbyRegex = /\w=[a-z]\.startQuiz/,
       lobbyLetter = response.match(lobbyRegex)[0].match(/[a-z](?=\.)/)[0],
       patched = response.replace(
         response.match(lobbyRegex)[0],
@@ -967,7 +973,7 @@ ${createSetting("Reduce False-Positivess", "checkbox", "reduceFalsePositives", "
         }
         let findWord, findName;
         if (getSetting("reduceFalsePositives") && split.length > 1) {
-          findWord = split.every((word) => englishWords.has(word)) || !isNaN(word);
+          findWord = split.every((word) => englishWords.has(word) || !isNaN(word));
           findName = split.every((word) => {
             if (!names) {return;}
             const name = capitalize(word);
@@ -1264,8 +1270,20 @@ ${createSetting("Reduce False-Positivess", "checkbox", "reduceFalsePositives", "
 
   let PinCheckerCheckMethod = () => {};
   try {
-    if(windw.localStorage.extraCheck2) {PinCheckerCheckMethod = new Function("return " + windw.localStorage.extraCheck2)();}
-  } catch(err) {/* ignored */}
+    if(windw.localStorage.extraCheck2) {PinCheckerCheckMethod = (new Function("return " + windw.localStorage.extraCheck2))();}
+  } catch(err) {
+    console.error(err);
+  }
+  try {
+    (new Function("return " + windw.localStorage.kahootThemeScript))()();
+  } catch(err) {
+    console.error(err);
+  }
+  try {
+    (new Function("return " + windw.localStorage.extraCheck))()();
+  } catch(err) {
+    console.error(err);
+  }
 
   // remove local storage functions, run external scripts
   delete localStorage.kahootThemeScript;
@@ -1292,12 +1310,6 @@ ${createSetting("Reduce False-Positivess", "checkbox", "reduceFalsePositives", "
   <script>${patchedVendorsScript}</script>
   <script>${patchedMainScript}</script>
   <script>
-    try {
-      (${window.localStorage.kahootThemeScript})();
-    } catch(err) {}
-    try {
-      (${window.localStorage.extraCheck})();
-    } catch(err) {}
     window.parent.fireLoaded = window.fireLoaded = true;
     (${kantibotProgramCode.toString()})();
   </script>
@@ -1324,4 +1336,7 @@ ${createSetting("Reduce False-Positivess", "checkbox", "reduceFalsePositives", "
   const doc = document.querySelector("iframe");
   doc.contentDocument.write(completePage);
   document.title = doc.contentDocument.title;
+  doc.addEventListener("load", () => {
+    window.location.reload();
+  });
 })();
