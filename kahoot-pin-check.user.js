@@ -1,7 +1,8 @@
 // ==UserScript==
 // @name         KPin Checker
 // @namespace    http://tampermonkey.net/
-// @version      1.3.4
+// @homepage     https://theusaf.org
+// @version      1.3.5
 // @description  Check the pin of a kahoot game.
 // @author       theusaf
 // @match        *://play.kahoot.it/*
@@ -22,48 +23,68 @@ console.log("[PIN-CHECKER] - Looking for AntiBot");
  */
 window.PinCheckerMain = function(){
 
-  const windw = window.parent,
+  function listenForTeamMode() {
+    document.querySelector("[data-functional-selector=team-mode-card]").addEventListener("click",()=>{
+      console.log("[PIN-CHECKER] - Entered team mode card.");
+      setTimeout(() => {
+        document.querySelector("[data-functional-selector=launch-page] > div:nth-of-type(4) button").addEventListener("click", () => {
+          console.log("[PIN-CHECKER] - Listening again");
+          setTimeout(() => listenForTeamMode(), 250);
+        });
+        document.querySelector("[data-functional-selector=start-team-mode-button]").addEventListener("click",()=>{
+          console.log("[PIN-CHECKER] - Using team mode.");
+          windw.localStorage.PinCheckerMode = "team";
+        });
+      }, 250);
+    });
+  }
 
-    loader = setInterval(()=>{
-      if(!document.querySelector("[data-functional-selector=launch-team-mode-button]")){
-        return;
-      }
-      console.log("[PIN-CHECKER] - Ready!");
-      clearInterval(loader);
-      document.querySelector("[data-functional-selector=launch-team-mode-button]").addEventListener("click",()=>{
-        console.log("[PIN-CHECKER] - Using Team Mode.");
-        windw.localStorage.PinCheckerMode = "team";
-      });
+  const windw = window.parent;
+  window.windw = windw;
 
-      if (document.querySelector("#antibotwtr")) {
-        const p = document.createElement("p");
-        p.innerHTML = "[KPC] v1.3.4";
-        document.querySelector("#antibotwtr").append(p);
-      }
+  const loader = setInterval(()=>{
+    if(!document.querySelector("[data-functional-selector=team-mode-card]")){
+      return;
+    }
+    console.log("[PIN-CHECKER] - Ready!");
+    clearInterval(loader);
+    listenForTeamMode();
 
-      if(windw.localStorage.PinCheckerAutoRelogin == "true"){
-        const waiter = setInterval(()=>{
-          let a = document.querySelector("[data-functional-selector=launch-button]");
-          if(windw.localStorage.PinCheckerMode == "team"){
-            a = document.querySelector("[data-functional-selector=launch-team-mode-button]");
+    if (document.querySelector("#antibotwtr")) {
+      const p = document.createElement("p");
+      p.innerHTML = "[KPC] v1.3.5";
+      document.querySelector("#antibotwtr").append(p);
+    }
+
+    if(windw.localStorage.PinCheckerAutoRelogin === "true"){
+      const waiter = setInterval(()=>{
+        let a = document.querySelector("[data-functional-selector=classic-mode-card]");
+        if(windw.localStorage.PinCheckerMode === "team"){
+          a = document.querySelector("[data-functional-selector=team-mode-card]");
+        }
+        if(a && !a.disabled){
+          const guestButton = document.querySelector("[data-functional-selector=play-as-guest-button]");
+          if (guestButton) {guestButton.click();}
+          a.click();
+          if (windw.localStorage.PinCheckerMode === "team") {
+            setTimeout(() => {
+              document.querySelector("[data-functional-selector=start-team-mode-button]").click();
+            }, 250);
           }
-          if(a && !a.disabled){
-            const guestButton = document.querySelector("[data-functional-selector=play-as-guest-button]");
-            if (guestButton) {guestButton.click();}
-            a.click();
-            windw.localStorage.PinCheckerAutoRelogin = false;
-            if(+windw.localStorage.PinCheckerLastQuizIndex <= (windw.specialData.kahootCore || windw.antibotData.kahootInternals.kahootCore).game.core.playList.length){
-              (windw.specialData.kahootCore || windw.antibotData.kahootInternals.kahootCore).game.navigation.currentQuizIndex = +windw.localStorage.PinCheckerLastQuizIndex || 0;
-            }
-            clearInterval(waiter);
-            delete windw.localStorage.PinCheckerMode;
-            delete windw.localStorage.PinCheckerLastQuizIndex;
+          windw.localStorage.PinCheckerAutoRelogin = false;
+          if(+windw.localStorage.PinCheckerLastQuizIndex <= (windw.specialData.kahootCore || windw.antibotData.kahootInternals.kahootCore).game.core.playList.length){
+            (windw.specialData.kahootCore || windw.antibotData.kahootInternals.kahootCore).game.navigation.currentQuizIndex = +windw.localStorage.PinCheckerLastQuizIndex || 0;
           }
-        },500);
-      }else{
-        delete windw.localStorage.PinCheckerMode;
-      }
-    },500);
+          clearInterval(waiter);
+          delete windw.localStorage.PinCheckerMode;
+          delete windw.localStorage.PinCheckerLastQuizIndex;
+          // check for start button
+        }
+      },500);
+    }else{
+      delete windw.localStorage.PinCheckerMode;
+    }
+  },500);
 
   windw.PinCheckerNameList = [];
   windw.PinCheckerPin = null;
@@ -460,16 +481,19 @@ window.PinCheckerInjector = function(socket,message){
 };
 
 if(!window.kantibotEnabled && !window.page){
-  document.write(`<p id="pin-checker-loading-notice">[PIN-CHECKER] - Patching Kahoot. Please wait.</p><p>If this screen stays blank for a long time, report an issue in <a href="https://discord.gg/pPdvXU6">Discord</a>, <a href="https://github.com/theusaf/kantibot">GitHub</a>, or <a href="https://greasyfork.org/en/scripts/392154-kpin-checker">Greasyfork</a>.</p>`);
+  document.write("<p id=\"pin-checker-loading-notice\">[PIN-CHECKER] - Patching Kahoot. Please wait.</p><p>If this screen stays blank for a long time, report an issue in <a href=\"https://discord.gg/pPdvXU6\">Discord</a>, <a href=\"https://github.com/theusaf/kantibot\">GitHub</a>, or <a href=\"https://greasyfork.org/en/scripts/392154-kpin-checker\">Greasyfork</a>.</p>");
   const page = new XMLHttpRequest();
   page.open("GET",location.href);
   page.send();
   page.onload = function(){
-    const scriptURL = page.response.match(/><\/script><script .*?vendors.*?><\/script>/mg)[0].substr(9).split("src=\"")[1].split("\"")[0],
-      script2 = page.response.match(/\/v2\/assets\/js\/main.*?(?=")/mg)[0];
-    let originalPage = page.response.replace(/><\/script><script .*?vendors.*?><\/script>/mg,"></script>");
-    originalPage = originalPage.replace(/<\/script><script src="\/v2\/assets\/js\/main.*?(?=")/mg,"</script><script src=\"data:text/javascript,");
-    const script = new XMLHttpRequest();
+    const scriptURL = page.response
+        .match(/><\/script><script .*?vendors.*?><\/script>/mg)[0]
+        .substr(9).split("src=\"")[1].split("\"")[0],
+      script2 = page.response.match(/\/v2\/assets\/js\/main.*?(?=")/mg)[0],
+      originalPage = page.response
+        .replace(/><\/script><script .*?vendors.*?><\/script>/mg, "></script>")
+        .replace(/(\/\/assets-cdn.kahoot.it\/player)?\/v2\/assets\/js\/main.*?(?=")/mg,"data:text/javascript,"),
+      script = new XMLHttpRequest();
     script.open("GET",scriptURL);
     script.send();
     script.onload = ()=>{
@@ -486,13 +510,22 @@ if(!window.kantibotEnabled && !window.page){
         const cr = /[a-z]\.game\.core/m,
           letter6 = sc.match(cr)[0].match(/[a-z](?=\.game)/)[0];
         sc = sc.replace(cr,`(()=>{
-	        if(typeof windw !== "undefined"){
+	        if (typeof windw !== "undefined") {
 	          windw.specialData.kahootCore = ${letter6};
 	        }
 	        return ${letter6}.game.core;
 	      })()`);
         let changed = originalPage.split("</body>");
-        changed = `${changed[0]}<script>${patchedScript}</script><script>${sc}</script><script>window.globalMessageListener=${window.PinCheckerInjector.toString()};(${window.PinCheckerMain.toString()})();try{(${window.localStorage.kahootThemeScript})();}catch(err){}window.fireLoaded = window.parent.fireLoaded = true;</script></body>${changed[1]}`;
+        changed = `${changed[0]}
+        <script>${patchedScript}</script>
+        <script>${sc}</script>
+        <script>
+          window.globalMessageListener=${window.PinCheckerInjector.toString()};
+          (${window.PinCheckerMain.toString()})();
+          try{(${window.localStorage.kahootThemeScript})();}catch(err){}
+          window.fireLoaded = window.parent.fireLoaded = true;
+        </script>
+        </body>${changed[1]}`;
         console.log("[PIN-CHECKER] - loaded");
         document.open();
         document.write("<style>body{margin:0;}iframe{border:0;width:100%;height:100%;}</style><iframe src=\"about:blank\"></iframe>");
@@ -501,6 +534,9 @@ if(!window.kantibotEnabled && !window.page){
         const doc = document.querySelector("iframe");
         doc.contentDocument.write(changed);
         document.title = doc.contentDocument.title;
+        doc.addEventListener("load", () => {
+          window.location.reload();
+        });
       };
     };
   };
