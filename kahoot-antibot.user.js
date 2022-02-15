@@ -180,12 +180,6 @@ async function fetchMainScript(mainScriptURL) {
 
 const kantibotProgramCode = () => {
 
-  const oldOpen = window.open;
-  window.open = (...args) => {
-    console.log(args);
-    oldOpen(...args);
-  };
-
   class EvilBotJoinedError extends Error {
 
     constructor() {
