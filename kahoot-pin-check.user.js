@@ -3,6 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @homepage     https://theusaf.org
 // @version      1.3.5
+// @license      MIT
 // @description  Check the pin of a kahoot game.
 // @author       theusaf
 // @match        *://play.kahoot.it/*
