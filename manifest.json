@@ -1,0 +1,41 @@
+{
+  "author": "theusaf",
+  "homepage_url": "https://theusaf.org/",
+  "name": "KAntibot",
+  "description": "Remove all bots from a kahoot game.",
+  "version": "1.0.0",
+  "version_name": "Ext 1.0.0 Antibot 3.2.7",
+  "manifest_version": 3,
+  "background": {
+    "scripts": [
+      "lib/browser-polyfill.min.js",
+      "src/background.js"
+    ]
+  },
+  "options_page": "options/index.html",
+  "action": {
+    "default_popup": "popup/index.html",
+    "default_icon": {
+      "16": "",
+      "32": "",
+      "48": "",
+      "128": ""
+    }
+  },
+  "icons": {
+    "default_icon": {
+      "16": "",
+      "32": "",
+      "48": "",
+      "128": ""
+    }
+  },
+  "permissions": [
+    "webRequestBlocking",
+    "webRequest"
+  ],
+  "host_permissions": [
+    "https://play.kahoot.it/*",
+    "https://assets-cdn.kahoot.it/player/*"
+  ]
+}

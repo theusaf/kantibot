@@ -1,0 +1,50 @@
+{
+    "env": {
+        "browser": true,
+        "es2020": true,
+        "node": true
+    },
+    "extends": "eslint:recommended",
+    "parserOptions": {
+        "ecmaVersion": 11,
+        "sourceType": "module"
+    },
+    "rules": {
+        "no-inner-declarations": ["off"],
+        "no-global-assign": ["off"],
+        "no-control-regex": ["off"],
+        "no-empty": ["warn"],
+        "indent": [
+            "error",
+            2,
+            {
+              "SwitchCase": 1
+            }
+        ],
+        "linebreak-style": [
+            "error",
+            "unix"
+        ],
+        "quotes": [
+            "error",
+            "double"
+        ],
+        "semi": [
+            "error",
+            "always"
+        ],
+        "no-unused-vars": ["warn"],
+        "no-var": ["error"],
+        "curly": ["error"],
+        "no-unneeded-ternary": ["error"],
+        "one-var": ["error",{
+          "separateRequires": false,
+          "var": "consecutive",
+          "let": "consecutive",
+          "const": "consecutive"
+        }],
+        "operator-assignment": ["error"],
+        "prefer-const": ["error"]
+    },
+    "root": true
+}
