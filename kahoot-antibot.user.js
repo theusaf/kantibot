@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.2.7
+// @version        3.2.8
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -142,8 +142,8 @@ async function fetchMainScript(mainScriptURL) {
     return ${fetchedQuizInformationLetter};
   })()})`);
   // Access the core data
-  const coreDataRegex = /[a-z]\.game\.core/m,
-    coreDataLetter = mainScript.match(coreDataRegex)[0].match(/[a-z](?=\.game)/)[0];
+  const coreDataRegex = /\w{1,2}\.game\.core/m,
+    coreDataLetter = mainScript.match(coreDataRegex)[0].match(/\w{1,2}(?=\.game)/)[0];
   mainScript = mainScript.replace(coreDataRegex,`(()=>{
     if(typeof windw !== "undefined"){
       windw.antibotData.kahootInternals.kahootCore = ${coreDataLetter};
@@ -151,6 +151,8 @@ async function fetchMainScript(mainScriptURL) {
     return ${coreDataLetter}.game.core;
   })()`);
   // Access game settings (somehow removed from the core data...)
+  // 3.2.8 --> added back to core data
+  // This code doesn't actually do anything, but is kept in case
   const gameSettingsRegex = /getGameOptions\(\){/;
   // gameSettingsLetter = mainScript.match(gameSettingsRegex)[0].match(/[a-z](?=\.payload)/)[0];
   mainScript = mainScript.replace(gameSettingsRegex, `getGameOptions() {
@@ -259,7 +261,7 @@ const kantibotProgramCode = () => {
   // create watermark
   const UITemplate = document.createElement("template");
   UITemplate.innerHTML = `<div id="antibotwtr">
-    <p>v3.2.7 ©theusaf</p>
+    <p>v3.2.8 ©theusaf</p>
     <p id="antibot-killcount">0</p>
     <details>
       <summary>config</summary>
@@ -620,7 +622,11 @@ ${createSetting("Reduce False-Positivess", "checkbox", "reduceFalsePositives", "
         return antibotData.kahootInternals.gameOptions.getGameOptions().optionsState[id].on
           ?? antibotData.kahootInternals.gameOptions.getGameOptions().optionsState[id];
       } catch (e) {
-        return false;
+        try {
+          return antibotData.kahootInternals.kahootCore.game.options.optionsState[id] ?? false;
+        } catch (e) {
+          return false;
+        }
       }
     }
   }
@@ -1266,17 +1272,20 @@ ${createSetting("Reduce False-Positivess", "checkbox", "reduceFalsePositives", "
   try {
     if(windw.localStorage.extraCheck2) {PinCheckerCheckMethod = (new Function("return " + windw.localStorage.extraCheck2))();}
   } catch(err) {
-    console.error(err);
+    console.warn("PIN-CHECKER Load ERR.\nThis is probably due to PIN-CHECKER not installed.\nThis warning can be ignored.");
+    console.warn(err);
   }
   try {
     (new Function("return " + windw.localStorage.kahootThemeScript))()();
   } catch(err) {
-    console.error(err);
+    console.warn("Kahoot Theme Load ERR.\nThis is probably due to KAHOOT-THEME not installed.\nThis warning can be ignored.");
+    console.warn(err);
   }
   try {
     (new Function("return " + windw.localStorage.extraCheck))()();
   } catch(err) {
-    console.error(err);
+    console.warn("PIN-CHECKER #2 Load ERR.\nThis is probably due to PIN-CHECKER not installed.\nThis warning can be ignored.");
+    console.warn(err);
   }
 
   // remove local storage functions, run external scripts
