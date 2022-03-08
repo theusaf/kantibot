@@ -2,7 +2,7 @@
 // @name         KPin Checker
 // @namespace    http://tampermonkey.net/
 // @homepage     https://theusaf.org
-// @version      1.3.5
+// @version      1.3.6
 // @license      MIT
 // @description  Check the pin of a kahoot game.
 // @author       theusaf
@@ -508,8 +508,8 @@ if(!window.kantibotEnabled && !window.page){
       mainScript.onload = ()=>{
         let sc = mainScript.response;
         // Access the core data
-        const cr = /[a-z]\.game\.core/m,
-          letter6 = sc.match(cr)[0].match(/[a-z](?=\.game)/)[0];
+        const cr = /\w{1,2}\.game\.core/m,
+          letter6 = sc.match(cr)[0].match(/\w{1,2}(?=\.game)/)[0];
         sc = sc.replace(cr,`(()=>{
 	        if (typeof windw !== "undefined") {
 	          windw.specialData.kahootCore = ${letter6};
