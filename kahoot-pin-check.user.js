@@ -2,7 +2,7 @@
 // @name         KPin Checker
 // @namespace    http://tampermonkey.net/
 // @homepage     https://theusaf.org
-// @version      1.3.6
+// @version      1.3.7
 // @license      MIT
 // @description  Check the pin of a kahoot game.
 // @author       theusaf
