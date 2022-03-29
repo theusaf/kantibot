@@ -44,7 +44,10 @@ if(window.fireLoaded || window.parent?.kantibotEnabled || window.parent?.fireLoa
 if(window.localStorage.extraCheck) {console.log("[ANTIBOT] - Detected PIN Checker");}
 if(window.localStorage.kahootThemeScript) {console.log("[ANTIBOT] - Detected KonoSuba Theme");}
 
-document.write("<p id=\"antibot-loading-notice\">[ANTIBOT] - Patching Kahoot. Please wait.</p><p>If this screen stays blank for a long time, report an issue in <a href=\"https://discord.gg/pPdvXU6\">Discord</a>, <a href=\"https://github.com/theusaf/kantibot\">GitHub</a>, or <a href=\"https://greasyfork.org/en/scripts/374093-kantibot\">Greasyfork</a>.</p>");
+document.write(`
+<p id="antibot-loading-notice">[ANTIBOT] - Patching Kahoot. Please wait.</p>
+<p>If this screen stays blank for a long time, report an issue in <a href="https://discord.gg/pPdvXU6">Discord</a>, <a href="https://github.com/theusaf/kantibot">GitHub</a>, or <a href="https://greasyfork.org/en/scripts/374093-kantibot">Greasyfork</a>.</p>
+`);
 window.antibotAdditionalScripts = window.antibotAdditionalScripts || [];
 window.antibotAdditionalReplacements = window.antibotAdditionalReplacements || [];
 window.kantibotEnabled = true;
@@ -105,7 +108,7 @@ async function fetchMainPage() {
 
 async function fetchVendorsScript(vendorsScriptURL) {
   const vendorsScriptRequest = await makeHttpRequest(vendorsScriptURL),
-    patchedScriptRegex = /\.onMessage=function\([$\w]+,[$\w]+\)\{/mg,
+    patchedScriptRegex = /\.onMessage=function\([$\w]+,[$\w]+\)\{/,
     [ vendorsScriptLetter1 ] = vendorsScriptRequest.response.match(patchedScriptRegex)[0].match(/[$\w]+(?=,)/g),
     [ vendorsScriptLetter2 ] = vendorsScriptRequest.response.match(patchedScriptRegex)[0].match(/[$\w]+(?=\))/g),
     patchedVendorsScript = vendorsScriptRequest.response
@@ -121,8 +124,8 @@ async function fetchMainScript(mainScriptURL, vendorsScriptURL) {
       patchedVendorsScript = await fetchVendorsScript(vendorsScriptURL);
   let mainScript = mainScriptRequest.response;
   // Access the currentQuestionTimer and change the question time
-  const currentQuestionTimerRegex = /currentQuestionTimer:[a-z]\.payload\.questionTime/gm,
-    [ currentQuestionTimerLetter ] = mainScript.match(currentQuestionTimerRegex)[0].match(/[a-z](?=\.payload)/g);
+  const currentQuestionTimerRegex = /currentQuestionTimer:[$\w]+\.payload\.questionTime/,
+    [ currentQuestionTimerLetter ] = mainScript.match(currentQuestionTimerRegex)[0].match(/[$\w]+(?=\.payload)/);
   mainScript = mainScript.replace(
     currentQuestionTimerRegex,
     `currentQuestionTimer:${currentQuestionTimerLetter}.payload.questionTime + (()=>{
@@ -131,14 +134,14 @@ async function fetchMainScript(mainScriptURL, vendorsScriptURL) {
   );
 
   // Access global functions. Also gains direct access to the controllers?
-  const globalFuncRegex = /\({[^"`]*?startQuiz:(\w+).*?}\)=>{(?=var)/,
+  const globalFuncRegex = /\({[^"`]*?startQuiz:([$\w]+).*?}\)=>{(?=var)/,
     [ globalFuncMatch, globalFuncLetter ] = mainScript.match(globalFuncRegex);
   mainScript = mainScript.replace(
     globalFuncRegex,
     `${globalFuncMatch}windw.antibotData.kahootInternals.globalFuncs = {startQuiz:${globalFuncLetter}};`);
   // Access the fetched quiz information. Allows the quiz to be modified when the quiz is fetched!
   // Note to future maintainer: if code switches back to using a function(){} rather than arrow function, see v3.1.5
-  const fetchedQuizInformationRegex = /RETRIEVE_KAHOOT_ERROR",.*?{response:[$\w]+}\)/m,
+  const fetchedQuizInformationRegex = /RETRIEVE_KAHOOT_ERROR",.*?{response:[$\w]+}\)/,
     [ fetchedQuizInformationCode ] = mainScript.match(fetchedQuizInformationRegex),
     [, fetchedQuizInformationLetter ] = fetchedQuizInformationCode.match(/response:[$\w]+/g)[0].split(":");
   mainScript = mainScript.replace(fetchedQuizInformationRegex,`RETRIEVE_KAHOOT_ERROR",${fetchedQuizInformationCode.split("RETRIEVE_KAHOOT_ERROR\",")[1].split("response:")[0]}response:(()=>{
@@ -147,8 +150,8 @@ async function fetchMainScript(mainScriptURL, vendorsScriptURL) {
     return ${fetchedQuizInformationLetter};
   })()})`);
   // Access the core data
-  const coreDataRegex = /\w{1,2}\.game\.core/m,
-    [ coreDataLetter ] = mainScript.match(coreDataRegex)[0].match(/\w{1,2}(?=\.game)/);
+  const coreDataRegex = /[$\w]+\.game\.core/,
+    [ coreDataLetter ] = mainScript.match(coreDataRegex)[0].match(/[$\w]+(?=\.game)/);
   mainScript = mainScript.replace(coreDataRegex,`(()=>{
     if(typeof windw !== "undefined"){
       windw.antibotData.kahootInternals.kahootCore = ${coreDataLetter};
@@ -159,7 +162,6 @@ async function fetchMainScript(mainScriptURL, vendorsScriptURL) {
   // 3.2.8 --> added back to core data
   // This code doesn't actually do anything, but is kept in case
   const gameSettingsRegex = /getGameOptions\(\){/;
-  // gameSettingsLetter = mainScript.match(gameSettingsRegex)[0].match(/[a-z](?=\.payload)/)[0];
   mainScript = mainScript.replace(gameSettingsRegex, `getGameOptions() {
     if (typeof windw !== "undefined") {
       windw.antibotData.kahootInternals.gameOptions = this;
@@ -185,9 +187,16 @@ async function fetchMainScript(mainScriptURL, vendorsScriptURL) {
 
   // Import vendors data.
   mainScript = mainScript.replace(
-    /from".\/vendor.*?"/m,
+    /from".\/vendor.*?"/,
     `from"${createBlobURL(patchedVendorsScript)}"`
   );
+
+  // fix imports
+  mainScript = mainScript.replace(
+    /import\("\./gm,
+    "import(\"https://assets-cdn.kahoot.it/player/v2/assets/"
+  )
+
   return mainScript;
 }
 
