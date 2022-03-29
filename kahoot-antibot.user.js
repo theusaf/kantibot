@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.2.8
+// @version        3.3.0
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -67,6 +67,12 @@ const url = window.location.href,
     "https://raw.githubusercontent.com/theusaf/random-name/master/names.js"
   ];
 
+function createBlobURL(script) {
+  return URL.createObjectURL(
+    new Blob([ script ], { type: "application/javascript" })
+  );
+}
+
 function makeHttpRequest(url) {
   const request = new XMLHttpRequest();
   request.open("GET", url);
@@ -84,13 +90,12 @@ function makeHttpRequest(url) {
 
 async function fetchMainPage() {
   const mainPageRequest = await makeHttpRequest(url),
-    vendorsScriptURL = mainPageRequest.response
-      .match(/><\/script><script .*?vendors.*?><\/script>/mg)[0]
-      .substr(9).split("src=\"")[1].split("\"")[0],
-    mainScriptURL = mainPageRequest.response.match(/\/v2\/assets\/js\/main.*?(?=")/mg)[0],
+    [ vendorsScriptURL ] = mainPageRequest.response
+      .match(/\/\/assets-cdn.*\/v2\/assets\/vendor.*?(?=")/m),
+    [ mainScriptURL ] = mainPageRequest.response.match(/\/\/assets-cdn.*\/v2\/assets\/index.*?(?=")/m),
     originalPage = mainPageRequest.response
-      .replace(/><\/script><script .*?vendors.*?><\/script>/mg, "></script>")
-      .replace(/(\/\/assets-cdn.kahoot.it\/player)?\/v2\/assets\/js\/main.*?(?=")/mg,"data:text/javascript,");
+      .replace(/<script type="module".*?<\/script>/m, "")
+      .replace(/<link type="modulepreload".*?>/mg, "");
   return {
     page: originalPage,
     vendorsScriptURL,
@@ -100,9 +105,9 @@ async function fetchMainPage() {
 
 async function fetchVendorsScript(vendorsScriptURL) {
   const vendorsScriptRequest = await makeHttpRequest(vendorsScriptURL),
-    patchedScriptRegex = /\.onMessage=function\([$\w],[$\w]\)\{/mg,
-    vendorsScriptLetter1 = vendorsScriptRequest.response.match(patchedScriptRegex)[0].match(/\w(?=,)/g)[0],
-    vendorsScriptLetter2 = vendorsScriptRequest.response.match(patchedScriptRegex)[0].match(/\w(?=\))/g)[0],
+    patchedScriptRegex = /\.onMessage=function\([$\w]+,[$\w]+\)\{/mg,
+    [ vendorsScriptLetter1 ] = vendorsScriptRequest.response.match(patchedScriptRegex)[0].match(/[$\w]+(?=,)/g),
+    [ vendorsScriptLetter2 ] = vendorsScriptRequest.response.match(patchedScriptRegex)[0].match(/[$\w]+(?=\))/g),
     patchedVendorsScript = vendorsScriptRequest.response
       .replace(patchedScriptRegex,
         `.onMessage = function(${vendorsScriptLetter1},${vendorsScriptLetter2}){
@@ -111,12 +116,13 @@ async function fetchVendorsScript(vendorsScriptURL) {
   return patchedVendorsScript;
 }
 
-async function fetchMainScript(mainScriptURL) {
-  const mainScriptRequest = await makeHttpRequest(mainScriptURL);
+async function fetchMainScript(mainScriptURL, vendorsScriptURL) {
+  const mainScriptRequest = await makeHttpRequest(mainScriptURL),
+      patchedVendorsScript = await fetchVendorsScript(vendorsScriptURL);
   let mainScript = mainScriptRequest.response;
   // Access the currentQuestionTimer and change the question time
   const currentQuestionTimerRegex = /currentQuestionTimer:[a-z]\.payload\.questionTime/gm,
-    currentQuestionTimerLetter = mainScript.match(currentQuestionTimerRegex)[0].match(/[a-z](?=\.payload)/g)[0];
+    [ currentQuestionTimerLetter ] = mainScript.match(currentQuestionTimerRegex)[0].match(/[a-z](?=\.payload)/g);
   mainScript = mainScript.replace(
     currentQuestionTimerRegex,
     `currentQuestionTimer:${currentQuestionTimerLetter}.payload.questionTime + (()=>{
@@ -126,16 +132,15 @@ async function fetchMainScript(mainScriptURL) {
 
   // Access global functions. Also gains direct access to the controllers?
   const globalFuncRegex = /\({[^"`]*?startQuiz:(\w+).*?}\)=>{(?=var)/,
-    globalFuncLetter = mainScript.match(globalFuncRegex)[1],
-    globalFuncMatch = mainScript.match(globalFuncRegex)[0];
+    [ globalFuncMatch, globalFuncLetter ] = mainScript.match(globalFuncRegex);
   mainScript = mainScript.replace(
     globalFuncRegex,
     `${globalFuncMatch}windw.antibotData.kahootInternals.globalFuncs = {startQuiz:${globalFuncLetter}};`);
   // Access the fetched quiz information. Allows the quiz to be modified when the quiz is fetched!
   // Note to future maintainer: if code switches back to using a function(){} rather than arrow function, see v3.1.5
-  const fetchedQuizInformationRegex = /RETRIEVE_KAHOOT_ERROR",.*?=>Object\([$\w]{1,2}\.[a-z]\)\([$\w\d]{1,2},{response:\w{1,2}}\)/gm,
-    fetchedQuizInformationLetter = mainScript.match(fetchedQuizInformationRegex)[0].match(/response:\w{1,2}/g)[0].split(":")[1],
-    fetchedQuizInformationCode = mainScript.match(fetchedQuizInformationRegex)[0];
+  const fetchedQuizInformationRegex = /RETRIEVE_KAHOOT_ERROR",.*?{response:[$\w]+}\)/m,
+    [ fetchedQuizInformationCode ] = mainScript.match(fetchedQuizInformationRegex),
+    [, fetchedQuizInformationLetter ] = fetchedQuizInformationCode.match(/response:[$\w]+/g)[0].split(":");
   mainScript = mainScript.replace(fetchedQuizInformationRegex,`RETRIEVE_KAHOOT_ERROR",${fetchedQuizInformationCode.split("RETRIEVE_KAHOOT_ERROR\",")[1].split("response:")[0]}response:(()=>{
     windw.antibotData.kahootInternals.globalQuizData = ${fetchedQuizInformationLetter};
     windw.antibotData.methods.extraQuestionSetup(${fetchedQuizInformationLetter});
@@ -143,7 +148,7 @@ async function fetchMainScript(mainScriptURL) {
   })()})`);
   // Access the core data
   const coreDataRegex = /\w{1,2}\.game\.core/m,
-    coreDataLetter = mainScript.match(coreDataRegex)[0].match(/\w{1,2}(?=\.game)/)[0];
+    [ coreDataLetter ] = mainScript.match(coreDataRegex)[0].match(/\w{1,2}(?=\.game)/);
   mainScript = mainScript.replace(coreDataRegex,`(()=>{
     if(typeof windw !== "undefined"){
       windw.antibotData.kahootInternals.kahootCore = ${coreDataLetter};
@@ -177,6 +182,12 @@ async function fetchMainScript(mainScriptURL) {
   for (const func of window.antibotAdditionalReplacements) {
     mainScript = func(mainScript);
   }
+
+  // Import vendors data.
+  mainScript = mainScript.replace(
+    /from".\/vendor.*?"/m,
+    `from"${createBlobURL(patchedVendorsScript)}"`
+  );
   return mainScript;
 }
 
@@ -1305,19 +1316,23 @@ ${createSetting("Reduce False-Positivess", "checkbox", "reduceFalsePositives", "
 (async () => {
   console.log("[ANTIBOT - loading");
   const {page, vendorsScriptURL, mainScriptURL} = await fetchMainPage(),
-    patchedVendorsScript = await fetchVendorsScript(vendorsScriptURL),
-    patchedMainScript = await fetchMainScript(mainScriptURL),
-    externalScripts = await Promise.all(requiredAssets.map((assetURL) => makeHttpRequest(assetURL).catch(() => ""))).then(data => data.map((result) => `<script>${result.response}</script>`).join(""));
+    patchedMainScript = await fetchMainScript(mainScriptURL, vendorsScriptURL),
+    externalScripts = await Promise.all(
+      requiredAssets.map((assetURL) => makeHttpRequest(assetURL).catch(() => ""))
+    ).then(
+      data => data
+        .map((result) => `<script data-antibot="external-script">${result.response}</script>`)
+        .join("")
+    );
   let completePage = page.split("</body>");
   completePage = `${completePage[0]}
-  <script>${patchedVendorsScript}</script>
-  <script>${patchedMainScript}</script>
-  <script>
+  <script data-antibot="main">import("${createBlobURL(patchedMainScript)}");</script>
+  <script data-antibot="fire-loader">
     window.parent.fireLoaded = window.fireLoaded = true;
     (${kantibotProgramCode.toString()})();
   </script>
   ${externalScripts}
-  <script>
+  <script data-antibot="external-loader">
     window.parent.aSetOfEnglishWords = window.aSetOfEnglishWords;
     window.parent.randomName = window.randomName;
   </script>`;
