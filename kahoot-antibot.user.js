@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.2.10
+// @version        3.2.11
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -78,7 +78,7 @@ window.kantibotEnabled = true;
 const url = window.location.href,
   requiredAssets = [
     "https://raw.githubusercontent.com/theusaf/a-set-of-english-words/master/index.js",
-    "https://raw.githubusercontent.com/theusaf/random-name/master/names.js",
+    "https://raw.githubusercontent.com/theusaf/random-name/master/names.js"
   ];
 
 function createBlobURL(script) {
@@ -116,7 +116,7 @@ async function fetchMainPage() {
   return {
     page: originalPage,
     vendorsScriptURL,
-    mainScriptURL,
+    mainScriptURL
   };
 }
 
@@ -232,7 +232,7 @@ async function fetchMainScript(mainScriptURL, vendorsScriptURL) {
   const vendorsBlobURL = createBlobURL(patchedVendorsScript);
   mainScript = mainScript.replace(
     /from".\/vendor.*?";/,
-    `from"${vendorsBlobURL}";URL.revokeObjectURL("${vendorsBlobURL}")`
+    `from"${vendorsBlobURL}";URL.revokeObjectURL("${vendorsBlobURL}");`
   );
 
   // fix imports
@@ -345,7 +345,7 @@ const kantibotProgramCode = () => {
   // create watermark
   const UITemplate = document.createElement("template");
   UITemplate.innerHTML = `<div id="antibotwtr">
-    <p>v3.2.10 ©theusaf</p>
+    <p>v3.2.11 ©theusaf</p>
     <p id="antibot-killcount">0</p>
     <details>
       <summary>config</summary>
@@ -807,7 +807,7 @@ ${createSetting(
         "Witty",
         "Wonder",
         "Yellow",
-        "Zany",
+        "Zany"
       ],
       Last = [
         "Alpaca",
@@ -920,7 +920,7 @@ ${createSetting(
         "Wombat",
         "Yak",
         "Yeti",
-        "Zebra",
+        "Zebra"
       ],
       F = name.match(/[A-Z][a-z]+(?=[A-Z])/);
     if (F === null || !First.includes(F[0])) {
@@ -1121,7 +1121,7 @@ ${createSetting(
         time: 5000,
         type: "survey",
         isAntibotQuestion: true,
-        choices: [{ answer: "OK", correct: true }],
+        choices: [{ answer: "OK", correct: true }]
       });
     }
     if (getSetting("enableCAPTCHA")) {
@@ -1130,7 +1130,7 @@ ${createSetting(
           "361bdde0-48cd-4a92-ae9f-486263ba8529", // red
           "9237bdd2-f281-4f04-b4e5-255e9055a194", // blue
           "d25c9d13-4147-4056-a722-e2a13fbb4af9", // yellow
-          "2aca62f2-ead5-4197-9c63-34da0400703a", // green
+          "2aca62f2-ead5-4197-9c63-34da0400703a" // green
         ],
         imageIndex = Math.floor(Math.random() * answers.length);
       quiz.questions.splice(0, 0, {
@@ -1143,7 +1143,7 @@ ${createSetting(
           { answer: "OK" },
           { answer: "OK" },
           { answer: "OK" },
-          { answer: "OK" },
+          { answer: "OK" }
         ],
         image: "https://media.kahoot.it/" + images[imageIndex],
         imageMetadata: {
@@ -1151,9 +1151,9 @@ ${createSetting(
           height: 512,
           id: images[imageIndex],
           contentType: "image/png",
-          resources: "",
+          resources: ""
         },
-        points: false,
+        points: false
       });
     }
   }
@@ -1189,12 +1189,12 @@ ${createSetting(
       cid: `${id}`,
       content: JSON.stringify({
         kickCode: 1,
-        quizType: "quiz",
+        quizType: "quiz"
       }),
       gameid: getPin(),
       host: "play.kahoot.it",
       id: 10,
-      type: "message",
+      type: "message"
     });
     antibotData.runtimeData.killCount++;
     if (banishedCachedData) {
@@ -1244,7 +1244,7 @@ ${createSetting(
               englishWordDetectionData: new Set(),
               controllerNamePatternData: {},
               verifiedControllerNames: new Set(),
-              unverifiedControllerNames: [],
+              unverifiedControllerNames: []
             });
           }
         }
@@ -1275,7 +1275,7 @@ ${createSetting(
             }
           });
         }
-      },
+      }
     ],
     receiveChecks = [
       function ddosCheck() {
@@ -1405,7 +1405,7 @@ ${createSetting(
           name: player.name,
           cid: player.cid,
           time: 10,
-          banned: false,
+          banned: false
         });
       },
       function patternSimilarityCheck(socket, data) {
@@ -1431,7 +1431,7 @@ ${createSetting(
         }
         patternData[pattern].add({
           playerData: player,
-          timeAdded: Date.now(),
+          timeAdded: Date.now()
         });
         const PATTERN_SIZE_TEST = 15,
           PATTERN_REMOVE_TIME = 5e3;
@@ -1540,7 +1540,7 @@ ${createSetting(
         if (findWord || findName) {
           detectionData.add({
             playerData: player,
-            timeAdded: Date.now(),
+            timeAdded: Date.now()
           });
           for (const controller of detectionData) {
             if (Date.now() - controller.timeAdded > TIME_TO_FORGET) {
@@ -1736,7 +1736,7 @@ ${createSetting(
             }
           }
         }
-      },
+      }
     ];
 
   function batchData(callback) {
@@ -1749,14 +1749,14 @@ ${createSetting(
     antibotData.runtimeData.lockingGame = true;
     sendData("/service/player", {
       gameid: getPin(),
-      type: "lock",
+      type: "lock"
     });
   }
 
   function unlockGame() {
     sendData("/service/player", {
       gameid: getPin(),
-      type: "unlock",
+      type: "unlock"
     });
   }
 
@@ -1820,7 +1820,7 @@ ${createSetting(
     }
     antibotData.runtimeData.controllerData[data.data.cid] = {
       loginTime: Date.now(),
-      twoFactorAttempts: 0,
+      twoFactorAttempts: 0
     };
   }
 
@@ -1841,7 +1841,7 @@ ${createSetting(
         getSetting,
         setSetting,
         patchLobbyView,
-        getKahootSetting,
+        getKahootSetting
       },
       settings: {},
       runtimeData: {
@@ -1858,9 +1858,9 @@ ${createSetting(
         questionStartTime: 0,
         lobbyLoadTime: 0,
         startLockElement: null,
-        startLockInterval: null,
+        startLockInterval: null
       },
-      kahootInternals: {},
+      kahootInternals: {}
     }),
     localConfig = JSON.parse(windw.localStorage.antibotConfig || "{}");
   for (const setting in localConfig) {
