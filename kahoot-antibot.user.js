@@ -91,9 +91,18 @@ function createBlobURL(script) {
 }
 
 async function antibotImport(url) {
-  const importBlobURLs = window.importBlobURLs ?? window.parent?.importBlobURLs ?? window.windw?.importBlobURLs,
-    makeHttpRequest = window.kantibotMakeHTTPRequest ?? window.parent?.kantibotMakeHTTPRequest ?? window.windw?.kantibotMakeHTTPRequest,
-    createBlobURL = window.kantibotCreateBlobURL ?? window.parent?.kantibotCreateBlobURL ?? window.windw?.kantibotCreateBlobURL;
+  const importBlobURLs =
+      window.importBlobURLs ??
+      window.parent?.importBlobURLs ??
+      window.windw?.importBlobURLs,
+    makeHttpRequest =
+      window.kantibotMakeHTTPRequest ??
+      window.parent?.kantibotMakeHTTPRequest ??
+      window.windw?.kantibotMakeHTTPRequest,
+    createBlobURL =
+      window.kantibotCreateBlobURL ??
+      window.parent?.kantibotCreateBlobURL ??
+      window.windw?.kantibotCreateBlobURL;
 
   console.log(`[ANTIBOT] - Handling import of ${url}`);
   // We need to intercept any requests and modify them!
@@ -108,29 +117,32 @@ async function antibotImport(url) {
     let { response: moduleCode } = await makeHttpRequest(url),
       needsEdit = false;
     const importFunctionRegex = /\bimport\b\(/g,
-      importStatementRegex = /\bimport\b[\w.\-{}\s[\],:]*?\bfrom\b"[\w.\-\/]*?"/g;
+      importStatementRegex =
+        /\bimport\b[\w.\-{}\s[\],:]*?\bfrom\b"[\w.\-/]*?"/g;
 
     // if it has dynamic import statements
     if (importFunctionRegex.test(moduleCode)) {
       needsEdit = true;
-      moduleCode = moduleCode.replace(
-        importFunctionRegex,
-        "antibotImport("
-      );
+      moduleCode = moduleCode.replace(importFunctionRegex, "antibotImport(");
       moduleCode = `${antibotImport.toString()}${moduleCode}`;
     }
     // if it has a regular import statement
     if (importStatementRegex.test(moduleCode)) {
       // Check if url exists for the import
       for (const imp of moduleCode.match(importStatementRegex)) {
-        const [, impURL ] = imp.match(/"([\w.\-\/]*?)"/);
+        const [, impURL] = imp.match(/"([\w.\-/]*?)"/);
         let editedImportURL = impURL;
         if (editedImportURL.startsWith(".")) {
-          editedImportURL = `https://assets-cdn.kahoot.it/player/v2/assets${editedImportURL.substring(1)}`;
+          editedImportURL = `https://assets-cdn.kahoot.it/player/v2/assets${editedImportURL.substring(
+            1
+          )}`;
         }
         if (importBlobURLs[editedImportURL]) {
           needsEdit = true;
-          moduleCode = moduleCode.replace(impURL, importBlobURLs[editedImportURL]);
+          moduleCode = moduleCode.replace(
+            impURL,
+            importBlobURLs[editedImportURL]
+          );
         }
       }
     }
@@ -175,7 +187,9 @@ async function fetchMainPage() {
     );
   return {
     page: originalPage,
-    mainScriptURL: mainScriptURL.startsWith("//") ? `https:${mainScriptURL}` : mainScriptURL
+    mainScriptURL: mainScriptURL.startsWith("//")
+      ? `https:${mainScriptURL}`
+      : mainScriptURL
   };
 }
 
@@ -281,10 +295,7 @@ async function fetchMainScript(mainScriptURL) {
   }
 
   // modified import
-  mainScript = mainScript.replace(
-    /\bimport\b\(/g,
-    "antibotImport("
-  );
+  mainScript = mainScript.replace(/\bimport\b\(/g, "antibotImport(");
 
   mainScript = `${antibotImport.toString()}${mainScript}`;
 
