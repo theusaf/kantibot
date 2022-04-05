@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.3.0
+// @version        3.3.1
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -157,10 +157,10 @@ async function fetchMainScript(mainScriptURL) {
         .split("RETRIEVE_KAHOOT_ERROR\",")[1]
         .split("response:")[0]
     }response:(()=>{
-    windw.antibotData.kahootInternals.globalQuizData = ${fetchedQuizInformationLetter};
-    windw.antibotData.methods.extraQuestionSetup(${fetchedQuizInformationLetter});
-    return ${fetchedQuizInformationLetter};
-  })()})`
+      windw.antibotData.kahootInternals.globalQuizData = ${fetchedQuizInformationLetter};
+      windw.antibotData.methods.extraQuestionSetup(${fetchedQuizInformationLetter});
+      return ${fetchedQuizInformationLetter};
+    })()})`
   );
   // Access the core data
   const coreDataRegex = /[$\w]+\.game\.core/,
@@ -170,11 +170,11 @@ async function fetchMainScript(mainScriptURL) {
   mainScript = mainScript.replace(
     coreDataRegex,
     `(()=>{
-    if(typeof windw !== "undefined"){
-      windw.antibotData.kahootInternals.kahootCore = ${coreDataLetter};
-    }
-    return ${coreDataLetter}.game.core;
-  })()`
+      if(typeof windw !== "undefined"){
+        windw.antibotData.kahootInternals.kahootCore = ${coreDataLetter};
+      }
+      return ${coreDataLetter}.game.core;
+    })()`
   );
   // Access game settings (somehow removed from the core data...)
   // 3.2.8 --> added back to core data
@@ -183,9 +183,9 @@ async function fetchMainScript(mainScriptURL) {
   mainScript = mainScript.replace(
     gameSettingsRegex,
     `getGameOptions() {
-    if (typeof windw !== "undefined") {
-      windw.antibotData.kahootInternals.gameOptions = this;
-    }`
+      if (typeof windw !== "undefined") {
+        windw.antibotData.kahootInternals.gameOptions = this;
+      }`
   );
   // Access two factor stuff
   const twoFactorRegex = /(const [$\w]+=)7/;
@@ -210,7 +210,7 @@ async function fetchMainScript(mainScriptURL) {
   mainScript = mainScript.replace(
     patchedScriptRegex,
     `.onMessage = function(${websocketMessageLetter1},${websocketMessageLetter2}){
-          windw.antibotData.methods.websocketMessageHandler(${websocketMessageLetter1},${websocketMessageLetter2});`
+      windw.antibotData.methods.websocketMessageHandler(${websocketMessageLetter1},${websocketMessageLetter2});`
   );
 
   // other replacements
@@ -276,14 +276,14 @@ const kantibotProgramCode = () => {
       input.setAttribute(
         "onclick",
         `
-      this.className = "antibot-textarea";
-      `
+        this.className = "antibot-textarea";
+        `
       );
       input.setAttribute(
         "onblur",
         `
-      this.className = "";
-      `
+        this.className = "";
+        `
       );
     }
     input.id = label.htmlFor = `antibot.config.${id}`;
@@ -295,20 +295,20 @@ const kantibotProgramCode = () => {
       input.setAttribute(
         "onclick",
         `
-      const value = event.target.checked;
-      windw.antibotData.methods.setSetting(event.target.id.match(/\\w+$/)[0], value);
-      (${callback.toString()})(event.target);
-      `
+        const value = event.target.checked;
+        windw.antibotData.methods.setSetting(event.target.id.match(/\\w+$/)[0], value);
+        (${callback.toString()})(event.target);
+        `
       );
     } else {
       container.append(label, input);
       input.setAttribute(
         "onchange",
         `
-      const value = event.target.nodeName === "TEXTAREA" ? event.target.value.split("\\n") : event.target.type === "number" ? +event.target.value : event.target.value;
-      windw.antibotData.methods.setSetting(event.target.id.match(/\\w+$/)[0], value);
-      (${callback.toString()})(event.target);
-      `
+        const value = event.target.nodeName === "TEXTAREA" ? event.target.value.split("\\n") : event.target.type === "number" ? +event.target.value : event.target.value;
+        windw.antibotData.methods.setSetting(event.target.id.match(/\\w+$/)[0], value);
+        (${callback.toString()})(event.target);
+        `
       );
       label.className = "antibot-input";
     }
@@ -328,7 +328,7 @@ const kantibotProgramCode = () => {
   // create watermark
   const UITemplate = document.createElement("template");
   UITemplate.innerHTML = `<div id="antibotwtr">
-    <p>v3.3.0 ©theusaf</p>
+    <p>v3.3.1 ©theusaf</p>
     <p id="antibot-killcount">0</p>
     <details>
       <summary>config</summary>
@@ -1953,9 +1953,21 @@ ${createSetting(
       mainBlobURL = createBlobURL(patchedMainScript);
     let completePage = page.split("</body>");
     completePage = `${completePage[0]}
+    <p id="antibotpatchwait">patching completed successfully... please wait...</p>
     <script data-antibot="main">
     import("${mainBlobURL}").then(() => {
       URL.revokeObjectURL("${mainBlobURL}");
+      document.querySelector("#antibotpatchwait").remove();
+    }).catch((err) => {
+      console.error(err);
+      const template = document.createElement("template"),
+        errorNotice = document.createElement("h3");
+      errorNotice.textContent = "Error while loading patched Kahoot!:";
+      template.innerHTML = err.stack.replace(/\\n/g, "<br/>");
+      document.body.append(
+        errorNotice,
+        template.content.cloneNode(true)
+      );
     });
     </script>
     <script data-antibot="fire-loader">
