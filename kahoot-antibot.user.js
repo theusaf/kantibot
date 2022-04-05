@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.2.11
+// @version        3.3.0
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -104,42 +104,19 @@ function makeHttpRequest(url) {
 
 async function fetchMainPage() {
   const mainPageRequest = await makeHttpRequest(url),
-    [vendorsScriptURL] = mainPageRequest.response.match(
-      /\/\/assets-cdn.*\/v2\/assets\/vendor.*?(?=")/
-    ),
     [mainScriptURL] = mainPageRequest.response.match(
       /\/\/assets-cdn.*\/v2\/assets\/index.*?(?=")/
     ),
     originalPage = mainPageRequest.response
-      .replace(/<script type="module".*?<\/script>/, "")
-      .replace(/<link type="modulepreload".*?>/gm, "");
+      .replace(/<script type="module".*?<\/script>/, "");
   return {
     page: originalPage,
-    vendorsScriptURL,
     mainScriptURL
   };
 }
 
-async function fetchVendorsScript(vendorsScriptURL) {
-  const vendorsScriptRequest = await makeHttpRequest(vendorsScriptURL),
-    patchedScriptRegex = /\.onMessage=function\([$\w]+,[$\w]+\)\{/,
-    [vendorsScriptLetter1] = vendorsScriptRequest.response
-      .match(patchedScriptRegex)[0]
-      .match(/[$\w]+(?=,)/g),
-    [vendorsScriptLetter2] = vendorsScriptRequest.response
-      .match(patchedScriptRegex)[0]
-      .match(/[$\w]+(?=\))/g),
-    patchedVendorsScript = vendorsScriptRequest.response.replace(
-      patchedScriptRegex,
-      `.onMessage = function(${vendorsScriptLetter1},${vendorsScriptLetter2}){
-          windw.antibotData.methods.websocketMessageHandler(${vendorsScriptLetter1},${vendorsScriptLetter2});`
-    );
-  return patchedVendorsScript;
-}
-
-async function fetchMainScript(mainScriptURL, vendorsScriptURL) {
-  const mainScriptRequest = await makeHttpRequest(mainScriptURL),
-    patchedVendorsScript = await fetchVendorsScript(vendorsScriptURL);
+async function fetchMainScript(mainScriptURL) {
+  const mainScriptRequest = await makeHttpRequest(mainScriptURL);
   let mainScript = mainScriptRequest.response;
   // Access the currentQuestionTimer and change the question time
   const currentQuestionTimerRegex =
@@ -223,17 +200,21 @@ async function fetchMainScript(mainScriptURL, vendorsScriptURL) {
     })()`
   );
 
+  // access message socket
+  // moved from "vendors"
+  const patchedScriptRegex = /\.onMessage=function\(([$\w]+),([$\w]+)\)\{/,
+    [, websocketMessageLetter1, websocketMessageLetter2] = mainScript
+      .match(patchedScriptRegex);
+    mainScript = mainScript.replace(
+      patchedScriptRegex,
+      `.onMessage = function(${websocketMessageLetter1},${websocketMessageLetter2}){
+          windw.antibotData.methods.websocketMessageHandler(${websocketMessageLetter1},${websocketMessageLetter2});`
+    );
+
   // other replacements
   for (const func of window.antibotAdditionalReplacements) {
     mainScript = func(mainScript);
   }
-
-  // Import vendors data.
-  const vendorsBlobURL = createBlobURL(patchedVendorsScript);
-  mainScript = mainScript.replace(
-    /from".\/vendor.*?";/,
-    `from"${vendorsBlobURL}";URL.revokeObjectURL("${vendorsBlobURL}");`
-  );
 
   // fix imports
   mainScript = mainScript.replace(
@@ -1951,57 +1932,63 @@ ${createSetting(
 };
 
 (async () => {
-  console.log("[ANTIBOT - loading");
-  const { page, vendorsScriptURL, mainScriptURL } = await fetchMainPage(),
-    patchedMainScript = await fetchMainScript(mainScriptURL, vendorsScriptURL),
-    externalScripts = await Promise.all(
-      requiredAssets.map((assetURL) =>
-        makeHttpRequest(assetURL).catch(() => "")
-      )
-    ).then((data) =>
-      data
-        .map(
-          (result) =>
-            `<script data-antibot="external-script">${result.response}</script>`
+  try {
+    console.log("[ANTIBOT - loading");
+    const { page, mainScriptURL } = await fetchMainPage(),
+      patchedMainScript = await fetchMainScript(mainScriptURL),
+      externalScripts = await Promise.all(
+        requiredAssets.map((assetURL) =>
+          makeHttpRequest(assetURL).catch(() => "")
         )
-        .join("")
-    ),
-    mainBlobURL = createBlobURL(patchedMainScript);
-  let completePage = page.split("</body>");
-  completePage = `${completePage[0]}
-  <script data-antibot="main">
-  import("${mainBlobURL}").then(() => {
-    URL.revokeObjectURL("${mainBlobURL}");
-  });
-  </script>
-  <script data-antibot="fire-loader">
-    window.parent.fireLoaded = window.fireLoaded = true;
-    (${kantibotProgramCode.toString()})();
-  </script>
-  ${externalScripts}
-  <script data-antibot="external-loader">
-    window.parent.aSetOfEnglishWords = window.aSetOfEnglishWords;
-    window.parent.randomName = window.randomName;
-  </script>`;
-  console.log("[ANTIBOT] - loaded");
-  document.open();
-  document.write(`<style>
-    body {
-      margin: 0;
-    }
-    iframe {
-      border: 0;
-      width: 100%;
-      height: 100%;
-    }
-  </style>
-  <iframe src="about:blank"></iframe>`);
-  document.close();
-  window.stop();
-  const doc = document.querySelector("iframe");
-  doc.contentDocument.write(completePage);
-  document.title = doc.contentDocument.title;
-  doc.addEventListener("load", () => {
-    window.location.reload();
-  });
+      ).then((data) =>
+        data
+          .map(
+            (result) =>
+              `<script data-antibot="external-script">${result.response}</script>`
+          )
+          .join("")
+      ),
+      mainBlobURL = createBlobURL(patchedMainScript);
+    let completePage = page.split("</body>");
+    completePage = `${completePage[0]}
+    <script data-antibot="main">
+    import("${mainBlobURL}").then(() => {
+      URL.revokeObjectURL("${mainBlobURL}");
+    });
+    </script>
+    <script data-antibot="fire-loader">
+      window.parent.fireLoaded = window.fireLoaded = true;
+      (${kantibotProgramCode.toString()})();
+    </script>
+    ${externalScripts}
+    <script data-antibot="external-loader">
+      window.parent.aSetOfEnglishWords = window.aSetOfEnglishWords;
+      window.parent.randomName = window.randomName;
+    </script>`;
+    console.log("[ANTIBOT] - loaded");
+    document.open();
+    document.write(`<style>
+      body {
+        margin: 0;
+      }
+      iframe {
+        border: 0;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+    <iframe src="about:blank"></iframe>`);
+    document.close();
+    window.stop();
+    const doc = document.querySelector("iframe");
+    doc.contentDocument.write(completePage);
+    document.title = doc.contentDocument.title;
+    doc.addEventListener("load", () => {
+      window.location.reload();
+    });
+  } catch (err) {
+    console.error(err);
+    document.write(`<h3 style="color: red">An error occured while patching Kahoot!:</h3>`);
+    document.write(err.stack.replace(/\n/g, "<br/>"));
+  }
 })();
