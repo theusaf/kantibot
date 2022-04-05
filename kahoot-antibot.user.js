@@ -107,8 +107,10 @@ async function fetchMainPage() {
     [mainScriptURL] = mainPageRequest.response.match(
       /\/\/assets-cdn.*\/v2\/assets\/index.*?(?=")/
     ),
-    originalPage = mainPageRequest.response
-      .replace(/<script type="module".*?<\/script>/, "");
+    originalPage = mainPageRequest.response.replace(
+      /<script type="module".*?<\/script>/,
+      ""
+    );
   return {
     page: originalPage,
     mainScriptURL
@@ -152,7 +154,7 @@ async function fetchMainScript(mainScriptURL) {
     fetchedQuizInformationRegex,
     `RETRIEVE_KAHOOT_ERROR",${
       fetchedQuizInformationCode
-        .split('RETRIEVE_KAHOOT_ERROR",')[1]
+        .split("RETRIEVE_KAHOOT_ERROR\",")[1]
         .split("response:")[0]
     }response:(()=>{
     windw.antibotData.kahootInternals.globalQuizData = ${fetchedQuizInformationLetter};
@@ -203,13 +205,13 @@ async function fetchMainScript(mainScriptURL) {
   // access message socket
   // moved from "vendors"
   const patchedScriptRegex = /\.onMessage=function\(([$\w]+),([$\w]+)\)\{/,
-    [, websocketMessageLetter1, websocketMessageLetter2] = mainScript
-      .match(patchedScriptRegex);
-    mainScript = mainScript.replace(
-      patchedScriptRegex,
-      `.onMessage = function(${websocketMessageLetter1},${websocketMessageLetter2}){
+    [, websocketMessageLetter1, websocketMessageLetter2] =
+      mainScript.match(patchedScriptRegex);
+  mainScript = mainScript.replace(
+    patchedScriptRegex,
+    `.onMessage = function(${websocketMessageLetter1},${websocketMessageLetter2}){
           windw.antibotData.methods.websocketMessageHandler(${websocketMessageLetter1},${websocketMessageLetter2});`
-    );
+  );
 
   // other replacements
   for (const func of window.antibotAdditionalReplacements) {
@@ -219,7 +221,7 @@ async function fetchMainScript(mainScriptURL) {
   // fix imports
   mainScript = mainScript.replace(
     /import\("\./gm,
-    'import("https://assets-cdn.kahoot.it/player/v2/assets/'
+    "import(\"https://assets-cdn.kahoot.it/player/v2/assets/"
   );
 
   return mainScript;
@@ -332,141 +334,141 @@ const kantibotProgramCode = () => {
       <summary>config</summary>
       <div id="antibot-settings">
 ${createSetting(
-  "Block Fast Answers",
-  "checkbox",
-  "timeout",
-  "Blocks answers sent 0.5 seconds after the question starts"
-)}
+    "Block Fast Answers",
+    "checkbox",
+    "timeout",
+    "Blocks answers sent 0.5 seconds after the question starts"
+  )}
 ${createSetting(
-  "Block Random Names",
-  "checkbox",
-  "looksRandom",
-  "Blocks names that look random, such as 'rAnDOM naMe'",
-  true
-)}
+    "Block Random Names",
+    "checkbox",
+    "looksRandom",
+    "Blocks names that look random, such as 'rAnDOM naMe'",
+    true
+  )}
 ${createSetting(
-  "Block Format F[.,-]L",
-  "checkbox",
-  "blockformat1",
-  "Blocks names using the format [First][random char][Last]",
-  true
-)}
+    "Block Format F[.,-]L",
+    "checkbox",
+    "blockformat1",
+    "Blocks names using the format [First][random char][Last]",
+    true
+  )}
 ${createSetting(
-  "Additional Blocking Filters",
-  "checkbox",
-  "blockservice1",
-  "Enables multiple additional blocking filters for some bot programs"
-)}
+    "Additional Blocking Filters",
+    "checkbox",
+    "blockservice1",
+    "Enables multiple additional blocking filters for some bot programs"
+  )}
 ${createSetting(
-  "Block Numbers",
-  "checkbox",
-  "blocknum",
-  "Blocks names containing numbers, if multiple with numbers join within a short period of time"
-)}
+    "Block Numbers",
+    "checkbox",
+    "blocknum",
+    "Blocks names containing numbers, if multiple with numbers join within a short period of time"
+  )}
 ${createSetting(
-  "Force Alphanumeric Names",
-  "checkbox",
-  "forceascii",
-  "Blocks names containing non-alphanumeric characters, if multiple join within a short period of time"
-)}
+    "Force Alphanumeric Names",
+    "checkbox",
+    "forceascii",
+    "Blocks names containing non-alphanumeric characters, if multiple join within a short period of time"
+  )}
 ${createSetting(
-  "Detect Patterns",
-  "checkbox",
-  "patterns",
-  "Blocks bots spammed using similar patterns"
-)}
+    "Detect Patterns",
+    "checkbox",
+    "patterns",
+    "Blocks bots spammed using similar patterns"
+  )}
 ${createSetting(
-  "Additional Question Time",
-  "number",
-  "teamtimeout",
-  "Adds extra seconds to a question",
-  0,
-  (input) => input.setAttribute("step", 1)
-)}
+    "Additional Question Time",
+    "number",
+    "teamtimeout",
+    "Adds extra seconds to a question",
+    0,
+    (input) => input.setAttribute("step", 1)
+  )}
 ${createSetting(
-  "Two-Factor Auth Timer",
-  "number",
-  "twoFactorTime",
-  "Specify the number of seconds for the two-factor auth. The first iteration will use the default 7 seconds, then will use your input",
-  7,
-  (input) => {
-    input.setAttribute("step", 1);
-    input.setAttribute("min", 1);
-  },
-  () => {
-    windw.antibotData.methods.kahootAlert(
-      "Changes will only take effect upon reload."
-    );
-  }
-)}
+    "Two-Factor Auth Timer",
+    "number",
+    "twoFactorTime",
+    "Specify the number of seconds for the two-factor auth. The first iteration will use the default 7 seconds, then will use your input",
+    7,
+    (input) => {
+      input.setAttribute("step", 1);
+      input.setAttribute("min", 1);
+    },
+    () => {
+      windw.antibotData.methods.kahootAlert(
+        "Changes will only take effect upon reload."
+      );
+    }
+  )}
 ${createSetting(
-  "Name Match Percent",
-  "number",
-  "percent",
-  "The percent to check name similarity before banning the bot.",
-  0.6,
-  (input) => input.setAttribute("step", 0.1)
-)}
+    "Name Match Percent",
+    "number",
+    "percent",
+    "The percent to check name similarity before banning the bot.",
+    0.6,
+    (input) => input.setAttribute("step", 0.1)
+  )}
 ${createSetting(
-  "Word Blacklist",
-  "textarea",
-  "wordblock",
-  "Block names containing any from a list of words. Separate by new line."
-)}
+    "Word Blacklist",
+    "textarea",
+    "wordblock",
+    "Block names containing any from a list of words. Separate by new line."
+  )}
 ${createSetting(
-  "Auto-Lock Threshold",
-  "number",
-  "ddos",
-  "Specify the number of bots/minute to lock the game. Set to 0 to disable",
-  0,
-  (input) => input.setAttribute("step", 1)
-)}
+    "Auto-Lock Threshold",
+    "number",
+    "ddos",
+    "Specify the number of bots/minute to lock the game. Set to 0 to disable",
+    0,
+    (input) => input.setAttribute("step", 1)
+  )}
 ${createSetting(
-  "Lobby Auto-Start Time",
-  "number",
-  "start_lock",
-  "Specify the maximum amount of time for a lobby to stay open after a player joins. Set to 0 to disable",
-  0,
-  (input) => input.setAttribute("step", 1)
-)}
+    "Lobby Auto-Start Time",
+    "number",
+    "start_lock",
+    "Specify the maximum amount of time for a lobby to stay open after a player joins. Set to 0 to disable",
+    0,
+    (input) => input.setAttribute("step", 1)
+  )}
 ${createSetting(
-  "Show Antibot Timers",
-  "checkbox",
-  "counters",
-  "Display Antibot Counters/Timers (Lobby Auto-Start, Auto-Lock, etc)"
-)}
+    "Show Antibot Timers",
+    "checkbox",
+    "counters",
+    "Display Antibot Counters/Timers (Lobby Auto-Start, Auto-Lock, etc)"
+  )}
 ${createSetting(
-  "Counter Kahoot! Cheats",
-  "checkbox",
-  "counterCheats",
-  "Adds an additional 5 second question at the end to counter cheats. Changing this mid-game may break the game or will not apply until refresh",
-  null,
-  undefined,
-  () => {
-    windw.antibotData.methods.kahootAlert(
-      "Changes may only take effect upon reload."
-    );
-  }
-)}
+    "Counter Kahoot! Cheats",
+    "checkbox",
+    "counterCheats",
+    "Adds an additional 5 second question at the end to counter cheats. Changing this mid-game may break the game or will not apply until refresh",
+    null,
+    undefined,
+    () => {
+      windw.antibotData.methods.kahootAlert(
+        "Changes may only take effect upon reload."
+      );
+    }
+  )}
 ${createSetting(
-  "Enable CAPTCHA",
-  "checkbox",
-  "enableCAPTCHA",
-  "Adds a 30 second poll at the start of the quiz. If players don't answer it correctly, they get banned. Changing this mid-game may break the game or will not apply until refresh",
-  null,
-  undefined,
-  () => {
-    windw.antibotData.methods.kahootAlert(
-      "Changes may only take effect upon reload."
-    );
-  }
-)}
+    "Enable CAPTCHA",
+    "checkbox",
+    "enableCAPTCHA",
+    "Adds a 30 second poll at the start of the quiz. If players don't answer it correctly, they get banned. Changing this mid-game may break the game or will not apply until refresh",
+    null,
+    undefined,
+    () => {
+      windw.antibotData.methods.kahootAlert(
+        "Changes may only take effect upon reload."
+      );
+    }
+  )}
 ${createSetting(
-  "Reduce False-Positivess",
-  "checkbox",
-  "reduceFalsePositives",
-  "Makes some checks less strict to attempt to reduce the number of false-positives banned."
-)}
+    "Reduce False-Positivess",
+    "checkbox",
+    "reduceFalsePositives",
+    "Makes some checks less strict to attempt to reduce the number of false-positives banned."
+  )}
       </div>
     </details>
   </div>
@@ -1063,10 +1065,10 @@ ${createSetting(
       return elem.type === "checkbox"
         ? elem.checked
         : elem.nodeName === "TEXTAREA"
-        ? elem.value.split("\n")
-        : elem.type === "number"
-        ? +elem.value
-        : elem.value;
+          ? elem.value.split("\n")
+          : elem.type === "number"
+            ? +elem.value
+            : elem.value;
     }
   }
 
@@ -1988,7 +1990,9 @@ ${createSetting(
     });
   } catch (err) {
     console.error(err);
-    document.write(`<h3 style="color: red">An error occured while patching Kahoot!:</h3>`);
+    document.write(
+      "<h3 style=\"color: red\">An error occured while patching Kahoot!:</h3>"
+    );
     document.write(err.stack.replace(/\n/g, "<br/>"));
   }
 })();
