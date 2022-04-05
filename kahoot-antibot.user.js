@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.3.1
+// @version        3.4.0
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -79,12 +79,74 @@ const url = window.location.href,
   requiredAssets = [
     "https://raw.githubusercontent.com/theusaf/a-set-of-english-words/master/index.js",
     "https://raw.githubusercontent.com/theusaf/random-name/master/names.js"
-  ];
+  ],
+  importBlobURLs = {};
+
+window.importBlobURLs = importBlobURLs;
 
 function createBlobURL(script) {
   return URL.createObjectURL(
     new Blob([script], { type: "application/javascript" })
   );
+}
+
+async function antibotImport(url) {
+  const importBlobURLs = window.importBlobURLs ?? window.parent?.importBlobURLs ?? window.windw?.importBlobURLs,
+    makeHttpRequest = window.kantibotMakeHTTPRequest ?? window.parent?.kantibotMakeHTTPRequest ?? window.windw?.kantibotMakeHTTPRequest,
+    createBlobURL = window.kantibotCreateBlobURL ?? window.parent?.kantibotCreateBlobURL ?? window.windw?.kantibotCreateBlobURL;
+
+  console.log(`[ANTIBOT] - Handling import of ${url}`);
+  // We need to intercept any requests and modify them!
+  if (url.startsWith(".")) {
+    url = `https://assets-cdn.kahoot.it/player/v2/assets${url.substring(1)}`;
+  }
+  if (importBlobURLs[url]) {
+    console.log(`[ANTIBOT] - ${url} already exists.`);
+    return import(importBlobURLs[url]);
+  } else {
+    // check if this url needs to be patched!
+    let { response: moduleCode } = await makeHttpRequest(url),
+      needsEdit = false;
+    const importFunctionRegex = /\bimport\b\(/g,
+      importStatementRegex = /\bimport\b[\w.\-{}\s[\],:]*?\bfrom\b"[\w.\-\/]*?"/g;
+
+    // if it has dynamic import statements
+    if (importFunctionRegex.test(moduleCode)) {
+      needsEdit = true;
+      moduleCode = moduleCode.replace(
+        importFunctionRegex,
+        "antibotImport("
+      );
+      moduleCode = `${antibotImport.toString()}${moduleCode}`;
+    }
+    // if it has a regular import statement
+    if (importStatementRegex.test(moduleCode)) {
+      // Check if url exists for the import
+      for (const imp of moduleCode.match(importStatementRegex)) {
+        const [, impURL ] = imp.match(/"([\w.\-\/]*?)"/);
+        let editedImportURL = impURL;
+        if (editedImportURL.startsWith(".")) {
+          editedImportURL = `https://assets-cdn.kahoot.it/player/v2/assets${editedImportURL.substring(1)}`;
+        }
+        if (importBlobURLs[editedImportURL]) {
+          needsEdit = true;
+          moduleCode = moduleCode.replace(impURL, importBlobURLs[editedImportURL]);
+        }
+      }
+    }
+    if (needsEdit) {
+      // Create a blob url and import it!
+      console.log(`[ANTIBOT] - Modifying ${url} and creating blob url.`);
+      const blobURL = createBlobURL(moduleCode);
+      importBlobURLs[url] = blobURL;
+      return import(blobURL);
+    } else {
+      console.log(`[ANTIBOT] - ${url} does not require a blob version.`);
+      // So we don't keep checking it each time
+      importBlobURLs[url] = url;
+      return import(url);
+    }
+  }
 }
 
 function makeHttpRequest(url) {
@@ -113,7 +175,7 @@ async function fetchMainPage() {
     );
   return {
     page: originalPage,
-    mainScriptURL
+    mainScriptURL: mainScriptURL.startsWith("//") ? `https:${mainScriptURL}` : mainScriptURL
   };
 }
 
@@ -218,11 +280,13 @@ async function fetchMainScript(mainScriptURL) {
     mainScript = func(mainScript);
   }
 
-  // fix imports
+  // modified import
   mainScript = mainScript.replace(
-    /import\("\./gm,
-    "import(\"https://assets-cdn.kahoot.it/player/v2/assets/"
+    /\bimport\b\(/g,
+    "antibotImport("
   );
+
+  mainScript = `${antibotImport.toString()}${mainScript}`;
 
   return mainScript;
 }
@@ -328,7 +392,7 @@ const kantibotProgramCode = () => {
   // create watermark
   const UITemplate = document.createElement("template");
   UITemplate.innerHTML = `<div id="antibotwtr">
-    <p>v3.3.1 ©theusaf</p>
+    <p>v3.4.0 ©theusaf</p>
     <p id="antibot-killcount">0</p>
     <details>
       <summary>config</summary>
@@ -1956,7 +2020,6 @@ ${createSetting(
     <p id="antibotpatchwait">patching completed successfully... please wait...</p>
     <script data-antibot="main">
     import("${mainBlobURL}").then(() => {
-      URL.revokeObjectURL("${mainBlobURL}");
       document.querySelector("#antibotpatchwait").remove();
     }).catch((err) => {
       console.error(err);
@@ -1994,6 +2057,10 @@ ${createSetting(
     <iframe src="about:blank"></iframe>`);
     document.close();
     window.stop();
+    importBlobURLs[mainScriptURL] = mainBlobURL;
+    window.kantibotImport = antibotImport;
+    window.kantibotMakeHTTPRequest = makeHttpRequest;
+    window.kantibotCreateBlobURL = createBlobURL;
     const doc = document.querySelector("iframe");
     doc.contentDocument.write(completePage);
     document.title = doc.contentDocument.title;
