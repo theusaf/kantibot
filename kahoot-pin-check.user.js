@@ -2,7 +2,7 @@
 // @name         KPin Checker
 // @namespace    http://tampermonkey.net/
 // @homepage     https://theusaf.org
-// @version      1.3.7
+// @version      1.4.0
 // @license      MIT
 // @description  Check the pin of a kahoot game.
 // @author       theusaf
@@ -18,6 +18,8 @@ if (window.fireLoaded || (window.parent && window.parent.PinCheckerMain)) {
   throw "[PIN-CHECKER] - Already loaded.";
 }
 console.log("[PIN-CHECKER] - Looking for AntiBot");
+
+// data-functional-selector="dialog-actions"
 
 /**
  * PinCheckerMain - The main pin checking function
@@ -60,7 +62,7 @@ window.PinCheckerMain = function () {
 
     if (document.querySelector("#antibotwtr")) {
       const p = document.createElement("p");
-      p.innerHTML = "[KPC] v1.3.7";
+      p.innerHTML = "[KPC] v1.4.0";
       document.querySelector("#antibotwtr").append(p);
     }
 
@@ -234,7 +236,7 @@ window.PinCheckerMain = function () {
             {
               advice: {
                 interval: 0,
-                timeout: 60000,
+                timeout: 60000
               },
               minimumVersion: "1.0",
               version: "1.0",
@@ -245,11 +247,11 @@ window.PinCheckerMain = function () {
                 timesync: {
                   l: 0,
                   o: 0,
-                  tc: Date.now(),
-                },
+                  tc: Date.now()
+                }
               },
-              id: 1,
-            },
+              id: 1
+            }
           ])
         );
       });
@@ -268,7 +270,7 @@ window.PinCheckerMain = function () {
               o,
               get tc() {
                 return Date.now();
-              },
+              }
             });
             connection.send(
               JSON.stringify([
@@ -278,10 +280,10 @@ window.PinCheckerMain = function () {
                   id: 2,
                   ext: {
                     ack: 0,
-                    timesync,
+                    timesync
                   },
-                  clientId,
-                },
+                  clientId
+                }
               ])
             );
             // start joining
@@ -302,14 +304,14 @@ window.PinCheckerMain = function () {
                           userAgent: windw.navigator.userAgent,
                           screen: {
                             width: windw.screen.width,
-                            height: windw.screen.height,
-                          },
-                        },
+                            height: windw.screen.height
+                          }
+                        }
                       }),
                       name,
-                      type: "login",
-                    },
-                  },
+                      type: "login"
+                    }
+                  }
                 ])
               );
             }, 1000);
@@ -322,10 +324,10 @@ window.PinCheckerMain = function () {
                 id: ++mid,
                 ext: {
                   ack: message.ext.ack,
-                  timesync,
+                  timesync
                 },
-                clientId,
-              },
+                clientId
+              }
             ])
           );
         } else if (message.channel === "/service/controller") {
@@ -339,9 +341,9 @@ window.PinCheckerMain = function () {
                     clientId,
                     id: ++mid,
                     ext: {
-                      timesync,
-                    },
-                  },
+                      timesync
+                    }
+                  }
                 ])
               );
               connection.close();
@@ -362,9 +364,9 @@ window.PinCheckerMain = function () {
                     clientId,
                     id: ++mid,
                     ext: {
-                      timesync,
-                    },
-                  },
+                      timesync
+                    }
+                  }
                 ])
               );
               closed = true;
@@ -385,9 +387,9 @@ window.PinCheckerMain = function () {
                   clientId,
                   id: ++mid,
                   ext: {
-                    timesync,
-                  },
-                },
+                    timesync
+                  }
+                }
               ])
             );
             setTimeout(() => {
@@ -517,7 +519,7 @@ window.PinCheckerInjector = function (socket, message) {
       socket.webSocket.PinCheckClose();
       setTimeout(() => {
         const StillNotConnected = document.querySelector(
-          "[data-functional-selector=\"disconnected-page\"]"
+          '[data-functional-selector="disconnected-page"]'
         );
         if (StillNotConnected) {
           windw.CloseError();
@@ -546,9 +548,9 @@ window.PinCheckerInjector = function (socket, message) {
   }
   try {
     const part =
-      document.querySelector("[data-functional-selector=\"game-pin\"]") ||
+      document.querySelector('[data-functional-selector="game-pin"]') ||
       document.querySelector(
-        "[data-functional-selector=\"bottom-bar-game-pin\"]"
+        '[data-functional-selector="bottom-bar-game-pin"]'
       );
     if (
       Number(part.innerText) != windw.PinCheckerPin &&
@@ -578,104 +580,180 @@ window.PinCheckerInjector = function (socket, message) {
   }
 };
 
+function makeHttpRequest(url) {
+  const request = new XMLHttpRequest();
+  request.open("GET", url);
+  request.send();
+  return new Promise((resolve, reject) => {
+    request.onerror = request.onload = () => {
+      if (request.readyState === 4 && request.status === 200) {
+        resolve(request);
+      } else {
+        reject(request);
+      }
+    };
+  });
+}
+
+async function kpinImport(url) {
+  const importBlobURLs =
+      window.kpinBlobURLs ??
+      window.parent?.kpinBlobURLs ??
+      window.windw?.kpinBlobURLs,
+    makeHttpRequest =
+      window.kpinMakeHttpRequest ??
+      window.parent?.kpinMakeHttpRequest ??
+      window.windw?.kpinMakeHttpRequest,
+    createBlobURL =
+      window.kpinCreateBlobURL ??
+      window.parent?.kpinCreateBlobURL ??
+      window.windw?.kpinCreateBlobURL;
+
+  console.log(`[KPIN-CHECK] - Handling import of ${url}`);
+  // We need to intercept any requests and modify them!
+  if (url.startsWith(".")) {
+    url = `https://assets-cdn.kahoot.it/player/v2/assets${url.substring(1)}`;
+  }
+  if (importBlobURLs[url]) {
+    console.log(`[KPIN-CHECK] - ${url} already exists.`);
+    return import(importBlobURLs[url]);
+  } else {
+    // check if this url needs to be patched!
+    let { response: moduleCode } = await makeHttpRequest(url),
+      needsEdit = false;
+    const importFunctionRegex = /\bimport\b\(/g,
+      importStatementRegex =
+        /\bimport\b[\w.\-{}\s[\],:]*?\bfrom\b"[\w.\-/]*?"/g;
+
+    // if it has dynamic import statements
+    if (importFunctionRegex.test(moduleCode)) {
+      needsEdit = true;
+      moduleCode = moduleCode.replace(importFunctionRegex, "kpinImport(");
+      moduleCode = `${kpinImport.toString()}${moduleCode}`;
+    }
+    // if it has a regular import statement
+    if (importStatementRegex.test(moduleCode)) {
+      // Check if url exists for the import
+      for (const imp of moduleCode.match(importStatementRegex)) {
+        const [, impURL] = imp.match(/"([\w.\-/]*?)"/);
+        let editedImportURL = impURL;
+        if (editedImportURL.startsWith(".")) {
+          editedImportURL = `https://assets-cdn.kahoot.it/player/v2/assets${editedImportURL.substring(
+            1
+          )}`;
+        }
+        if (importBlobURLs[editedImportURL]) {
+          needsEdit = true;
+          moduleCode = moduleCode.replace(
+            impURL,
+            importBlobURLs[editedImportURL]
+          );
+        }
+      }
+    }
+    if (needsEdit) {
+      // Create a blob url and import it!
+      console.log(`[KPIN-CHECK] - Modifying ${url} and creating blob url.`);
+      const blobURL = createBlobURL(moduleCode);
+      importBlobURLs[url] = blobURL;
+      return import(blobURL);
+    } else {
+      console.log(`[KPIN-CHECK] - ${url} does not require a blob version.`);
+      // So we don't keep checking it each time
+      importBlobURLs[url] = url;
+      return import(url);
+    }
+  }
+}
+
 function createBlobURL(script) {
   return URL.createObjectURL(
     new Blob([script], { type: "application/javascript" })
   );
 }
 
-if (!window.kantibotEnabled && !window.page) {
-  document.write(
-    "<p id=\"pin-checker-loading-notice\">[PIN-CHECKER] - Patching Kahoot. Please wait.</p><p>If this screen stays blank for a long time, report an issue in <a href=\"https://discord.gg/pPdvXU6\">Discord</a>, <a href=\"https://github.com/theusaf/kantibot\">GitHub</a>, or <a href=\"https://greasyfork.org/en/scripts/392154-kpin-checker\">Greasyfork</a>.</p>"
-  );
-  const page = new XMLHttpRequest();
-  page.open("GET", location.href);
-  page.send();
-  page.onload = function () {
-    const [scriptURL] = page.response.match(
-        /\/\/assets-cdn.*\/v2\/assets\/vendor.*?(?=")/
-      ),
+(async () => {
+  if (!window.kantibotEnabled && !window.page) {
+    document.write(
+      '<p id="pin-checker-loading-notice">[PIN-CHECKER] - Patching Kahoot. Please wait.</p><p>If this screen stays blank for a long time, report an issue in <a href="https://discord.gg/pPdvXU6">Discord</a>, <a href="https://github.com/theusaf/kantibot">GitHub</a>, or <a href="https://greasyfork.org/en/scripts/392154-kpin-checker">Greasyfork</a>.</p>'
+    );
+    const page = await makeHttpRequest(location.href),
       [script2] = page.response.match(
         /\/\/assets-cdn.*\/v2\/assets\/index.*?(?=")/
       ),
-      originalPage = page.response
-        .replace(/<script type="module".*?<\/script>/, "")
-        .replace(/<link type="modulepreload".*?>/gm, ""),
-      script = new XMLHttpRequest();
-    script.open("GET", scriptURL);
-    script.send();
-    script.onload = () => {
-      const patchedScriptRegex = /\.onMessage=function\([$\w]+,[$\w]+\)\{/,
-        [letter1] = script.response
-          .match(patchedScriptRegex)[0]
-          .match(/[$\w]+(?=,)/),
-        [letter2] = script.response
-          .match(patchedScriptRegex)[0]
-          .match(/[$\w]+(?=\))/),
-        patchedScript = script.response.replace(
-          script.response.match(patchedScriptRegex)[0],
-          `.onMessage=function(${letter1},${letter2}){window.globalMessageListener(${letter1},${letter2});`
-        ),
-        mainScript = new XMLHttpRequest();
-      mainScript.open("GET", script2);
-      mainScript.send();
-      mainScript.onload = () => {
-        let { response: sc } = mainScript;
-        // Access the core data
-        const cr = /[$\w]+\.game\.core/,
-          letter6 = sc.match(cr)[0].match(/[$\w]+(?=\.game)/)[0];
-        sc = sc.replace(
-          cr,
-          `(()=>{
-	        if (typeof windw !== "undefined") {
-	          windw.specialData.kahootCore = ${letter6};
-	        }
-	        return ${letter6}.game.core;
-	      })()`
-        );
-        // fix imports
-        const vendorsBlobURL = createBlobURL(patchedScript);
-        sc = sc.replace(
-          /from".\/vendor.*?";/,
-          `from"${vendorsBlobURL}";URL.revokeObjectURL("${vendorsBlobURL}");`
-        );
-        sc = sc.replace(
-          /import\("\./gm,
-          "import(\"https://assets-cdn.kahoot.it/player/v2/assets/"
-        );
-        const mainBlobURL = createBlobURL(sc);
-        let changed = originalPage.split("</body>");
-        changed = `${changed[0]}
-        <script>
-        import("${mainBlobURL}").then(() => {
-          URL.revokeObjectURL("${mainBlobURL}");
-        });
-        </script>
-        <script>
-          window.globalMessageListener=${window.PinCheckerInjector.toString()};
-          (${window.PinCheckerMain.toString()})();
-          try{(${window.localStorage.kahootThemeScript})();}catch(err){}
-          window.fireLoaded = window.parent.fireLoaded = true;
-        </script>
-        </body>${changed[1]}`;
-        console.log("[PIN-CHECKER] - loaded");
-        document.open();
-        document.write(
-          "<style>body{margin:0;}iframe{border:0;width:100%;height:100%;}</style><iframe src=\"about:blank\"></iframe>"
-        );
-        document.close();
-        window.stop();
-        const doc = document.querySelector("iframe");
-        doc.contentDocument.write(changed);
-        document.title = doc.contentDocument.title;
-        doc.addEventListener("load", () => {
-          window.location.reload();
-        });
-      };
-    };
-  };
-} else {
-  console.warn("[PIN-CHECKER] - found AntiBot, waiting for injection");
-  window.localStorage.extraCheck = window.PinCheckerMain.toString();
-  window.localStorage.extraCheck2 = window.PinCheckerInjector.toString();
-}
+      originalPage = page.response.replace(
+        /<script type="module".*?<\/script>/,
+        ""
+      ),
+      script = await makeHttpRequest(script2),
+      patchedScriptRegex = /\.onMessage=function\(([$\w]+),([$\w]+)\)\{/,
+      [, websocketMessageLetter1, websocketMessageLetter2] =
+        script.response.match(patchedScriptRegex);
+    let patchedScript = script.response.replace(
+      patchedScriptRegex,
+      `.onMessage = function(${websocketMessageLetter1},${websocketMessageLetter2}){
+           window.globalMessageListener(${websocketMessageLetter1},${websocketMessageLetter2});`
+    );
+    // Access the core data
+    const cr = /[$\w]+\.game\.core/,
+      letter6 = patchedScript.match(cr)[0].match(/[$\w]+(?=\.game)/)[0];
+    patchedScript = patchedScript.replace(
+      cr,
+      `(()=>{
+        if (typeof windw !== "undefined") {
+          windw.specialData.kahootCore = ${letter6};
+        }
+        return ${letter6}.game.core;
+      })()`
+    );
+    // fix imports
+    patchedScript = patchedScript.replace(/\bimport\b\(/g, "kpinImport(");
+    patchedScript = `${kpinImport.toString()}${patchedScript}`;
+
+    // Create a blob url and import it!
+    const mainBlobURL = createBlobURL(patchedScript);
+    let changed = originalPage.split("</body>");
+    changed = `${changed[0]}
+      <script>
+      import("${mainBlobURL}");
+      </script>
+      <script>
+        window.globalMessageListener=${window.PinCheckerInjector.toString()};
+        (${window.PinCheckerMain.toString()})();
+        try{(${window.localStorage.kahootThemeScript})();}catch(err){}
+        window.fireLoaded = window.parent.fireLoaded = true;
+      </script>
+      </body>${changed[1]}`;
+    console.log("[PIN-CHECKER] - loaded");
+    window.kpinImport = kpinImport;
+    window.kpinCreateBlobURL = createBlobURL;
+    window.kpinMakeHttpRequest = makeHttpRequest;
+    window.kpinBlobURLs = {};
+    document.open();
+    document.write(
+      `<style>
+        body{
+          margin:0;
+        }
+        iframe{
+          border:0;
+          width:100%;
+          height:100%;
+        }
+      </style>
+      <iframe src="about:blank"></iframe>`
+    );
+    document.close();
+    window.stop();
+    const doc = document.querySelector("iframe");
+    doc.contentDocument.write(changed);
+    document.title = doc.contentDocument.title;
+    doc.addEventListener("load", () => {
+      window.location.reload();
+    });
+  } else {
+    console.warn("[PIN-CHECKER] - found AntiBot, waiting for injection");
+    window.localStorage.extraCheck = window.PinCheckerMain.toString();
+    window.localStorage.extraCheck2 = window.PinCheckerInjector.toString();
+  }
+})();
