@@ -9,7 +9,7 @@
 // @match        *://play.kahoot.it/*
 // @exclude      *://play.kahoot.it/v2/assets/*
 // @icon         https://kahoot-win.com/resource/img/game/medal/gold.svg
-// @copyright    2020-2021, Daniel Lau (https://github.com/theusaf/kahoot-antibot)
+// @copyright    2020-2022, Daniel Lau (https://github.com/theusaf/kahoot-antibot)
 // @grant        none
 // @run-at       document-start
 // ==/UserScript==
