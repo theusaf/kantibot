@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.4.1
+// @version        3.4.2
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -54,12 +54,15 @@ if (window.localStorage.kahootThemeScript) {
   console.log("[ANTIBOT] - Detected KonoSuba Theme");
 }
 
-setTimeout(() => {
-  document.write(`
-<p id="antibot-loading-notice">[ANTIBOT] - Patching Kahoot. Please wait.</p>
-<p>If this screen stays blank for a long time, report an issue in <a href="https://discord.gg/pPdvXU6">Discord</a>, <a href="https://github.com/theusaf/kantibot">GitHub</a>, or <a href="https://greasyfork.org/en/scripts/374093-kantibot">Greasyfork</a>.</p>
-`);
-}, 250);
+const writePromise = new Promise((res) =>
+  setTimeout(() => {
+    document.write(`
+    <p id="antibot-loading-notice">[ANTIBOT] - Patching Kahoot. Please wait.</p>
+    <p>If this screen stays blank for a long time, report an issue in <a href="https://discord.gg/pPdvXU6">Discord</a>, <a href="https://github.com/theusaf/kantibot">GitHub</a>, or <a href="https://greasyfork.org/en/scripts/374093-kantibot">Greasyfork</a>.</p>
+    `);
+    res();
+  }, 250)
+);
 window.antibotAdditionalScripts = window.antibotAdditionalScripts || [];
 window.antibotAdditionalReplacements =
   window.antibotAdditionalReplacements || [];
@@ -437,7 +440,7 @@ const kantibotProgramCode = () => {
   // create watermark
   const UITemplate = document.createElement("template");
   UITemplate.innerHTML = `<div id="antibotwtr">
-    <p>v3.4.1 ©theusaf</p>
+    <p>v3.4.2 ©theusaf</p>
     <p id="antibot-killcount">0</p>
     <details>
       <summary>config</summary>
@@ -2045,6 +2048,8 @@ ${createSetting(
 (async () => {
   try {
     console.log("[ANTIBOT] - loading");
+    // To prevent race condition issues.
+    await writePromise;
     const { page, mainScriptURL } = await fetchMainPage(),
       patchedMainScript = await fetchMainScript(mainScriptURL),
       externalScripts = await Promise.all(
