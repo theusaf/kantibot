@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.4.2
+// @version        3.4.3
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -301,7 +301,7 @@ async function fetchMainScript(mainScriptURL) {
       }`
   );
   // Access two factor stuff
-  const twoFactorRegex = /(const [$\w]+=)7/;
+  const twoFactorRegex = /(const [$\w]+=)7,/;
   mainScript = mainScript.replace(
     twoFactorRegex,
     `${mainScript.match(twoFactorRegex)[1]}(()=>{
@@ -312,7 +312,7 @@ async function fetchMainScript(mainScriptURL) {
       } else {
         return 7;
       }
-    })()`
+    })(),`
   );
 
   // access message socket
@@ -440,7 +440,7 @@ const kantibotProgramCode = () => {
   // create watermark
   const UITemplate = document.createElement("template");
   UITemplate.innerHTML = `<div id="antibotwtr">
-    <p>v3.4.2 ©theusaf</p>
+    <p>v3.4.3 ©theusaf</p>
     <p id="antibot-killcount">0</p>
     <details>
       <summary>config</summary>
@@ -2076,7 +2076,10 @@ ${createSetting(
       const template = document.createElement("template"),
         errorNotice = document.createElement("h3");
       errorNotice.textContent = "Error while loading patched Kahoot!:";
-      template.innerHTML = err.stack.replace(/\\n/g, "<br/>");
+      template.innerHTML = \`
+        <a href="${mainBlobURL}" download>Download Patched Code</a><br>
+        \${err.stack.replace(/\\n/g, "<br/>")}
+      \`;
       document.body.append(
         errorNotice,
         template.content.cloneNode(true)
