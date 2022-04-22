@@ -236,8 +236,9 @@ async function fetchMainScript(mainScriptURL) {
   // Access the currentQuestionTimer and change the question time
   const currentQuestionTimerRegex =
       /currentQuestionTimer:([$\w]+)\.payload\.questionTime/,
-    [,currentQuestionTimerLetter] = mainScript
-      .match(currentQuestionTimerRegex);
+    [, currentQuestionTimerLetter] = mainScript.match(
+      currentQuestionTimerRegex
+    );
   mainScript = mainScript.replace(
     currentQuestionTimerRegex,
     `currentQuestionTimer:${currentQuestionTimerLetter}.payload.questionTime + (()=>{
@@ -246,7 +247,8 @@ async function fetchMainScript(mainScriptURL) {
   );
 
   // Access global functions. Also gains direct access to the controllers?
-  const globalFuncRegex = /\({[^"`]*?quiz[^"`]*?startQuiz:([$\w]+).*?}\)=>{(?=var)/,
+  const globalFuncRegex =
+      /\({[^"`]*?quiz[^"`]*?startQuiz:([$\w]+).*?}\)=>{(?=var)/,
     [globalFuncMatch, globalFuncLetter] = mainScript.match(globalFuncRegex);
   mainScript = mainScript.replace(
     globalFuncRegex,
@@ -256,9 +258,8 @@ async function fetchMainScript(mainScriptURL) {
   // Note to future maintainer: if code switches back to using a function(){} rather than arrow function, see v3.1.5
   const fetchedQuizInformationRegex =
       /RETRIEVE_KAHOOT_ERROR",.*?{response:([$\w]+)}\)/,
-    [fetchedQuizInformationCode, fetchedQuizInformationLetter] = mainScript.match(
-      fetchedQuizInformationRegex
-    );
+    [fetchedQuizInformationCode, fetchedQuizInformationLetter] =
+      mainScript.match(fetchedQuizInformationRegex);
   mainScript = mainScript.replace(
     fetchedQuizInformationRegex,
     `RETRIEVE_KAHOOT_ERROR",${
@@ -273,8 +274,7 @@ async function fetchMainScript(mainScriptURL) {
   );
   // Access the core data
   const coreDataRegex = /([$\w]+)\.game\.core/,
-    [,coreDataLetter] = mainScript
-      .match(coreDataRegex);
+    [, coreDataLetter] = mainScript.match(coreDataRegex);
   mainScript = mainScript.replace(
     coreDataRegex,
     `(()=>{
