@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.4.3
+// @version        3.4.4
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -235,10 +235,9 @@ async function fetchMainScript(mainScriptURL) {
   let mainScript = mainScriptRequest.response;
   // Access the currentQuestionTimer and change the question time
   const currentQuestionTimerRegex =
-      /currentQuestionTimer:[$\w]+\.payload\.questionTime/,
-    [currentQuestionTimerLetter] = mainScript
-      .match(currentQuestionTimerRegex)[0]
-      .match(/[$\w]+(?=\.payload)/);
+      /currentQuestionTimer:([$\w]+)\.payload\.questionTime/,
+    [,currentQuestionTimerLetter] = mainScript
+      .match(currentQuestionTimerRegex);
   mainScript = mainScript.replace(
     currentQuestionTimerRegex,
     `currentQuestionTimer:${currentQuestionTimerLetter}.payload.questionTime + (()=>{
@@ -247,7 +246,7 @@ async function fetchMainScript(mainScriptURL) {
   );
 
   // Access global functions. Also gains direct access to the controllers?
-  const globalFuncRegex = /\({[^"`]*?startQuiz:([$\w]+).*?}\)=>{(?=var)/,
+  const globalFuncRegex = /\({[^"`]*?quiz[^"`]*?startQuiz:([$\w]+).*?}\)=>{(?=var)/,
     [globalFuncMatch, globalFuncLetter] = mainScript.match(globalFuncRegex);
   mainScript = mainScript.replace(
     globalFuncRegex,
@@ -256,13 +255,10 @@ async function fetchMainScript(mainScriptURL) {
   // Access the fetched quiz information. Allows the quiz to be modified when the quiz is fetched!
   // Note to future maintainer: if code switches back to using a function(){} rather than arrow function, see v3.1.5
   const fetchedQuizInformationRegex =
-      /RETRIEVE_KAHOOT_ERROR",.*?{response:[$\w]+}\)/,
-    [fetchedQuizInformationCode] = mainScript.match(
+      /RETRIEVE_KAHOOT_ERROR",.*?{response:([$\w]+)}\)/,
+    [fetchedQuizInformationCode, fetchedQuizInformationLetter] = mainScript.match(
       fetchedQuizInformationRegex
-    ),
-    [, fetchedQuizInformationLetter] = fetchedQuizInformationCode
-      .match(/response:[$\w]+/g)[0]
-      .split(":");
+    );
   mainScript = mainScript.replace(
     fetchedQuizInformationRegex,
     `RETRIEVE_KAHOOT_ERROR",${
@@ -276,10 +272,9 @@ async function fetchMainScript(mainScriptURL) {
     })()})`
   );
   // Access the core data
-  const coreDataRegex = /[$\w]+\.game\.core/,
-    [coreDataLetter] = mainScript
-      .match(coreDataRegex)[0]
-      .match(/[$\w]+(?=\.game)/);
+  const coreDataRegex = /([$\w]+)\.game\.core/,
+    [,coreDataLetter] = mainScript
+      .match(coreDataRegex);
   mainScript = mainScript.replace(
     coreDataRegex,
     `(()=>{
@@ -440,7 +435,7 @@ const kantibotProgramCode = () => {
   // create watermark
   const UITemplate = document.createElement("template");
   UITemplate.innerHTML = `<div id="antibotwtr">
-    <p>v3.4.3 ©theusaf</p>
+    <p>v3.4.4 ©theusaf</p>
     <p id="antibot-killcount">0</p>
     <details>
       <summary>config</summary>
