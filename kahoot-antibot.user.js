@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.4.4
+// @version        3.5.0
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -54,15 +54,24 @@ if (window.localStorage.kahootThemeScript) {
   console.log("[ANTIBOT] - Detected KonoSuba Theme");
 }
 
-const writePromise = new Promise((res) =>
+let writePromise = new Promise(() => {});
+
+// Should allow for default behavior and reload page
+if (location.pathname.includes("/oauth2/")) {
   setTimeout(() => {
-    document.write(`
-    <p id="antibot-loading-notice">[ANTIBOT] - Patching Kahoot. Please wait.</p>
-    <p>If this screen stays blank for a long time, report an issue in <a href="https://discord.gg/pPdvXU6">Discord</a>, <a href="https://github.com/theusaf/kantibot">GitHub</a>, or <a href="https://greasyfork.org/en/scripts/374093-kantibot">Greasyfork</a>.</p>
-    `);
-    res();
-  }, 250)
-);
+    location.reload();
+  }, 3e3);
+} else {
+  writePromise = new Promise((res) =>
+    setTimeout(() => {
+      document.write(`
+      <p id="antibot-loading-notice">[ANTIBOT] - Patching Kahoot. Please wait.</p>
+      <p>If this screen stays blank for a long time, report an issue in <a href="https://discord.gg/pPdvXU6">Discord</a>, <a href="https://github.com/theusaf/kantibot">GitHub</a>, or <a href="https://greasyfork.org/en/scripts/374093-kantibot">Greasyfork</a>.</p>
+      `);
+      res();
+    }, 250)
+  );
+}
 window.antibotAdditionalScripts = window.antibotAdditionalScripts || [];
 window.antibotAdditionalReplacements =
   window.antibotAdditionalReplacements || [];
@@ -309,6 +318,20 @@ async function fetchMainScript(mainScriptURL) {
       }
     })(),`
   );
+  // Overwrite navigation (opens in parent, preventing iframe issues)
+  const navigationRegex =
+      /prototype\.navigate=function\(([$\w]+)\){(.{1,80}?window\.location\.replace)/,
+    [, navigationLetter, navigationOriginalCode] =
+      mainScript.match(navigationRegex);
+  mainScript = mainScript.replace(
+    navigationRegex,
+    `prototype.navigate = function(${navigationLetter}) {
+      if (${navigationLetter}.url && typeof windw !== "undefined") {
+        windw.location.replace(${navigationLetter}.url);
+        return;
+      }
+      ${navigationOriginalCode}`
+  );
 
   // access message socket
   // moved from "vendors"
@@ -435,7 +458,7 @@ const kantibotProgramCode = () => {
   // create watermark
   const UITemplate = document.createElement("template");
   UITemplate.innerHTML = `<div id="antibotwtr">
-    <p>v3.4.4 ©theusaf</p>
+    <p>v3.5.0 ©theusaf</p>
     <p id="antibot-killcount">0</p>
     <details>
       <summary>config</summary>
