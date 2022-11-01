@@ -242,7 +242,6 @@ const PATCHES = {
 
 function patcher(code, url) {
   const [, scriptName] = url.match(/\/assets\/(\w+)(?=\.)/);
-  console.warn(scriptName);
   switch (scriptName) {
     case "index": {
       code = PATCHES.questionTime(code);
@@ -250,12 +249,12 @@ function patcher(code, url) {
       code = PATCHES.quizInformation(code);
       code = PATCHES.gameSettingsOld(code);
       code = PATCHES.twoFactor(code);
-      code = PATCHES.twoFactor(code);
-      code = PATCHES.socketMessages(code);
       code = patchMainScript(code);
       break;
     }
     case "vendor": {
+      code = PATCHES.pageNavigation(code);
+      code = PATCHES.socketMessages(code);
       break;
     }
   }
@@ -315,7 +314,7 @@ async function antibotImport(url, shouldImport = true) {
       needsEdit = false;
     const importFunctionRegex = /\bimport\b\(/g,
       importStatementRegex =
-        /\bimport\b[\w.\-{}\s[\],:]*?\bfrom\b"[\w.\-/]*?"/g;
+        /\bimport\b[$\w.\-{}\s[\],:]*?\bfrom\b"[\w.\-/]*?"/g;
 
     // if it has dynamic import statements
     if (importFunctionRegex.test(moduleCode)) {
@@ -334,12 +333,20 @@ async function antibotImport(url, shouldImport = true) {
             1
           )}`;
         }
+        needsEdit = true;
         if (importBlobURLs[editedImportURL]) {
-          needsEdit = true;
           moduleCode = moduleCode.replace(
             impURL,
             importBlobURLs[editedImportURL]
           );
+        } else {
+          const importedModuleCode = await antibotImport(
+              editedImportURL,
+              false
+            ),
+            blobURL = createBlobURL(importedModuleCode);
+          importBlobURLs[editedImportURL] = blobURL;
+          moduleCode = moduleCode.replace(impURL, blobURL);
         }
       }
     }
@@ -415,7 +422,7 @@ async function fetchMainPage() {
  * @param {string} mainScript The main script's code (patched)
  * @returns {Promise<string>} The main script (more patched)
  */
-async function patchMainScript(mainScript) {
+function patchMainScript(mainScript) {
   for (const func of window.antibotAdditionalReplacements) {
     mainScript = func(mainScript);
   }
@@ -2134,7 +2141,7 @@ ${createSetting(
     // To prevent race condition issues.
     await patchMessageCompletion;
     const { page, mainScriptURL } = await fetchMainPage(),
-      patchedMainScript = await antibotImport(mainScriptURL, true),
+      patchedMainScript = await antibotImport(mainScriptURL, false),
       externalScripts = await Promise.all(
         requiredAssets.map((assetURL) =>
           makeHttpRequest(assetURL).catch(() => "")
