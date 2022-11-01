@@ -110,9 +110,7 @@ const PATCHES = {
   questionTime(code) {
     const currentQuestionTimerRegex =
         /currentQuestionTimer:([$\w]+)\.payload\.questionTime/,
-      [, currentQuestionTimerLetter] = mainScript.match(
-        currentQuestionTimerRegex
-      );
+      [, currentQuestionTimerLetter] = code.match(currentQuestionTimerRegex);
     return code.replace(
       currentQuestionTimerRegex,
       `currentQuestionTimer:${currentQuestionTimerLetter}.payload.questionTime + (()=>{
@@ -242,6 +240,29 @@ const PATCHES = {
   }
 };
 
+function patcher(code, url) {
+  const [, scriptName] = url.match(/\/assets\/(\w+)(?=\.)/);
+  console.warn(scriptName);
+  switch (scriptName) {
+    case "index": {
+      code = PATCHES.questionTime(code);
+      code = PATCHES.globalFunctions(code);
+      code = PATCHES.quizInformation(code);
+      code = PATCHES.gameSettingsOld(code);
+      code = PATCHES.twoFactor(code);
+      code = PATCHES.twoFactor(code);
+      code = PATCHES.socketMessages(code);
+      code = patchMainScript(code);
+      break;
+    }
+    case "vendor": {
+      break;
+    }
+  }
+  return code;
+}
+window.kantibotPatcher = patcher;
+
 /**
  * Creates a blob url from a string.
  *
@@ -253,14 +274,16 @@ function createBlobURL(script) {
     new Blob([script], { type: "application/javascript" })
   );
 }
+window.kantibotCreateBlobURL = createBlobURL;
 
 /**
  * Patches the imported url and resolves with the patched script.
  *
  * @param {string} url The url being imported
+ * @param {boolean} shouldImport Whether the script should be imported or just the code is returned
  * @returns {Promise<any>} The imported script's exports
  */
-async function antibotImport(url) {
+async function antibotImport(url, shouldImport = true) {
   const importBlobURLs =
       window.importBlobURLs ??
       window.parent?.importBlobURLs ??
@@ -272,7 +295,11 @@ async function antibotImport(url) {
     createBlobURL =
       window.kantibotCreateBlobURL ??
       window.parent?.kantibotCreateBlobURL ??
-      window.windw?.kantibotCreateBlobURL;
+      window.windw?.kantibotCreateBlobURL,
+    patcher =
+      window.kantibotPatcher ??
+      window.parent?.kantibotPatcher ??
+      window.windw?.kantibotPatcher;
 
   console.log(`[ANTIBOT] - Handling import of ${url}`);
   // We need to intercept any requests and modify them!
@@ -316,6 +343,10 @@ async function antibotImport(url) {
         }
       }
     }
+    const currentCode = moduleCode;
+    moduleCode = patcher(moduleCode, url);
+    if (currentCode !== moduleCode) needsEdit = true;
+    if (!shouldImport) return moduleCode;
     if (needsEdit) {
       // Create a blob url and import it!
       console.log(`[ANTIBOT] - Modifying ${url} and creating blob url.`);
@@ -351,6 +382,7 @@ function makeHttpRequest(url) {
     };
   });
 }
+window.kantibotMakeHTTPRequest = makeHttpRequest;
 
 /**
  * Fetches the main page, and fetches the assets to be modified.
@@ -378,36 +410,19 @@ async function fetchMainPage() {
 }
 
 /**
- * Fetches the main script and patches it to gain access to internal data.
+ * Applies other patches to the main script.
  *
- * @param {string} mainScriptURL The url of the main script
- * @returns {Promise<string>} The main script (patched)
+ * @param {string} mainScript The main script's code (patched)
+ * @returns {Promise<string>} The main script (more patched)
  */
-async function fetchMainScript(mainScriptURL) {
-  const mainScriptRequest = await makeHttpRequest(mainScriptURL);
-  let mainScript = mainScriptRequest.response;
-  mainScript = PATCHES.questionTime(mainScript);
-  mainScript = PATCHES.globalFunctions(mainScript);
-  mainScript = PATCHES.quizInformation(mainScript);
-  mainScript = PATCHES.gameSettingsOld(mainScript);
-  mainScript = PATCHES.twoFactor(mainScript);
-  mainScript = PATCHES.twoFactor(mainScript);
-  mainScript = PATCHES.socketMessages(mainScript);
-
-  // other replacements
+async function patchMainScript(mainScript) {
   for (const func of window.antibotAdditionalReplacements) {
     mainScript = func(mainScript);
   }
-
-  // modified import
-  mainScript = mainScript.replace(/\bimport\b\(/g, "antibotImport(");
-
-  mainScript = `${antibotImport.toString()}${mainScript}`;
-
   return mainScript;
 }
 
-const kantibotProgramCode = () => {
+const kantibotProgramCode = (antibotVersion) => {
   class EvilBotJoinedError extends Error {
     constructor() {
       super("Bot Banned, Ignore Join");
@@ -2119,7 +2134,7 @@ ${createSetting(
     // To prevent race condition issues.
     await patchMessageCompletion;
     const { page, mainScriptURL } = await fetchMainPage(),
-      patchedMainScript = await fetchMainScript(mainScriptURL),
+      patchedMainScript = await antibotImport(mainScriptURL, true),
       externalScripts = await Promise.all(
         requiredAssets.map((assetURL) =>
           makeHttpRequest(assetURL).catch(() => "")
@@ -2156,7 +2171,7 @@ ${createSetting(
     </script>
     <script data-antibot="fire-loader">
       window.parent.fireLoaded = window.fireLoaded = true;
-      (${kantibotProgramCode.toString()})();
+      (${kantibotProgramCode.toString()})("${antibotVersion}");
     </script>
     ${externalScripts}
     <script data-antibot="external-loader">
