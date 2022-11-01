@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.5.2
+// @version        3.5.3
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -55,7 +55,7 @@ if (window.localStorage.kahootThemeScript) {
 }
 
 let patchMessageCompletion = new Promise(() => {});
-const antibotVersion = "3.5.2";
+const antibotVersion = "3.5.3";
 
 // Should allow for default behavior and reload page
 if (location.pathname.includes("/oauth2/")) {
@@ -125,7 +125,6 @@ const PATCHES = {
    * @returns {string}
    */
   globalFunctions(code) {
-    // Access global functions. Also gains direct access to the controllers?
     const globalFuncRegex =
         /\({[^"`]*?quiz[^"`]*?startQuiz:([$\w]+).*?}\)=>{(?=var)/,
       [globalFuncMatch, globalFuncLetter] = code.match(globalFuncRegex);
@@ -158,6 +157,25 @@ const PATCHES = {
       windw.antibotData.methods.extraQuestionSetup(${fetchedQuizInformationLetter});
       return ${fetchedQuizInformationLetter};
     })()})`
+    );
+  },
+  /**
+   * Accesses core data.
+   *
+   * @param {string} code The code to patch
+   * @returns {string}
+   */
+  gameCore(code) {
+    const coreDataRegex = /([$\w]+)\.game\.core/,
+      [, coreDataLetter] = code.match(coreDataRegex);
+    return code.replace(
+      coreDataRegex,
+      `(()=>{
+        if(typeof windw !== "undefined"){
+          windw.antibotData.kahootInternals.kahootCore = ${coreDataLetter};
+        }
+        return ${coreDataLetter}.game.core;
+      })()`
     );
   },
   /**
@@ -247,6 +265,7 @@ function patcher(code, url) {
       code = PATCHES.questionTime(code);
       code = PATCHES.globalFunctions(code);
       code = PATCHES.quizInformation(code);
+      code = PATCHES.gameCore(code);
       code = PATCHES.gameSettingsOld(code);
       code = PATCHES.twoFactor(code);
       code = patchMainScript(code);
