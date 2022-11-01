@@ -54,7 +54,7 @@ if (window.localStorage.kahootThemeScript) {
   console.log("[ANTIBOT] - Detected KonoSuba Theme");
 }
 
-let writePromise = new Promise(() => {});
+let patchMessageCompletion = new Promise(() => {});
 const antibotVersion = "3.6.0";
 
 // Should allow for default behavior and reload page
@@ -63,7 +63,7 @@ if (location.pathname.includes("/oauth2/")) {
     location.reload();
   }, 3e3);
 } else {
-  writePromise = new Promise((res) =>
+  patchMessageCompletion = new Promise((res) =>
     setTimeout(() => {
       document.write(`
       <p id="antibot-loading-notice">[ANTIBOT] - Patching Kahoot. Please wait.</p>
@@ -2117,7 +2117,7 @@ ${createSetting(
   try {
     console.log("[ANTIBOT] - loading");
     // To prevent race condition issues.
-    await writePromise;
+    await patchMessageCompletion;
     const { page, mainScriptURL } = await fetchMainPage(),
       patchedMainScript = await fetchMainScript(mainScriptURL),
       externalScripts = await Promise.all(
