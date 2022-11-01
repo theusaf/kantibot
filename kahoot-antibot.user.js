@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.5.1
+// @version        3.6.0
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -55,6 +55,7 @@ if (window.localStorage.kahootThemeScript) {
 }
 
 let writePromise = new Promise(() => {});
+const antibotVersion = "3.6.0";
 
 // Should allow for default behavior and reload page
 if (location.pathname.includes("/oauth2/")) {
@@ -97,6 +98,149 @@ const url = window.location.href,
   importBlobURLs = {};
 
 window.importBlobURLs = importBlobURLs;
+
+const PATCHES = {
+  /**
+   * Access the currentQuestionTimer to allow
+   * changes to the question time
+   *
+   * @param {string} code The code to patch
+   * @returns {string}
+   */
+  questionTime(code) {
+    const currentQuestionTimerRegex =
+        /currentQuestionTimer:([$\w]+)\.payload\.questionTime/,
+      [, currentQuestionTimerLetter] = mainScript.match(
+        currentQuestionTimerRegex
+      );
+    return code.replace(
+      currentQuestionTimerRegex,
+      `currentQuestionTimer:${currentQuestionTimerLetter}.payload.questionTime + (()=>{
+        return (windw.antibotData.settings.teamtimeout * 1000) || 0;
+      })()`
+    );
+  },
+  /**
+   * Access global functions. Also gains direct access to the controllers.
+   *
+   * @param {string} code The code to patch
+   * @returns {string}
+   */
+  globalFunctions(code) {
+    // Access global functions. Also gains direct access to the controllers?
+    const globalFuncRegex =
+        /\({[^"`]*?quiz[^"`]*?startQuiz:([$\w]+).*?}\)=>{(?=var)/,
+      [globalFuncMatch, globalFuncLetter] = code.match(globalFuncRegex);
+    return code.replace(
+      globalFuncRegex,
+      `${globalFuncMatch}windw.antibotData.kahootInternals.globalFuncs = {startQuiz:${globalFuncLetter}};`
+    );
+  },
+  /**
+   * Access the fetched quiz information. Allows the quiz to be modified when the quiz is fetched!
+   * Note to future maintainer: if code switches back to using a function(){} rather than arrow function, see v3.1.5
+   *
+   * @param {string} code The code to patch
+   * @returns {string}
+   */
+  quizInformation(code) {
+    const fetchedQuizInformationRegex =
+        /RETRIEVE_KAHOOT_ERROR",.*?{response:([$\w]+)}\)/,
+      [fetchedQuizInformationCode, fetchedQuizInformationLetter] = code.match(
+        fetchedQuizInformationRegex
+      );
+    return code.replace(
+      fetchedQuizInformationRegex,
+      `RETRIEVE_KAHOOT_ERROR",${
+        fetchedQuizInformationCode
+          .split('RETRIEVE_KAHOOT_ERROR",')[1]
+          .split("response:")[0]
+      }response:(()=>{
+      windw.antibotData.kahootInternals.globalQuizData = ${fetchedQuizInformationLetter};
+      windw.antibotData.methods.extraQuestionSetup(${fetchedQuizInformationLetter});
+      return ${fetchedQuizInformationLetter};
+    })()})`
+    );
+  },
+  /**
+   * Access game settings
+   * 3.2.8 --> added back to core data
+   * This code doesn't actually do anything, but is kept in case
+   *
+   * @param {string} code The code to patch
+   * @returns {string}
+   */
+  gameSettingsOld(code) {
+    const gameSettingsRegex = /getGameOptions\(\){/;
+    return code.replace(
+      gameSettingsRegex,
+      `getGameOptions() {
+      if (typeof windw !== "undefined") {
+        windw.antibotData.kahootInternals.gameOptions = this;
+      }`
+    );
+  },
+  /**
+   * Access two factor timings
+   *
+   * @param {string} code The code to patch
+   * @returns {string}
+   */
+  twoFactor(code) {
+    const twoFactorRegex = /(const [$\w]+=)7,|(\),[$\w]+=)7,/,
+      twoFactorMatches = code.match(twoFactorRegex),
+      twoFactorMatchContent = twoFactorMatches[1] || twoFactorMatches[2];
+    return code.replace(
+      twoFactorRegex,
+      `${twoFactorMatchContent}(()=>{
+      const antibotConfig = JSON.parse(localStorage.antibotConfig || "{}"),
+        {twoFactorTime} = antibotConfig;
+      if (twoFactorTime) {
+        return +twoFactorTime;
+      } else {
+        return 7;
+      }
+    })(),`
+    );
+  },
+  /**
+   * Overwrite navigation (opens in parent, preventing iframe issues)
+   *
+   * @param {string} code The code to patch
+   * @returns {string}
+   */
+  pageNavigation(code) {
+    const navigationRegex =
+        /prototype\.navigate=function\(([$\w]+)\){(.{1,80}?window\.location\.replace)/,
+      [, navigationLetter, navigationOriginalCode] =
+        code.match(navigationRegex);
+    return code.replace(
+      navigationRegex,
+      `prototype.navigate = function(${navigationLetter}) {
+      if (${navigationLetter}.url && typeof windw !== "undefined") {
+        windw.location.replace(${navigationLetter}.url);
+        return;
+      }
+      ${navigationOriginalCode}`
+    );
+  },
+  /**
+   * Accesses message sockets
+   *
+   * @param {string} code The code to patch
+   * @returns {string}
+   */
+  socketMessages(code) {
+    const patchedScriptRegex = /\.onMessage=function\(([$\w]+),([$\w]+)\)\{/,
+      [, websocketMessageLetter1, websocketMessageLetter2] =
+        code.match(patchedScriptRegex);
+    return code.replace(
+      patchedScriptRegex,
+      `.onMessage = function(${websocketMessageLetter1},${websocketMessageLetter2}){
+      windw.antibotData.methods.websocketMessageHandler(${websocketMessageLetter1},${websocketMessageLetter2});`
+    );
+  }
+};
 
 /**
  * Creates a blob url from a string.
@@ -242,109 +386,13 @@ async function fetchMainPage() {
 async function fetchMainScript(mainScriptURL) {
   const mainScriptRequest = await makeHttpRequest(mainScriptURL);
   let mainScript = mainScriptRequest.response;
-  // Access the currentQuestionTimer and change the question time
-  const currentQuestionTimerRegex =
-      /currentQuestionTimer:([$\w]+)\.payload\.questionTime/,
-    [, currentQuestionTimerLetter] = mainScript.match(
-      currentQuestionTimerRegex
-    );
-  mainScript = mainScript.replace(
-    currentQuestionTimerRegex,
-    `currentQuestionTimer:${currentQuestionTimerLetter}.payload.questionTime + (()=>{
-      return (windw.antibotData.settings.teamtimeout * 1000) || 0;
-    })()`
-  );
-
-  // Access global functions. Also gains direct access to the controllers?
-  const globalFuncRegex =
-      /\({[^"`]*?quiz[^"`]*?startQuiz:([$\w]+).*?}\)=>{(?=var)/,
-    [globalFuncMatch, globalFuncLetter] = mainScript.match(globalFuncRegex);
-  mainScript = mainScript.replace(
-    globalFuncRegex,
-    `${globalFuncMatch}windw.antibotData.kahootInternals.globalFuncs = {startQuiz:${globalFuncLetter}};`
-  );
-  // Access the fetched quiz information. Allows the quiz to be modified when the quiz is fetched!
-  // Note to future maintainer: if code switches back to using a function(){} rather than arrow function, see v3.1.5
-  const fetchedQuizInformationRegex =
-      /RETRIEVE_KAHOOT_ERROR",.*?{response:([$\w]+)}\)/,
-    [fetchedQuizInformationCode, fetchedQuizInformationLetter] =
-      mainScript.match(fetchedQuizInformationRegex);
-  mainScript = mainScript.replace(
-    fetchedQuizInformationRegex,
-    `RETRIEVE_KAHOOT_ERROR",${
-      fetchedQuizInformationCode
-        .split('RETRIEVE_KAHOOT_ERROR",')[1]
-        .split("response:")[0]
-    }response:(()=>{
-      windw.antibotData.kahootInternals.globalQuizData = ${fetchedQuizInformationLetter};
-      windw.antibotData.methods.extraQuestionSetup(${fetchedQuizInformationLetter});
-      return ${fetchedQuizInformationLetter};
-    })()})`
-  );
-  // Access the core data
-  const coreDataRegex = /([$\w]+)\.game\.core/,
-    [, coreDataLetter] = mainScript.match(coreDataRegex);
-  mainScript = mainScript.replace(
-    coreDataRegex,
-    `(()=>{
-      if(typeof windw !== "undefined"){
-        windw.antibotData.kahootInternals.kahootCore = ${coreDataLetter};
-      }
-      return ${coreDataLetter}.game.core;
-    })()`
-  );
-  // Access game settings (somehow removed from the core data...)
-  // 3.2.8 --> added back to core data
-  // This code doesn't actually do anything, but is kept in case
-  const gameSettingsRegex = /getGameOptions\(\){/;
-  mainScript = mainScript.replace(
-    gameSettingsRegex,
-    `getGameOptions() {
-      if (typeof windw !== "undefined") {
-        windw.antibotData.kahootInternals.gameOptions = this;
-      }`
-  );
-  // Access two factor stuff
-  const twoFactorRegex = /(const [$\w]+=)7,|(\),[$\w]+=)7,/,
-    twoFactorMatches = mainScript.match(twoFactorRegex),
-    twoFactorMatchContent = twoFactorMatches[1] || twoFactorMatches[2];
-  mainScript = mainScript.replace(
-    twoFactorRegex,
-    `${twoFactorMatchContent}(()=>{
-      const antibotConfig = JSON.parse(localStorage.antibotConfig || "{}"),
-        {twoFactorTime} = antibotConfig;
-      if (twoFactorTime) {
-        return +twoFactorTime;
-      } else {
-        return 7;
-      }
-    })(),`
-  );
-  // Overwrite navigation (opens in parent, preventing iframe issues)
-  const navigationRegex =
-      /prototype\.navigate=function\(([$\w]+)\){(.{1,80}?window\.location\.replace)/,
-    [, navigationLetter, navigationOriginalCode] =
-      mainScript.match(navigationRegex);
-  mainScript = mainScript.replace(
-    navigationRegex,
-    `prototype.navigate = function(${navigationLetter}) {
-      if (${navigationLetter}.url && typeof windw !== "undefined") {
-        windw.location.replace(${navigationLetter}.url);
-        return;
-      }
-      ${navigationOriginalCode}`
-  );
-
-  // access message socket
-  // moved from "vendors"
-  const patchedScriptRegex = /\.onMessage=function\(([$\w]+),([$\w]+)\)\{/,
-    [, websocketMessageLetter1, websocketMessageLetter2] =
-      mainScript.match(patchedScriptRegex);
-  mainScript = mainScript.replace(
-    patchedScriptRegex,
-    `.onMessage = function(${websocketMessageLetter1},${websocketMessageLetter2}){
-      windw.antibotData.methods.websocketMessageHandler(${websocketMessageLetter1},${websocketMessageLetter2});`
-  );
+  mainScript = PATCHES.questionTime(mainScript);
+  mainScript = PATCHES.globalFunctions(mainScript);
+  mainScript = PATCHES.quizInformation(mainScript);
+  mainScript = PATCHES.gameSettingsOld(mainScript);
+  mainScript = PATCHES.twoFactor(mainScript);
+  mainScript = PATCHES.twoFactor(mainScript);
+  mainScript = PATCHES.socketMessages(mainScript);
 
   // other replacements
   for (const func of window.antibotAdditionalReplacements) {
@@ -460,7 +508,7 @@ const kantibotProgramCode = () => {
   // create watermark
   const UITemplate = document.createElement("template");
   UITemplate.innerHTML = `<div id="antibotwtr">
-    <p>v3.5.1 ©theusaf</p>
+    <p>v${antibotVersion} ©theusaf</p>
     <p id="antibot-killcount">0</p>
     <details>
       <summary>config</summary>
