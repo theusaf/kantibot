@@ -19,8 +19,6 @@ if (window.fireLoaded || (window.parent && window.parent.PinCheckerMain)) {
 }
 console.log("[PIN-CHECKER] - Looking for AntiBot");
 
-// data-functional-selector="dialog-actions"
-
 /**
  * PinCheckerMain - The main pin checking function
  */
@@ -115,6 +113,16 @@ window.PinCheckerMain = function () {
       }, 500);
     } else {
       delete windw.localStorage.PinCheckerMode;
+    }
+  }, 500);
+  let checks = 0;
+  const themeLoadChecker = setInterval(() => {
+    const errButton = document.querySelector('[data-functional-selector="dialog-actions"]');
+    if (errButton) {
+      clearInterval(themeLoadChecker);
+      errButton.querySelector("button").click();
+    } else if (++checks > 10) {
+      clearInterval(themeLoadChecker);
     }
   }, 500);
 
