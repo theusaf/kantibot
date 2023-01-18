@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.5.5
+// @version        3.5.6
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -92,8 +92,8 @@ window.kantibotEnabled = true;
  */
 const url = window.location.href,
   requiredAssets = [
-    "https://raw.githubusercontent.com/theusaf/a-set-of-english-words/master/index.js",
-    "https://raw.githubusercontent.com/theusaf/random-name/master/names.js"
+    "https://cdn.jsdelivr.net/gh/theusaf/a-set-of-english-words@c1ab78ece625138cae66fc32feb18f293ff49001/index.js",
+    "https://cdn.jsdelivr.net/gh/theusaf/random-name@3047117dc088740f018cb9a3ec66b5ef20ea52bd/names.js"
   ],
   importBlobURLs = {};
 
