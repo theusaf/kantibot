@@ -55,7 +55,7 @@ if (window.localStorage.kahootThemeScript) {
 }
 
 let patchMessageCompletion = new Promise(() => {});
-const antibotVersion = "3.5.5";
+const antibotVersion = "3.5.6";
 
 // Should allow for default behavior and reload page
 if (location.pathname.includes("/oauth2/")) {
