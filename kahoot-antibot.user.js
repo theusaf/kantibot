@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.5.6
+// @version        3.5.7
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -55,24 +55,18 @@ if (window.localStorage.kahootThemeScript) {
 }
 
 let patchMessageCompletion = new Promise(() => {});
-const antibotVersion = "3.5.6";
+const antibotVersion = "3.5.7";
 
 // Should allow for default behavior and reload page
-if (location.pathname.includes("/oauth2/")) {
+patchMessageCompletion = new Promise((res) =>
   setTimeout(() => {
-    location.reload();
-  }, 3e3);
-} else {
-  patchMessageCompletion = new Promise((res) =>
-    setTimeout(() => {
-      document.write(`
-      <p id="antibot-loading-notice">[ANTIBOT] - Patching Kahoot. Please wait.</p>
-      <p>If this screen stays blank for a long time, report an issue in <a href="https://discord.gg/pPdvXU6">Discord</a>, <a href="https://github.com/theusaf/kantibot">GitHub</a>, or <a href="https://greasyfork.org/en/scripts/374093-kantibot">Greasyfork</a>.</p>
-      `);
-      res();
-    }, 250)
-  );
-}
+    document.write(`
+    <p id="antibot-loading-notice">[ANTIBOT] - Patching Kahoot. Please wait.</p>
+    <p>If this screen stays blank for a long time, report an issue in <a href="https://discord.gg/pPdvXU6">Discord</a>, <a href="https://github.com/theusaf/kantibot">GitHub</a>, or <a href="https://greasyfork.org/en/scripts/374093-kantibot">Greasyfork</a>.</p>
+    `);
+    res();
+  }, 250)
+);
 window.antibotAdditionalScripts = window.antibotAdditionalScripts || [];
 window.antibotAdditionalReplacements =
   window.antibotAdditionalReplacements || [];
@@ -2107,6 +2101,16 @@ ${createSetting(
   setInterval(function updateOldKillCount() {
     antibotData.runtimeData.oldKillCount = antibotData.runtimeData.killCount;
   }, 20e3);
+  setInterval(function updateWindowPath() {
+    if (windw.location.pathname !== window.location.pathname) {
+      // update state
+      windw.history.replaceState(
+        null,
+        null,
+        window.location.href
+      );
+    }
+  }, 3e3);
 
   let PinCheckerCheckMethod = () => {};
   try {
