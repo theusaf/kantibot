@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.5.7
+// @version        3.5.9
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -55,18 +55,25 @@ if (window.localStorage.kahootThemeScript) {
 }
 
 let patchMessageCompletion = new Promise(() => {});
-const antibotVersion = "3.5.7";
+const antibotVersion = "3.5.9";
 
 // Should allow for default behavior and reload page
-patchMessageCompletion = new Promise((res) =>
-  setTimeout(() => {
-    document.write(`
-    <p id="antibot-loading-notice">[ANTIBOT] - Patching Kahoot. Please wait.</p>
-    <p>If this screen stays blank for a long time, report an issue in <a href="https://discord.gg/pPdvXU6">Discord</a>, <a href="https://github.com/theusaf/kantibot">GitHub</a>, or <a href="https://greasyfork.org/en/scripts/374093-kantibot">Greasyfork</a>.</p>
-    `);
-    res();
-  }, 250)
-);
+if (
+  window.location.pathname.includes("authenticated-popup") ||
+  window.location.pathname.includes("logout")
+) {
+  console.log("[ANTIBOT] - Detected special auth page, not patching.");
+} else {
+  patchMessageCompletion = new Promise((res) =>
+    setTimeout(() => {
+      document.write(`
+      <p id="antibot-loading-notice">[ANTIBOT] - Patching Kahoot. Please wait.</p>
+      <p>If this screen stays blank for a long time, report an issue in <a href="https://discord.gg/pPdvXU6">Discord</a>, <a href="https://github.com/theusaf/kantibot">GitHub</a>, or <a href="https://greasyfork.org/en/scripts/374093-kantibot">Greasyfork</a>.</p>
+      `);
+      res();
+    }, 250)
+  );
+}
 window.antibotAdditionalScripts = window.antibotAdditionalScripts || [];
 window.antibotAdditionalReplacements =
   window.antibotAdditionalReplacements || [];
@@ -235,6 +242,16 @@ const PATCHES = {
     );
   },
   /**
+   * Overwrite authentication window (keeps it in the same window)
+   *
+   * @param {string} code The code to patch
+   * @returns {string}
+   */
+  popupWindow(code) {
+    const regex = /window\.top!==window\.self(?=.{0,50}Popup\(\))/gm;
+    return code.replace(regex, "false");
+  },
+  /**
    * Accesses message sockets
    *
    * @param {string} code The code to patch
@@ -262,6 +279,7 @@ function patcher(code, url) {
       code = PATCHES.gameCore(code);
       code = PATCHES.gameSettingsOld(code);
       code = PATCHES.twoFactor(code);
+      code = PATCHES.popupWindow(code);
       code = patchMainScript(code);
       break;
     }
@@ -2104,11 +2122,7 @@ ${createSetting(
   setInterval(function updateWindowPath() {
     if (windw.location.pathname !== window.location.pathname) {
       // update state
-      windw.history.replaceState(
-        null,
-        null,
-        window.location.href
-      );
+      windw.history.replaceState(null, null, window.location.href);
     }
   }, 3e3);
 
@@ -2227,10 +2241,10 @@ ${createSetting(
     window.kantibotImport = antibotImport;
     window.kantibotMakeHTTPRequest = makeHttpRequest;
     window.kantibotCreateBlobURL = createBlobURL;
-    const doc = document.querySelector("iframe");
-    doc.contentDocument.write(completePage);
-    document.title = doc.contentDocument.title;
-    doc.addEventListener("load", () => {
+    const iframeDocument = document.querySelector("iframe");
+    iframeDocument.contentDocument.write(completePage);
+    document.title = iframeDocument.contentDocument.title;
+    iframeDocument.addEventListener("load", () => {
       window.location.reload();
     });
   } catch (err) {
