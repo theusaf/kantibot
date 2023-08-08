@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        3.5.9
+// @version        3.5.10
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -14,6 +14,7 @@
 // @match          *://play.kahoot.it/*
 // @exclude        *://play.kahoot.it/v2/assets/*
 // @grant          none
+// @inject-into    page
 // @run-at         document-start
 // @license        MIT
 // ==/UserScript==
@@ -55,7 +56,7 @@ if (window.localStorage.kahootThemeScript) {
 }
 
 let patchMessageCompletion = new Promise(() => {});
-const antibotVersion = "3.5.9";
+const antibotVersion = "3.5.10";
 
 // Should allow for default behavior and reload page
 if (
