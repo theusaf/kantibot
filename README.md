@@ -64,6 +64,7 @@
 </ol>
 <strong>Example:</strong>
 <pre><code>
+// @inject-into  page
 // @run-at       document-start
 // ==/UserScript==
 
