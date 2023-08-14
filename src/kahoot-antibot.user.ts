@@ -1,0 +1,108 @@
+// ==UserScript==
+// @name           KAntibot4
+// @name:ja        Kーアンチボット
+// @namespace      http://tampermonkey.net/
+// @homepage       https://theusaf.org
+// @version        4.0.0
+// @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
+// @description    Remove all bots from a kahoot game.
+// @description:es eliminar todos los bots de un Kahoot! juego.
+// @description:ja Kahootゲームから全てのボットを出して。
+// @author         theusaf
+// @copyright      2018-2023, Daniel Lau (https://github.com/theusaf/kahoot-antibot)
+// @supportURL     https://discord.gg/pPdvXU6
+// @match          *://play.kahoot.it/*
+// @exclude        *://play.kahoot.it/v2/assets/*
+// @grant          none
+// @inject-into    page
+// @run-at         document-start
+// @license        MIT
+// ==/UserScript==
+
+/*
+
+MIT LICENSE TEXT
+
+Copyright 2018-2023 theusaf
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+*/
+
+/**
+ * Special thanks to
+ * - epicmines33
+ * - stevehainesfib
+ *
+ * for helping with contribution and testing of this project
+ */
+
+const KANTIBOT_VERSION = GM_info.script.version,
+  kantibotData: KAntibotData = {
+    settings: {},
+    kahootInternals: {
+      globalFuncs: {},
+      globalQuizData: {},
+    },
+  } as KAntibotData;
+
+function createSetterHook<E extends Object = Object>(
+  target: E,
+  prop: string,
+  condition: (target: E, value: any) => boolean,
+  callback: (target: E, value: any) => boolean
+): void {
+  (function recursiveHook() {
+    Object.defineProperty(target, prop, {
+      set(value) {
+        delete target[prop as keyof E];
+        this[prop] = value;
+        if (!(condition(target, value) && callback(target, value))) {
+          recursiveHook();
+        }
+      },
+      configurable: true,
+    });
+  })();
+}
+
+window.WebSocket = new Proxy(WebSocket, {
+  construct(target, args: [string, any]) {
+    const socket = new target(...args);
+    return socket;
+  }
+});
+
+const HOOKS: Record<string, KAntibotHook> = {};
+
+// Exposing KAntibot information to the window
+window.antibotData = kantibotData;
+window.antibotAdditionalScripts = window.antibotAdditionalScripts ?? [];
+window.kantibotEnabled = true;
+
+/**
+ * External Libraries
+ * Note: This script requires https://raw.githubusercontent.com/theusaf/a-set-of-english-words/master/index.js
+ * - This is a script that loads 275k english words into a set. (about 30MB ram?)
+ * @see https://github.com/theusaf/a-set-of-english-words
+ *
+ * Also, it requires https://raw.githubusercontent.com/theusaf/random-name/master/names.js
+ * - Loads a bunch of names into sets.
+ * @see https://raw.githubusercontent.com/theusaf/random-name
+ *
+ * If these get removed or fail to load, this should not break the service, but will cause certain features to not work
+ */
+const requiredAssets = [
+  "https://cdn.jsdelivr.net/gh/theusaf/a-set-of-english-words@c1ab78ece625138cae66fc32feb18f293ff49001/index.js",
+  "https://cdn.jsdelivr.net/gh/theusaf/random-name@3047117dc088740f018cb9a3ec66b5ef20ea52bd/names.js"
+];
+
+for (const asset of requiredAssets) {
+  import(asset).catch(() => {
+    console.warn(`Failed to load ${asset}`);
+  });
+}
