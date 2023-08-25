@@ -1,5 +1,4 @@
 declare global {
-
   interface KAntibotHook {
     target?: any;
     prop: string;
@@ -10,18 +9,26 @@ declare global {
   interface KAntibotData {
     settings: {};
     kahootInternals: {
-      globalFuncs: Record<string, CallableFunction>;
-      globalQuizData: {};
+      anwerDetails: any;
+      debugData: Record<string, any>;
+      services: any;
+      gameCore: any;
+      gameDetails: any;
+      methods: Record<string, CallableFunction>;
+      quizData: any;
+      userData: any;
+      settings: any;
+      socket: WebSocket;
     };
   }
 
   interface Window {
     aSetOfEnglishWords: Set<string>;
-    antibotData: KAntibotData;
+    kantibotData: KAntibotData;
     kantibotEnabled: boolean;
-    antibotAdditionalScripts: string[];
+    kantibotAdditionalScripts: string[];
+    kantibotAddHook: (hook: KAntibotHook) => void;
   }
-
 }
 
 export {};

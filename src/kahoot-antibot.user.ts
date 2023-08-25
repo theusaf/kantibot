@@ -45,12 +45,21 @@ const KANTIBOT_VERSION = GM_info.script.version,
   kantibotData: KAntibotData = {
     settings: {},
     kahootInternals: {
-      globalFuncs: {},
-      globalQuizData: {},
+      methods: {},
+      quizData: {},
+      debugData: {},
     },
   } as KAntibotData;
 
-function createSetterHook<E extends Object = Object>(
+function log(...args: any[]) {
+  if (args.every((arg) => typeof arg === "string")) {
+    console.log(`[KANTIBOT] - ${args.join(" ")}`);
+  } else {
+    console.log("[KANTIBOT]", ...args);
+  }
+}
+
+function createObjectHook<E extends Object = Object>(
   target: E,
   prop: string,
   condition: (target: E, value: any) => boolean,
@@ -61,7 +70,7 @@ function createSetterHook<E extends Object = Object>(
       set(value) {
         delete target[prop as keyof E];
         this[prop] = value;
-        if (!(condition(target, value) && callback(target, value))) {
+        if (!(condition(this, value) && callback(this, value))) {
           recursiveHook();
         }
       },
@@ -70,19 +79,119 @@ function createSetterHook<E extends Object = Object>(
   })();
 }
 
-window.WebSocket = new Proxy(WebSocket, {
-  construct(target, args: [string, any]) {
-    const socket = new target(...args);
-    return socket;
-  }
-});
+const hooks: Record<string, Set<KAntibotHook>> = {};
 
-const HOOKS: Record<string, KAntibotHook> = {};
+function createMultiHook(prop: string) {
+  createObjectHook(
+    Object.prototype,
+    prop,
+    () => true,
+    (target, value) => {
+      const hookSet = hooks[prop];
+      for (const hook of hookSet) {
+        if (hook.condition(target, value)) {
+          if (hook.callback(target, value)) {
+            hookSet.delete(hook);
+          }
+        }
+      }
+      return false;
+    }
+  );
+}
+
+function addHook(hook: KAntibotHook) {
+  if (hook.target) {
+    createObjectHook(hook.target, hook.prop, hook.condition, hook.callback);
+  } else {
+    if (!hooks[hook.prop]) {
+      hooks[hook.prop] = new Set();
+      createMultiHook(hook.prop);
+    }
+    hooks[hook.prop].add(hook);
+  }
+}
+
+const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
+  questionTimer: {
+    prop: "currentQuestionTimer",
+    condition: () => true,
+    callback: (target) => {
+      console.log("questionTimer", target);
+      kantibotData.kahootInternals.debugData.questionTimer ??= target;
+      return false;
+    },
+  },
+  startQuizFunction: {
+    prop: "startQuiz",
+    condition: (target, value) =>
+      typeof value === "function" && target.isGameReady,
+    callback: (target, value) => {
+      kantibotData.kahootInternals.gameDetails = target;
+      kantibotData.kahootInternals.methods.startQuiz = value;
+      kantibotData.kahootInternals.userData = target.currentUser;
+      kantibotData.kahootInternals.settings = target.gameOptions;
+      return true;
+    },
+  },
+  gameCore: {
+    prop: "core",
+    condition: (_, value) => !!value?.quiz,
+    callback: (_, value) => {
+      kantibotData.kahootInternals.gameCore = value;
+      kantibotData.kahootInternals.quizData = value.quiz;
+      return false;
+    },
+  },
+  gameInformation: {
+    prop: "game",
+    condition: (target, value) =>
+      typeof value === "object" &&
+      typeof target.features === "object" &&
+      typeof target.router === "object",
+    callback: (target) => {
+      console.log(Object.keys(target));
+      kantibotData.kahootInternals.services = target;
+      return true;
+    },
+  },
+  answersData: {
+    prop: "answers",
+    condition: (_, value) => !!value.answerMaps,
+    callback: (_, value) => {
+      kantibotData.kahootInternals.anwerDetails = value;
+      return false;
+    },
+  },
+  socket: {
+    prop: "onMessage",
+    condition: (target, value) =>
+      typeof value === "function" &&
+      typeof target.reset === "function" &&
+      typeof target.onOpen === "function",
+    callback: (target, value) => {
+      target.onMessage = (socket: WebSocket, message: MessageEvent) => {
+        kantibotData.kahootInternals.socket = socket;
+        value(socket, message);
+      };
+      return true;
+    },
+  },
+};
+
+for (const hook of Object.values(KANTIBOT_HOOKS)) {
+  if (hook.target) {
+    createObjectHook(hook.target, hook.prop, hook.condition, hook.callback);
+  } else {
+    addHook(hook);
+  }
+}
 
 // Exposing KAntibot information to the window
-window.antibotData = kantibotData;
-window.antibotAdditionalScripts = window.antibotAdditionalScripts ?? [];
+window.kantibotData = kantibotData;
+window.kantibotAdditionalScripts = [];
 window.kantibotEnabled = true;
+window.kantibotAddHook = addHook;
 
 /**
  * External Libraries
@@ -98,7 +207,7 @@ window.kantibotEnabled = true;
  */
 const requiredAssets = [
   "https://cdn.jsdelivr.net/gh/theusaf/a-set-of-english-words@c1ab78ece625138cae66fc32feb18f293ff49001/index.js",
-  "https://cdn.jsdelivr.net/gh/theusaf/random-name@3047117dc088740f018cb9a3ec66b5ef20ea52bd/names.js"
+  "https://cdn.jsdelivr.net/gh/theusaf/random-name@3047117dc088740f018cb9a3ec66b5ef20ea52bd/names.js",
 ];
 
 for (const asset of requiredAssets) {
