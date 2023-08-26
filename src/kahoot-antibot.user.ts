@@ -635,7 +635,11 @@ const METHODS = {
     alert(notice);
   },
 
-  kickController(id: string, reason = "", fallbackController: any): void {
+  kickController(
+    id: string,
+    reason = "",
+    fallbackController: KController
+  ): void {
     const controller = METHODS.getControllerById(id) ?? fallbackController,
       name =
         (controller?.name?.length ?? 0) > 30
@@ -817,7 +821,7 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
     condition: (_, value) => typeof value === "function",
     callback: (target, value) => {
       kantibotData.kahootInternals.gameConstructors = target;
-      target.twoFactorAuth = (input: any, payload: KPayload) => {
+      target.twoFactorAuth = (input: unknown, payload: KPayload) => {
         const result = value.call(target, input, payload);
         if (payload.type === "player/two-factor-auth/RESET") {
           result.counter = 9; // TODO: Make this configurable
@@ -831,7 +835,7 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
     prop: "core",
     condition: (_, value) => typeof value === "function",
     callback: (target, value) => {
-      target.core = function (input: any, payload: KPayload) {
+      target.core = function (input: unknown, payload: KPayload) {
         const result = value.call(target, input, payload);
         if (payload.type === "player/game/SET_QUESTION_TIMER") {
           console.log("SET QUESTION TIMER", result);
@@ -846,7 +850,7 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
     prop: "answers",
     condition: (_, value) => typeof value === "function",
     callback: (target, value) => {
-      target.answers = function (input: any, payload: KPayload) {
+      target.answers = function (input: unknown, payload: KPayload) {
         const result = value.call(target, input, payload);
         if (payload.type === "features/game-blocks/SET_SCORES") {
           console.log("SETTING SCORES", result);

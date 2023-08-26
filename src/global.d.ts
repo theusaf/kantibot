@@ -15,7 +15,7 @@ declare global {
     data?: {
       id?: number;
       type?: string;
-    }
+    };
   }
 
   interface KWebsocketInstance extends Record<string, CallableFunction> {
@@ -37,8 +37,8 @@ declare global {
         isMenuOpen: boolean;
         page: string;
         state: string;
-      }
-    }
+      };
+    };
   }
 
   interface KChoice extends Record<string, any> {
