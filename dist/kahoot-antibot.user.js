@@ -629,17 +629,12 @@ const SEND_CHECKS = [
         if (data?.data?.id === 5 ||
             (data?.data?.id === 10 && data.data.content === "{}")) {
             kantibotData.runtimeData.lobbyLoadTime = 0;
-            const shouldResetData = METHODS.getKahootSetting("requireRejoin");
-            if (shouldResetData) {
-                Object.assign(kantibotData.runtimeData, {
-                    controllerData: {},
-                    captchaIds: new Set(),
-                    englishWordDetectionData: new Set(),
-                    controllerNamePatternData: {},
-                    verifiedControllerNames: new Set(),
-                    unverifiedControllerNames: [],
-                });
-            }
+            // Reset some data, which may be stale from previous round.
+            Object.assign(kantibotData.runtimeData, {
+                captchaIds: new Set(),
+                englishWordDetectionData: new Set(),
+                controllerNamePatternData: {},
+            });
         }
     },
     function quizStartCheck(socket, data) {
@@ -692,7 +687,7 @@ const RECV_CHECKS = [
           <span class="kantibot-count-desc">Until Unlock</span>`;
                 counters.append(ddosCounterElement);
                 const ddosCounterInterval = setInterval(() => {
-                    ddosCounterElement.querySelector(".antibot-count-num").innerHTML = `${--timeLeft}`;
+                    ddosCounterElement.querySelector(".kantibot-count-num").innerHTML = `${--timeLeft}`;
                     if (timeLeft <= 0) {
                         clearInterval(ddosCounterInterval);
                         ddosCounterElement.remove();
@@ -1011,7 +1006,7 @@ const RECV_CHECKS = [
                         if (time < 0) {
                             time = "Please Wait...";
                         }
-                        container.querySelector(".antibot-count-num").innerHTML = `${time}`;
+                        container.querySelector(".kantibot-count-num").innerHTML = `${time}`;
                     }, 1e3);
                     counters.append(container);
                     kantibotData.runtimeData.startLockElement = container;
@@ -1039,6 +1034,26 @@ const RECV_CHECKS = [
         return !BOT_DETECTED;
     },
 ];
+setInterval(function updateStats() {
+    const unverifiedControllerNames = kantibotData.runtimeData.unverifiedControllerNames, verifiedControllerNames = kantibotData.runtimeData.verifiedControllerNames;
+    for (const i in unverifiedControllerNames) {
+        const data = unverifiedControllerNames[i];
+        if (data.time <= 0 &&
+            !data.banned &&
+            !verifiedControllerNames.has(data.name)) {
+            verifiedControllerNames.add(data.name);
+            continue;
+        }
+        if (data.time <= -20) {
+            unverifiedControllerNames.splice(+i, 1);
+            continue;
+        }
+        data.time--;
+    }
+}, 1e3);
+setInterval(function updateOldKillCount() {
+    kantibotData.runtimeData.oldKillCount = kantibotData.runtimeData.killCount;
+}, 20e3);
 function websocketMessageSendHandler(socket, message) {
     const data = JSON.parse(message)[0];
     for (const check of SEND_CHECKS) {
@@ -1052,6 +1067,12 @@ function websocketMessageReceiveVerification(socket, message) {
         if (check(socket, data) === BOT_DETECTED) {
             return BOT_DETECTED;
         }
+    }
+    if (METHODS.isEventJoinEvent(data)) {
+        kantibotData.runtimeData.controllerData[data.data.cid] = {
+            loginTime: Date.now(),
+            twoFactorAttempts: 0,
+        };
     }
     return !BOT_DETECTED;
 }

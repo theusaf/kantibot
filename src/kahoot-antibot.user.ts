@@ -768,7 +768,7 @@ const RECV_CHECKS: ((socket: KWebSocket, data: KSocketEvent) => boolean)[] = [
         counters.append(ddosCounterElement);
         const ddosCounterInterval = setInterval(() => {
           ddosCounterElement.querySelector(
-            ".antibot-count-num"
+            ".kantibot-count-num"
           )!.innerHTML = `${--timeLeft}`;
           if (timeLeft <= 0) {
             clearInterval(ddosCounterInterval);
@@ -1176,7 +1176,7 @@ const RECV_CHECKS: ((socket: KWebSocket, data: KSocketEvent) => boolean)[] = [
               time = "Please Wait...";
             }
             container.querySelector(
-              ".antibot-count-num"
+              ".kantibot-count-num"
             )!.innerHTML = `${time}`;
           }, 1e3);
           counters.append(container);
