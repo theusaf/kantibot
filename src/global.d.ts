@@ -11,16 +11,27 @@ declare global {
     callback: (target: any, value: any) => boolean;
   }
 
+  interface KSocketEventData extends Record<string, any> {
+    id?: number;
+    type?: string;
+    content?: string;
+  }
+
   interface KSocketEvent extends Record<string, any> {
-    data?: {
-      id?: number;
-      type?: string;
-    };
+    data?: KSocketEventData;
   }
 
   interface KWebsocketInstance extends Record<string, CallableFunction> {
     batch: (callback: CallableFunction) => void;
     publish: (topic: string, payload: any) => void;
+  }
+
+  interface KAntibotWebSocket extends WebSocket {
+    oldSend?: (data: any) => void;
+  }
+
+  interface KWebSocket {
+    webSocket: KAntibotWebSocket;
   }
 
   interface KServices {
@@ -136,7 +147,7 @@ declare global {
       unverifiedControllerNames: any[];
       verifiedControllerNames: Set<string>;
       questionStartTime: number;
-      startLockElement: HTMLElement;
+      startLockElement: HTMLElement | null;
       startLockInterval: number;
     };
     kahootInternals: {
@@ -163,6 +174,7 @@ declare global {
     };
     kantibotData: KAntibotData;
     kantibotEnabled: boolean;
+    kantibotVersion: string;
     kantibotAdditionalScripts: string[];
     kantibotAddHook: (hook: KAntibotHook) => void;
   }
