@@ -1040,7 +1040,7 @@ const RECV_CHECKS = [
     },
 ];
 function websocketMessageSendHandler(socket, message) {
-    const data = JSON.parse(message.data)[0];
+    const data = JSON.parse(message)[0];
     for (const check of SEND_CHECKS) {
         check(socket, data);
     }
@@ -1163,6 +1163,15 @@ function injectAntibotSettings(target) {
                 inputType: "number",
                 id: "ddos",
                 description: "Specify the number of bots to join per minute before locking the game. Set to 0 to disable.",
+                inputProps: {
+                    step: 1,
+                },
+            }),
+            KAntibotSettingComponent({
+                title: "Lobby Auto-Start Time",
+                inputType: "number",
+                id: "start_lock",
+                description: "Specify the number of seconds to wait before auto-starting the game after a player joins. Set to 0 to disable.",
                 inputProps: {
                     step: 1,
                 },
@@ -1332,6 +1341,7 @@ const KANTIBOT_HOOKS = {
         callback: (_, value) => {
             kantibotData.kahootInternals.gameCore = value;
             kantibotData.kahootInternals.quizData = value.quiz;
+            // TODO: potentially modify the quiz data to add the antibot question(s)
             return false;
         },
     },
@@ -1369,7 +1379,7 @@ const KANTIBOT_HOOKS = {
                     };
                 }
                 if (websocketMessageReceiveVerification(socket, message) === !BOT_DETECTED) {
-                    value.call(target, socket, message);
+                    return value.call(this, ...arguments);
                 }
             };
             return true;

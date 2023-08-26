@@ -1213,8 +1213,11 @@ const RECV_CHECKS: ((socket: KWebSocket, data: KSocketEvent) => boolean)[] = [
   },
 ];
 
-function websocketMessageSendHandler(socket: KWebSocket, message: any): void {
-  const data = JSON.parse(message.data)[0];
+function websocketMessageSendHandler(
+  socket: KWebSocket,
+  message: string
+): void {
+  const data = JSON.parse(message)[0];
   for (const check of SEND_CHECKS) {
     check(socket, data);
   }
@@ -1360,6 +1363,16 @@ function injectAntibotSettings(target: {
         id: "ddos",
         description:
           "Specify the number of bots to join per minute before locking the game. Set to 0 to disable.",
+        inputProps: {
+          step: 1,
+        },
+      }),
+      KAntibotSettingComponent({
+        title: "Lobby Auto-Start Time",
+        inputType: "number",
+        id: "start_lock",
+        description:
+          "Specify the number of seconds to wait before auto-starting the game after a player joins. Set to 0 to disable.",
         inputProps: {
           step: 1,
         },
@@ -1585,6 +1598,7 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
     callback: (_, value) => {
       kantibotData.kahootInternals.gameCore = value;
       kantibotData.kahootInternals.quizData = value.quiz;
+      // TODO: potentially modify the quiz data to add the antibot question(s)
       return false;
     },
   },
@@ -1618,7 +1632,7 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
         kantibotData.kahootInternals.socket = socket.webSocket;
         if (!socket.webSocket.oldSend) {
           socket.webSocket.oldSend = socket.webSocket.send;
-          socket.webSocket.send = function (data) {
+          socket.webSocket.send = function (data: string) {
             websocketMessageSendHandler(socket, data);
             socket.webSocket.oldSend!(data);
           };
@@ -1626,7 +1640,7 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
         if (
           websocketMessageReceiveVerification(socket, message) === !BOT_DETECTED
         ) {
-          value.call(target, socket, message);
+          return value.call(this, ...arguments);
         }
       };
       return true;
