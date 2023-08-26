@@ -136,6 +136,7 @@ const METHODS = {
     text = text.toLowerCase();
     return text[0].toUpperCase() + text.slice(1);
   },
+
   similarity(s1: string, s2: string): number | null {
     // remove numbers from name if name is not only a number
     if (isNaN(+s1) && typeof s1 !== "object" && !METHODS.isUsingNamerator()) {
@@ -183,6 +184,7 @@ const METHODS = {
       (longerLength - METHODS.editDistance(longer, shorter)) / longerLength
     );
   },
+
   isValidNameratorName(name: string): boolean {
     const firstNames = [
         "Adorable",
@@ -416,6 +418,7 @@ const METHODS = {
     }
     return true;
   },
+
   isFakeValid(name: string): boolean {
     if (!METHODS.isUsingNamerator() && METHODS.isValidNameratorName(name)) {
       return true;
@@ -430,6 +433,7 @@ const METHODS = {
       name
     );
   },
+
   editDistance(s1: string, s2: string): number {
     s1 = s1.toLowerCase();
     s2 = s2.toLowerCase();
@@ -457,9 +461,11 @@ const METHODS = {
     }
     return costs[s2.length];
   },
+
   isUsingNamerator(): boolean {
     return METHODS.getKahootSetting<boolean>("namerator");
   },
+
   getPatterns(text: string): string {
     const isLetter = (char: string) => {
         return /\p{L}/u.test(char);
@@ -504,6 +510,7 @@ const METHODS = {
     }
     return output;
   },
+
   blacklist(name: string): boolean {
     const list = METHODS.getSetting("wordblock", []);
     for (let i = 0; i < list.length; i++) {
@@ -516,9 +523,11 @@ const METHODS = {
     }
     return false;
   },
+
   getKahootSetting<T>(id: string): T {
     return kantibotData.kahootInternals.settings[id];
   },
+
   // TODO: Revise when we change settings.
   getSetting(id: string, fallback: any = null) {
     if (typeof kantibotData.settings[id] !== "undefined") {
@@ -548,6 +557,7 @@ const METHODS = {
         : elem.value;
     }
   },
+
   setSetting(id: string, value: any) {
     const elem = document.querySelector<HTMLInputElement>(
       `#antibot.config.${id}`
@@ -573,6 +583,7 @@ const METHODS = {
     window.localStorage.antibotConfig = JSON.stringify(localConfig);
     kantibotData.settings[id] = value;
   },
+
   extraQuestionSetup(quiz: KQuiz): void {
     if (METHODS.getSetting("counterCheats")) {
       quiz.questions.push({
@@ -617,11 +628,13 @@ const METHODS = {
       });
     }
   },
+
   kahootAlert(notice: string): void {
     // See `showNotificationBar` in kahoot code
     // Currently unaccessible?
     alert(notice);
   },
+
   kickController(id: string, reason = "", fallbackController: any): void {
     const controller = METHODS.getControllerById(id) ?? fallbackController,
       name =
