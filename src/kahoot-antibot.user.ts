@@ -136,7 +136,7 @@ const METHODS = {
     text = text.toLowerCase();
     return text[0].toUpperCase() + text.slice(1);
   },
-  similarity(s1: string, s2: string) {
+  similarity(s1: string, s2: string): number | null {
     // remove numbers from name if name is not only a number
     if (isNaN(+s1) && typeof s1 !== "object" && !METHODS.isUsingNamerator()) {
       s1 = s1.replace(/[0-9]/gm, "");
@@ -163,7 +163,7 @@ const METHODS = {
       }
     }
     if (!s1) {
-      return;
+      return null;
     }
     // ignore case
     s1 = s1.toLowerCase();
@@ -183,7 +183,7 @@ const METHODS = {
       (longerLength - METHODS.editDistance(longer, shorter)) / longerLength
     );
   },
-  isValidNameratorName(name: string) {
+  isValidNameratorName(name: string): boolean {
     const firstNames = [
         "Adorable",
         "Agent",
@@ -196,7 +196,6 @@ const METHODS = {
         "Arctic",
         "Awesome",
         "Balanced",
-        "Blue",
         "Bold",
         "Brave",
         "Bright",
@@ -238,7 +237,6 @@ const METHODS = {
         "Glowing",
         "Golden",
         "Great",
-        "Green",
         "Groovy",
         "Happy",
         "Helpful",
@@ -293,7 +291,6 @@ const METHODS = {
         "Wise",
         "Witty",
         "Wonder",
-        "Yellow",
         "Zany",
       ],
       lastNames = [
@@ -419,7 +416,7 @@ const METHODS = {
     }
     return true;
   },
-  isFakeValid(name: string) {
+  isFakeValid(name: string): boolean {
     if (!METHODS.isUsingNamerator() && METHODS.isValidNameratorName(name)) {
       return true;
     }
@@ -433,7 +430,7 @@ const METHODS = {
       name
     );
   },
-  editDistance(s1: string, s2: string) {
+  editDistance(s1: string, s2: string): number {
     s1 = s1.toLowerCase();
     s2 = s2.toLowerCase();
 
@@ -463,7 +460,7 @@ const METHODS = {
   isUsingNamerator(): boolean {
     return METHODS.getKahootSetting<boolean>("namerator");
   },
-  getPatterns(text: string) {
+  getPatterns(text: string): string {
     const isLetter = (char: string) => {
         return /\p{L}/u.test(char);
       },
@@ -507,7 +504,7 @@ const METHODS = {
     }
     return output;
   },
-  blacklist(name: string) {
+  blacklist(name: string): boolean {
     const list = METHODS.getSetting("wordblock", []);
     for (let i = 0; i < list.length; i++) {
       if (list[i] === "") {
@@ -576,7 +573,7 @@ const METHODS = {
     window.localStorage.antibotConfig = JSON.stringify(localConfig);
     kantibotData.settings[id] = value;
   },
-  extraQuestionSetup(quiz: any) {
+  extraQuestionSetup(quiz: KQuiz): void {
     if (METHODS.getSetting("counterCheats")) {
       quiz.questions.push({
         question:
@@ -620,14 +617,16 @@ const METHODS = {
       });
     }
   },
-  kahootAlert(notice: string) {
+  kahootAlert(notice: string): void {
+    // See `showNotificationBar` in kahoot code
+    // Currently unaccessible?
     alert(notice);
   },
-  kickController(id: string, reason = "", fallbackController: any) {
+  kickController(id: string, reason = "", fallbackController: any): void {
     const controller = METHODS.getControllerById(id) ?? fallbackController,
       name =
-        controller?.name?.length > 30
-          ? controller.name.substr(0, 30) + "..."
+        (controller?.name?.length ?? 0) > 30
+          ? controller?.name?.substring(0, 30) + "..."
           : controller?.name,
       banishedCachedData =
         kantibotData.runtimeData.unverifiedControllerNames.find(
@@ -635,9 +634,7 @@ const METHODS = {
             return controller.cid === id;
           }
         );
-    console.warn(
-      `[ANTIBOT] - Kicked ${name || id}${reason ? ` - ${reason}` : ""}`
-    );
+    log(`Kicked ${name || id}${reason ? ` - ${reason}` : ""}`);
     METHODS.sendData("/service/player", {
       cid: `${id}`,
       content: JSON.stringify({
@@ -660,22 +657,23 @@ const METHODS = {
     delete kantibotData.runtimeData.controllerData[id];
   },
 
-  isEventJoinEvent(event: any): boolean {
+  isEventJoinEvent(event: KSocketEvent): boolean {
     return event.data?.type === "joined";
   },
 
-  isEventAnswerEvent(event: any): boolean {
+  isEventAnswerEvent(event: KSocketEvent): boolean {
     return event.data?.id === 45;
   },
 
-  isEventTwoFactorEvent(event: any) {
+  isEventTwoFactorEvent(event: KSocketEvent): boolean {
     return event.data?.id === 50;
   },
 
-  isEventTeamJoinEvent(event: any) {
+  isEventTeamJoinEvent(event: KSocketEvent): boolean {
     return event.data?.id === 18;
   },
-  batchData(callback: CallableFunction) {
+
+  batchData(callback: CallableFunction): void {
     return kantibotData.kahootInternals.services.network.websocketInstance.batch(
       callback
     );
@@ -696,32 +694,32 @@ const METHODS = {
     });
   },
 
-  isLocked() {
+  isLocked(): boolean {
     return kantibotData.kahootInternals.gameCore.isLocked;
   },
 
-  getCurrentQuestionIndex() {
-    // return kantibotData.kahootInternals.kahootCore.game.navigation
-    //   .currentGameBlockIndex;
+  getCurrentQuestionIndex(): number {
+    return kantibotData.kahootInternals.services.game.navigation
+      .currentGameBlockIndex;
   },
 
-  getQuizData() {
+  getQuizData(): KQuiz {
     return kantibotData.kahootInternals.quizData;
   },
 
-  getPin() {
+  getPin(): string {
     return kantibotData.kahootInternals.gameCore.pin;
   },
 
-  getControllerById(id: string) {
+  getControllerById(id: string): KController {
     return METHODS.getControllers()[id];
   },
 
-  getControllers() {
+  getControllers(): Record<string, KController> {
     return kantibotData.kahootInternals.gameCore.controllers;
   },
 
-  sendData(channel: string, data: any) {
+  sendData(channel: string, data: any): void {
     return kantibotData.kahootInternals.services.network.websocketInstance.publish(
       channel,
       data
@@ -776,7 +774,7 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
       typeof target.router === "object",
     callback: (target) => {
       kantibotData.kahootInternals.services = target;
-      return true;
+      return false;
     },
   },
   answersData: {
