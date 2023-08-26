@@ -19,6 +19,8 @@
 // @license        MIT
 // ==/UserScript==
 
+import { Component } from "react";
+
 /*
 
 MIT LICENSE TEXT
@@ -43,7 +45,25 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 const KANTIBOT_VERSION = GM_info.script.version,
   kantibotData: KAntibotData = {
-    settings: {},
+    settings: {
+      timeout: false,
+      looksRandom: false,
+      blockformat1: false,
+      blockservice1: false,
+      blocknum: false,
+      forceascii: false,
+      patterns: false,
+      teamtimeout: 0,
+      twoFactorTime: 0,
+      percent: 0.6,
+      wordblock: "",
+      ddos: 0,
+      start_lock: 0,
+      counters: false,
+      counterCheats: false,
+      enableCAPTCHA: false,
+      reduceFalsePositives: false,
+    },
     runtimeData: {
       captchaIds: new Set(),
       controllerData: {},
@@ -529,7 +549,7 @@ const METHODS = {
   },
 
   // TODO: Revise when we change settings.
-  getSetting(id: string, fallback: any = null) {
+  getSetting(id: keyof KAntibotSettings, fallback: any = null) {
     if (typeof kantibotData.settings[id] !== "undefined") {
       return kantibotData.settings[id];
     }
@@ -558,7 +578,7 @@ const METHODS = {
     }
   },
 
-  setSetting(id: string, value: any) {
+  setSetting(id: keyof KAntibotSettings, value: any) {
     const elem = document.querySelector<HTMLInputElement>(
       `#antibot.config.${id}`
     ) as HTMLInputElement;
@@ -581,7 +601,7 @@ const METHODS = {
     const localConfig = JSON.parse(window.localStorage.antibotConfig || "{}");
     localConfig[id] = value;
     window.localStorage.antibotConfig = JSON.stringify(localConfig);
-    kantibotData.settings[id] = value;
+    (kantibotData.settings as any)[id] = value; // as any to avoid weird typescript issue
   },
 
   extraQuestionSetup(quiz: KQuiz): void {
@@ -745,18 +765,45 @@ const METHODS = {
 };
 kantibotData.methods = METHODS;
 
-const localConfig = JSON.parse(
+const localConfig: Record<keyof KAntibotSettings, any> = JSON.parse(
   window.localStorage.kantibotConfig ??
     window.localStorage.antibotConfig ??
     "{}"
 );
 for (const setting in localConfig) {
   try {
-    const current = METHODS.getSetting(setting);
-    METHODS.setSetting(setting, localConfig[setting] ?? current);
+    const current = METHODS.getSetting(setting as keyof KAntibotSettings);
+    METHODS.setSetting(
+      setting as keyof KAntibotSettings,
+      localConfig[setting as keyof KAntibotSettings] ?? current
+    );
   } catch {
     /* ignored */
   }
+}
+
+function injectAntibotSettings(target: Component) {}
+
+interface KAntibotSettingComponentProps {
+  title: string;
+  inputType: "checkbox" | "text" | "number" | "textarea";
+  id: string;
+  description: string;
+  defaultValue?: any;
+  inputProps?: Record<string, any>;
+  onChange?: (value: any) => void;
+}
+
+function KAntibotSettingComponent({
+  title,
+  inputType,
+  id,
+  description,
+  defaultValue,
+  inputProps = {},
+  onChange,
+}: KAntibotSettingComponentProps) {
+  return null;
 }
 
 // Apply hooks

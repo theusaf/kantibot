@@ -99,8 +99,28 @@ declare global {
     startTime: number;
   }
 
+  interface KAntibotSettings {
+    timeout: boolean;
+    looksRandom: boolean;
+    blockformat1: boolean;
+    blockservice1: boolean;
+    blocknum: boolean;
+    forceascii: boolean;
+    patterns: boolean;
+    teamtimeout: number;
+    twoFactorTime: number;
+    percent: number;
+    wordblock: string;
+    ddos: number;
+    start_lock: number;
+    counters: boolean;
+    counterCheats: boolean;
+    enableCAPTCHA: boolean;
+    reduceFalsePositives: boolean;
+  }
+
   interface KAntibotData {
-    settings: Record<string, any>;
+    settings: KAntibotSettings;
     methods: {};
     runtimeData: {
       captchaIds: Set<string>;
