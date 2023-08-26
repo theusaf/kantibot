@@ -44,12 +44,30 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 const KANTIBOT_VERSION = GM_info.script.version,
   kantibotData: KAntibotData = {
     settings: {},
+    runtimeData: {
+      captchaIds: new Set(),
+      controllerData: {},
+      controllerNamePatternData: {},
+      englishWordDetectionData: new Set(),
+      killCount: 0,
+      lastFakeLoginTime: 0,
+      lastFakeUserID: null,
+      lobbyLoadTime: 0,
+      lockingGame: false,
+      oldKillCount: 0,
+      unverifiedControllerNames: [],
+      verifiedControllerNames: new Set(),
+      questionStartTime: 0,
+      startLockElement: null,
+      startLockInterval: null,
+    },
+    methods: {},
     kahootInternals: {
       methods: {},
       quizData: {},
       debugData: {},
     },
-  } as KAntibotData;
+  } as unknown as KAntibotData;
 
 function log(...args: any[]) {
   if (args.every((arg) => typeof arg === "string")) {
@@ -111,6 +129,622 @@ function addHook(hook: KAntibotHook) {
     hooks[hook.prop].add(hook);
   }
 }
+
+// Main logic
+const METHODS = {
+  capitalize(text: string) {
+    text = text.toLowerCase();
+    return text[0].toUpperCase() + text.slice(1);
+  },
+  similarity(s1: string, s2: string) {
+    // remove numbers from name if name is not only a number
+    if (isNaN(+s1) && typeof s1 !== "object" && !METHODS.isUsingNamerator()) {
+      s1 = s1.replace(/[0-9]/gm, "");
+    }
+    if (isNaN(+s2) && typeof s2 !== "object" && !METHODS.isUsingNamerator()) {
+      s2 = s2.replace(/[0-9]/gm, "");
+    }
+    if (!s2) {
+      return 0;
+    }
+    // if is a number of the same length
+    if (s1) {
+      if (!isNaN(+s2) && !isNaN(+s1) && s1.length === s2.length) {
+        return 1;
+      }
+    }
+    // apply namerator rules
+    if (METHODS.isUsingNamerator()) {
+      if (!METHODS.isValidNameratorName(s2)) {
+        return -1;
+      } else {
+        // safe name
+        return 0;
+      }
+    }
+    if (!s1) {
+      return;
+    }
+    // ignore case
+    s1 = s1.toLowerCase();
+    s2 = s2.toLowerCase();
+    let longer = s1,
+      shorter = s2;
+    // begin math to determine similarity
+    if (s1.length < s2.length) {
+      longer = s2;
+      shorter = s1;
+    }
+    const longerLength = longer.length;
+    if (longerLength === 0) {
+      return 1.0;
+    }
+    return (
+      (longerLength - METHODS.editDistance(longer, shorter)) / longerLength
+    );
+  },
+  isValidNameratorName(name: string) {
+    const firstNames = [
+        "Adorable",
+        "Agent",
+        "Agile",
+        "Amazing",
+        "Amazon",
+        "Amiable",
+        "Amusing",
+        "Aquatic",
+        "Arctic",
+        "Awesome",
+        "Balanced",
+        "Blue",
+        "Bold",
+        "Brave",
+        "Bright",
+        "Bronze",
+        "Captain",
+        "Caring",
+        "Champion",
+        "Charming",
+        "Cheerful",
+        "Classy",
+        "Clever",
+        "Creative",
+        "Cute",
+        "Dandy",
+        "Daring",
+        "Dazzled",
+        "Decisive",
+        "Diligent",
+        "Diplomat",
+        "Doctor",
+        "Dynamic",
+        "Eager",
+        "Elated",
+        "Epic",
+        "Excited",
+        "Expert",
+        "Fabulous",
+        "Fast",
+        "Fearless",
+        "Flying",
+        "Focused",
+        "Friendly",
+        "Funny",
+        "Fuzzy",
+        "Genius",
+        "Gentle",
+        "Giving",
+        "Glad",
+        "Glowing",
+        "Golden",
+        "Great",
+        "Green",
+        "Groovy",
+        "Happy",
+        "Helpful",
+        "Hero",
+        "Honest",
+        "Inspired",
+        "Jolly",
+        "Joyful",
+        "Kind",
+        "Knowing",
+        "Legend",
+        "Lively",
+        "Lovely",
+        "Lucky",
+        "Magic",
+        "Majestic",
+        "Melodic",
+        "Mighty",
+        "Mountain",
+        "Mystery",
+        "Nimble",
+        "Noble",
+        "Polite",
+        "Power",
+        "Prairie",
+        "Proud",
+        "Purple",
+        "Quick",
+        "Radiant",
+        "Rapid",
+        "Rational",
+        "Rockstar",
+        "Rocky",
+        "Royal",
+        "Shining",
+        "Silly",
+        "Silver",
+        "Smart",
+        "Smiling",
+        "Smooth",
+        "Snowy",
+        "Soaring",
+        "Social",
+        "Space",
+        "Speedy",
+        "Stellar",
+        "Sturdy",
+        "Super",
+        "Swift",
+        "Tropical",
+        "Winged",
+        "Wise",
+        "Witty",
+        "Wonder",
+        "Yellow",
+        "Zany",
+      ],
+      lastNames = [
+        "Alpaca",
+        "Ant",
+        "Badger",
+        "Bat",
+        "Bear",
+        "Bee",
+        "Bison",
+        "Boa",
+        "Bobcat",
+        "Buffalo",
+        "Bunny",
+        "Camel",
+        "Cat",
+        "Cheetah",
+        "Chicken",
+        "Condor",
+        "Crab",
+        "Crane",
+        "Deer",
+        "Dingo",
+        "Dog",
+        "Dolphin",
+        "Dove",
+        "Dragon",
+        "Duck",
+        "Eagle",
+        "Echidna",
+        "Egret",
+        "Elephant",
+        "Elk",
+        "Emu",
+        "Falcon",
+        "Ferret",
+        "Finch",
+        "Fox",
+        "Frog",
+        "Gator",
+        "Gazelle",
+        "Gecko",
+        "Giraffe",
+        "Glider",
+        "Gnu",
+        "Goat",
+        "Goose",
+        "Gorilla",
+        "Griffin",
+        "Hamster",
+        "Hare",
+        "Hawk",
+        "Hen",
+        "Horse",
+        "Ibex",
+        "Iguana",
+        "Impala",
+        "Jaguar",
+        "Kitten",
+        "Koala",
+        "Lark",
+        "Lemming",
+        "Lemur",
+        "Leopard",
+        "Lion",
+        "Lizard",
+        "Llama",
+        "Lobster",
+        "Macaw",
+        "Meerkat",
+        "Monkey",
+        "Mouse",
+        "Newt",
+        "Octopus",
+        "Oryx",
+        "Ostrich",
+        "Otter",
+        "Owl",
+        "Panda",
+        "Panther",
+        "Pelican",
+        "Penguin",
+        "Pigeon",
+        "Piranha",
+        "Pony",
+        "Possum",
+        "Puffin",
+        "Quail",
+        "Rabbit",
+        "Raccoon",
+        "Raven",
+        "Rhino",
+        "Rooster",
+        "Sable",
+        "Seal",
+        "SeaLion",
+        "Shark",
+        "Sloth",
+        "Snail",
+        "Sphinx",
+        "Squid",
+        "Stork",
+        "Swan",
+        "Tiger",
+        "Turtle",
+        "Unicorn",
+        "Urchin",
+        "Wallaby",
+        "Wildcat",
+        "Wolf",
+        "Wombat",
+        "Yak",
+        "Yeti",
+        "Zebra",
+      ],
+      nameMatch = name.match(/[A-Z][a-z]+(?=[A-Z])/);
+    if (nameMatch === null || !firstNames.includes(nameMatch[0])) {
+      return false;
+    }
+    const lastName = name.replace(nameMatch[0], "");
+    if (!lastNames.includes(lastName)) {
+      return false;
+    }
+    return true;
+  },
+  isFakeValid(name: string) {
+    if (!METHODS.isUsingNamerator() && METHODS.isValidNameratorName(name)) {
+      return true;
+    }
+    if (METHODS.getSetting("blocknum") && /\d/.test(name)) {
+      return true;
+    }
+    if (METHODS.getSetting("forceascii") && /[^\d\s\w_-]/.test(name)) {
+      return true;
+    }
+    return /(^([A-Z][a-z]+){2,3}\d{1,2}$)|(^([A-Z][^A-Z\n]+?)+?(\d[a-z]+\d*?)$)|(^[a-zA-Z]+\d{4,}$)/.test(
+      name
+    );
+  },
+  editDistance(s1: string, s2: string) {
+    s1 = s1.toLowerCase();
+    s2 = s2.toLowerCase();
+
+    const costs = new Array();
+    for (let i = 0; i <= s1.length; i++) {
+      let lastValue = i;
+      for (let j = 0; j <= s2.length; j++) {
+        if (i === 0) {
+          costs[j] = j;
+        } else {
+          if (j > 0) {
+            let newValue = costs[j - 1];
+            if (s1.charAt(i - 1) != s2.charAt(j - 1)) {
+              newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+            }
+            costs[j - 1] = lastValue;
+            lastValue = newValue;
+          }
+        }
+      }
+      if (i > 0) {
+        costs[s2.length] = lastValue;
+      }
+    }
+    return costs[s2.length];
+  },
+  isUsingNamerator(): boolean {
+    return METHODS.getKahootSetting<boolean>("namerator");
+  },
+  getPatterns(text: string) {
+    const isLetter = (char: string) => {
+        return /\p{L}/u.test(char);
+      },
+      isUppercaseLetter = (char: string) => {
+        return char.toUpperCase() === char;
+      },
+      isNumber = (char: string) => {
+        return /\p{N}/u.test(char);
+      };
+    let output = "",
+      mode = null,
+      count = 0;
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      let type = null;
+      if (isLetter(char)) {
+        if (isUppercaseLetter(char)) {
+          type = "C";
+        } else {
+          type = "L";
+        }
+      } else if (isNumber(char)) {
+        type = "D";
+      } else {
+        // special character
+        type = "U";
+      }
+      if (type !== mode) {
+        if (mode !== null) {
+          output += Math.floor(count / 3);
+        }
+        count = 0;
+        mode = type;
+        output += type;
+      } else {
+        count++;
+        if (i === text.length - 1) {
+          output += Math.floor(count / 3);
+        }
+      }
+    }
+    return output;
+  },
+  blacklist(name: string) {
+    const list = METHODS.getSetting("wordblock", []);
+    for (let i = 0; i < list.length; i++) {
+      if (list[i] === "") {
+        continue;
+      }
+      if (name.toLowerCase().indexOf(list[i].toLowerCase()) !== -1) {
+        return true;
+      }
+    }
+    return false;
+  },
+  getKahootSetting<T>(id: string): T {
+    return kantibotData.kahootInternals.settings[id];
+  },
+  // TODO: Revise when we change settings.
+  getSetting(id: string, fallback: any = null) {
+    if (typeof kantibotData.settings[id] !== "undefined") {
+      return kantibotData.settings[id];
+    }
+    const elem = document.querySelector<HTMLInputElement>(
+      `#antibot.config.${id}`
+    ) as HTMLInputElement;
+    if (elem.value === "") {
+      if (elem.nodeName === "TEXTAREA") {
+        return fallback ?? [];
+      }
+      if (elem.type === "checkbox") {
+        return fallback ?? false;
+      }
+      if (elem.type === "number") {
+        return fallback ?? 0;
+      }
+      return fallback ?? "";
+    } else {
+      return elem.type === "checkbox"
+        ? elem.checked
+        : elem.nodeName === "TEXTAREA"
+        ? elem.value.split("\n")
+        : elem.type === "number"
+        ? +elem.value
+        : elem.value;
+    }
+  },
+  setSetting(id: string, value: any) {
+    const elem = document.querySelector<HTMLInputElement>(
+      `#antibot.config.${id}`
+    ) as HTMLInputElement;
+    if (elem.type === "checkbox") {
+      value = !!value;
+      elem.checked = value;
+    } else if (Array.isArray(value)) {
+      elem.value = value.join("\n");
+    } else if (elem.type === "number") {
+      value = +value;
+      elem.value = value;
+    } else {
+      value = `${value}`;
+      elem.value = value;
+    }
+    // in case of certain things
+    if (elem.nodeName === "TEXTAREA" && typeof value === "string") {
+      value = value.split("\n");
+    }
+    const localConfig = JSON.parse(window.localStorage.antibotConfig || "{}");
+    localConfig[id] = value;
+    window.localStorage.antibotConfig = JSON.stringify(localConfig);
+    kantibotData.settings[id] = value;
+  },
+  extraQuestionSetup(quiz: any) {
+    if (METHODS.getSetting("counterCheats")) {
+      quiz.questions.push({
+        question:
+          "[ANTIBOT] - This poll is for countering Kahoot cheating sites.",
+        time: 5000,
+        type: "survey",
+        isAntibotQuestion: true,
+        choices: [{ answer: "OK", correct: true }],
+      });
+    }
+    if (METHODS.getSetting("enableCAPTCHA")) {
+      const answers = ["red", "blue", "yellow", "green"],
+        images = [
+          "361bdde0-48cd-4a92-ae9f-486263ba8529", // red
+          "9237bdd2-f281-4f04-b4e5-255e9055a194", // blue
+          "d25c9d13-4147-4056-a722-e2a13fbb4af9", // yellow
+          "2aca62f2-ead5-4197-9c63-34da0400703a", // green
+        ],
+        imageIndex = Math.floor(Math.random() * answers.length);
+      quiz.questions.splice(0, 0, {
+        question: `[ANTIBOT] - CAPTCHA: Please select ${answers[imageIndex]}`,
+        time: 30000,
+        type: "quiz",
+        isAntibotQuestion: true,
+        AntibotCaptchaCorrectIndex: imageIndex,
+        choices: [
+          { answer: "OK" },
+          { answer: "OK" },
+          { answer: "OK" },
+          { answer: "OK" },
+        ],
+        image: "https://media.kahoot.it/" + images[imageIndex],
+        imageMetadata: {
+          width: 512,
+          height: 512,
+          id: images[imageIndex],
+          contentType: "image/png",
+          resources: "",
+        },
+        points: false,
+      });
+    }
+  },
+  kahootAlert(notice: string) {
+    alert(notice);
+  },
+  kickController(id: string, reason = "", fallbackController: any) {
+    const controller = METHODS.getControllerById(id) ?? fallbackController,
+      name =
+        controller?.name?.length > 30
+          ? controller.name.substr(0, 30) + "..."
+          : controller?.name,
+      banishedCachedData =
+        kantibotData.runtimeData.unverifiedControllerNames.find(
+          (controller) => {
+            return controller.cid === id;
+          }
+        );
+    console.warn(
+      `[ANTIBOT] - Kicked ${name || id}${reason ? ` - ${reason}` : ""}`
+    );
+    METHODS.sendData("/service/player", {
+      cid: `${id}`,
+      content: JSON.stringify({
+        kickCode: 1,
+        quizType: "quiz",
+      }),
+      gameid: METHODS.getPin(),
+      host: "play.kahoot.it",
+      id: 10,
+      type: "message",
+    });
+    kantibotData.runtimeData.killCount++;
+    if (banishedCachedData) {
+      banishedCachedData.banned = true;
+      banishedCachedData.time = 10;
+    }
+    // Removed to reduce the amount of memory consumed.
+    // if (controller) {antibotData.kahootInternals.kahootCore.game.core.kickedControllers.push(controller);}
+    delete METHODS.getControllers()[id];
+    delete kantibotData.runtimeData.controllerData[id];
+  },
+
+  isEventJoinEvent(event: any): boolean {
+    return event.data?.type === "joined";
+  },
+
+  isEventAnswerEvent(event: any): boolean {
+    return event.data?.id === 45;
+  },
+
+  isEventTwoFactorEvent(event: any) {
+    return event.data?.id === 50;
+  },
+
+  isEventTeamJoinEvent(event: any) {
+    return event.data?.id === 18;
+  },
+  batchData(callback: CallableFunction) {
+    return kantibotData.kahootInternals.services.network.websocketInstance.batch(
+      callback
+    );
+  },
+
+  lockGame(): void {
+    kantibotData.runtimeData.lockingGame = true;
+    METHODS.sendData("/service/player", {
+      gameid: METHODS.getPin(),
+      type: "lock",
+    });
+  },
+
+  unlockGame(): void {
+    METHODS.sendData("/service/player", {
+      gameid: METHODS.getPin(),
+      type: "unlock",
+    });
+  },
+
+  isLocked() {
+    return kantibotData.kahootInternals.gameCore.isLocked;
+  },
+
+  getCurrentQuestionIndex() {
+    // return kantibotData.kahootInternals.kahootCore.game.navigation
+    //   .currentGameBlockIndex;
+  },
+
+  getQuizData() {
+    return kantibotData.kahootInternals.quizData;
+  },
+
+  getPin() {
+    return kantibotData.kahootInternals.gameCore.pin;
+  },
+
+  getControllerById(id: string) {
+    return METHODS.getControllers()[id];
+  },
+
+  getControllers() {
+    return kantibotData.kahootInternals.gameCore.controllers;
+  },
+
+  sendData(channel: string, data: any) {
+    return kantibotData.kahootInternals.services.network.websocketInstance.publish(
+      channel,
+      data
+    );
+  },
+};
+kantibotData.methods = METHODS;
+
+const localConfig = JSON.parse(
+  window.localStorage.kantibotConfig ??
+    window.localStorage.antibotConfig ??
+    "{}"
+);
+for (const setting in localConfig) {
+  try {
+    const current = METHODS.getSetting(setting);
+    METHODS.setSetting(setting, localConfig[setting] ?? current);
+  } catch {
+    /* ignored */
+  }
+}
+
+// Apply hooks
 
 const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
   startQuizFunction: {
