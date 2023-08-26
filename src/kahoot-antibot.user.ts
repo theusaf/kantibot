@@ -1450,16 +1450,59 @@ function injectAntibotSettings(target: {
       { id: "kantibot-settings" },
       createElement(
         "div",
-        { className: "antibot-settings-header" },
+        { className: "kantibot-settings-header" },
         "KAntibot"
       ),
-      ...settings,
-      createElement("hr")
+      ...settings
     );
     // Inject the antibot settings
     target.children.splice(antibotIndex + 1, 0, antibotSettingsContainer);
   }
 }
+
+const styles = document.createElement("style");
+styles.textContent = `
+  #kantibot-settings {
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0px 1.5rem 1.5rem;
+    padding-inline-start: calc(1.5rem + env(safe-area-inset-left));
+    border-bottom: 1px solid rgb(204, 204, 204);
+  }
+  .kantibot-setting-container {
+    display: flex;
+    padding: 0.5rem;
+    padding-left: 0;
+    align-self: stretch;
+    justify-content: flex-start;
+    margin: 0.5rem 0;
+    border-radius: 0.5rem;
+    flex-direction: row;
+  }
+  .kantibot-setting-container label {
+    text-align: start;
+    font-size: 1rem;
+    flex-grow: 1;
+  }
+  .kantibot-settings-header {
+    margin-top: 1.5rem;
+    color: rgb(110, 110, 110);
+  }
+  .kantibot-setting-description {
+    height: 1rem;
+    display: inline-flex;
+    text-align: center;
+    background: darkgray;
+    border-radius: 2rem;
+    color: white;
+    align-items: center;
+    padding: 0 0.25rem;
+    margin-right: 0.5rem;
+  }
+`;
+document.head.append(styles);
 
 interface KAntibotSettingLabelComponentProps {
   title: string;
@@ -1472,21 +1515,19 @@ function KAntibotSettingLabelComponent({
   id,
   description,
 }: KAntibotSettingLabelComponentProps) {
-  const { createElement } = window.React;
-  let visible = false;
+  const { createElement, Fragment } = window.React;
   return createElement(
-    "div",
+    Fragment,
     {},
-    createElement("label", { htmlFor: `kantibot-setting-${id}` }, title),
     createElement(
       "span",
       {
-        className: `kantibot-setting-description ${visible ? "visible" : ""}`,
-        onMouseOver: () => (visible = true),
-        onMouseOut: () => (visible = false),
+        className: `kantibot-setting-description`,
+        title: description,
       },
-      visible ? createElement("span", {}, description) : ""
-    )
+      "?"
+    ),
+    createElement("label", { htmlFor: `kantibot-setting-${id}` }, title)
   );
 }
 
@@ -1514,7 +1555,7 @@ function KAntibotSettingComponent({
   const { createElement } = window.React;
   return createElement(
     "div",
-    {},
+    { className: "kantibot-setting-container" },
     KAntibotSettingLabelComponent({ title, id, description }),
     createElement(elementName, {
       id: `kantibot-setting-${id}`,
