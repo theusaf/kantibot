@@ -14,19 +14,8 @@
     "no-global-assign": ["off"],
     "no-control-regex": ["off"],
     "no-empty": ["warn"],
-    "indent": [
-      "error",
-      2,
-      {
-        "SwitchCase": 1
-      }
-    ],
-    "linebreak-style": ["error", "unix"],
-    "quotes": ["error", "double"],
-    "semi": ["error", "always"],
     "no-unused-vars": ["warn"],
     "no-var": ["error"],
-    "curly": ["error"],
     "no-unneeded-ternary": ["error"],
     "one-var": [
       "error",

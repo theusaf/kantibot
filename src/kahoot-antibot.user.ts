@@ -19,7 +19,7 @@
 // @license        MIT
 // ==/UserScript==
 
-import { Component } from "react";
+"use strict";
 
 /*
 
@@ -47,8 +47,8 @@ const KANTIBOT_VERSION = GM_info.script.version,
   kantibotData: KAntibotData = {
     settings: {
       timeout: false,
-      looksRandom: false,
-      blockformat1: false,
+      looksRandom: true,
+      blockformat1: true,
       blockservice1: false,
       blocknum: false,
       forceascii: false,
@@ -1299,7 +1299,196 @@ for (const setting in localConfig) {
   }
 }
 
-function injectAntibotSettings(target: Component) {}
+function injectAntibotSettings(target: {
+  children: ReturnType<typeof window.React.createElement<any>>[];
+}) {
+  const lastIndex = target.children.length - 1;
+  const antibotIndex = lastIndex - 2;
+  const lastItem = target.children[lastIndex];
+  if (
+    typeof lastItem.type === "function" &&
+    lastItem.props?.text?.id ===
+      "player.components.game-options-menu.unableToResetToDefaultsInGame"
+  ) {
+    // Check if the antibot settings are already injected
+    const antibotItem = target.children[antibotIndex];
+    if (
+      antibotItem.type === "div" &&
+      antibotItem.props?.id === "kantibot-settings"
+    ) {
+      return;
+    }
+    const { createElement } = window.React;
+    const settings = [
+      KAntibotSettingComponent({
+        title: "Block Fast Answers",
+        inputType: "checkbox",
+        id: "timeout",
+        description:
+          "Blocks answers sent before 0.5 seconds after the question starts",
+      }),
+      KAntibotSettingComponent({
+        title: "Block Random Names",
+        inputType: "checkbox",
+        id: "looksRandom",
+        description: "Blocks names that look random, such as 'rAnDOM naMe'",
+        defaultValue: true,
+      }),
+      KAntibotSettingComponent({
+        title: "Block Format F[.,-]L",
+        inputType: "checkbox",
+        id: "blockformat1",
+        description: "Blocks names using the format [First][random char][Last]",
+        defaultValue: true,
+      }),
+      KAntibotSettingComponent({
+        title: "Additional Blocking Filters",
+        inputType: "checkbox",
+        id: "blockservice1",
+        description:
+          "Enables multiple additional blocking filters for some bot programs",
+      }),
+      KAntibotSettingComponent({
+        title: "Block Numbers",
+        inputType: "checkbox",
+        id: "blocknum",
+        description:
+          "Blocks names containing numbers, if multiple with numbers join within a short period of time",
+      }),
+      KAntibotSettingComponent({
+        title: "Force Alphanumeric Names",
+        inputType: "checkbox",
+        id: "forceascii",
+        description:
+          "Blocks names containing non-alphanumeric characters, if multiple join within a short period of time",
+      }),
+      KAntibotSettingComponent({
+        title: "Detect Patterns",
+        inputType: "checkbox",
+        id: "patterns",
+        description: "Blocks bots spammed using similar patterns",
+      }),
+      KAntibotSettingComponent({
+        title: "Additional Question Time",
+        inputType: "number",
+        id: "teamtimeout",
+        description:
+          "Adds extra seconds to a question. May cause issues with scoring.",
+        inputProps: {
+          step: 1,
+        },
+      }),
+      KAntibotSettingComponent({
+        title: "Two-Factor Auth Timer",
+        inputType: "number",
+        id: "twoFactorTime",
+        description: "Specify the number of seconds for the two-factor auth.",
+        defaultValue: 7,
+        inputProps: {
+          step: 1,
+          min: 1,
+        },
+      }),
+      KAntibotSettingComponent({
+        title: "Name Match Percent",
+        inputType: "number",
+        id: "percent",
+        description: "Specify the percent of similarity between names to kick.",
+        defaultValue: 0.6,
+        inputProps: {
+          step: 0.1,
+        },
+      }),
+      KAntibotSettingComponent({
+        title: "Word Blacklist",
+        inputType: "textarea",
+        id: "wordblock",
+        description: "Specify the words to block, separated by a new line.",
+      }),
+      KAntibotSettingComponent({
+        title: "Auto-Lock Threshold",
+        inputType: "number",
+        id: "ddos",
+        description:
+          "Specify the number of bots to join per minute before locking the game. Set to 0 to disable.",
+        defaultValue: 0,
+        inputProps: {
+          step: 1,
+        },
+      }),
+      KAntibotSettingComponent({
+        title: "Show Antibot Timers",
+        inputType: "checkbox",
+        id: "counters",
+        description:
+          "Display Antibot Counters/Timers (Lobby Auto-Start, Auto-Lock, etc)",
+      }),
+      KAntibotSettingComponent({
+        title: "Counter Kahoot! Cheats",
+        inputType: "checkbox",
+        id: "counterCheats",
+        description:
+          "Adds an additional 5 second question at the end to counter cheats.",
+      }),
+      KAntibotSettingComponent({
+        title: "Enable CAPTCHA",
+        inputType: "checkbox",
+        id: "enableCAPTCHA",
+        description:
+          "Adds a 30 second poll at the start of the quiz. If players don't answer it correctly, they get banned.",
+      }),
+      KAntibotSettingComponent({
+        title: "Reduce False Positives",
+        inputType: "checkbox",
+        id: "reduceFalsePositives",
+        description:
+          "Reduces false positives by making the antibot less strict.",
+      }),
+    ];
+    const antibotSettingsContainer = createElement(
+      "div",
+      { id: "kantibot-settings" },
+      createElement(
+        "div",
+        { className: "antibot-settings-header" },
+        "KAntibot"
+      ),
+      ...settings,
+      createElement("hr")
+    );
+    // Inject the antibot settings
+    target.children.splice(antibotIndex + 1, 0, antibotSettingsContainer);
+  }
+}
+
+interface KAntibotSettingLabelComponentProps {
+  title: string;
+  id: string;
+  description: string;
+}
+
+function KAntibotSettingLabelComponent({
+  title,
+  id,
+  description,
+}: KAntibotSettingLabelComponentProps) {
+  const { createElement } = window.React;
+  let visible = false;
+  return createElement(
+    "div",
+    {},
+    createElement("label", { htmlFor: `kantibot-setting-${id}` }, title),
+    createElement(
+      "span",
+      {
+        className: `kantibot-setting-description ${visible ? "visible" : ""}`,
+        onMouseOver: () => (visible = true),
+        onMouseOut: () => (visible = false),
+      },
+      visible ? createElement("span", {}, description) : ""
+    )
+  );
+}
 
 interface KAntibotSettingComponentProps {
   title: string;
@@ -1320,7 +1509,24 @@ function KAntibotSettingComponent({
   inputProps = {},
   onChange,
 }: KAntibotSettingComponentProps) {
-  return null;
+  let elementName = "input";
+  if (inputType === "textarea") elementName = "textarea";
+  const { createElement } = window.React;
+  return createElement(
+    "div",
+    {},
+    KAntibotSettingLabelComponent({ title, id, description }),
+    createElement(elementName, {
+      id: `kantibot-setting-${id}`,
+      className: `kantibot-setting-input ${inputType}`,
+      type: inputType,
+      defaultValue,
+      ...inputProps,
+      onChange: (event: any) => {
+        if (onChange) onChange(event.target.value);
+      },
+    })
+  );
 }
 
 // Apply hooks
@@ -1446,7 +1652,8 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
       value.length > 8 &&
       typeof target.isOpen === "boolean",
     callback: (target) => {
-      // TODO: Inject!!!
+      kantibotData.kahootInternals.debugData.settings = target;
+      injectAntibotSettings(target);
       return false;
     },
   },
