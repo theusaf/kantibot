@@ -149,6 +149,7 @@ declare global {
       questionStartTime: number;
       startLockElement: HTMLElement | null;
       startLockInterval: number;
+      countersElement: HTMLDivElement;
     };
     kahootInternals: {
       anwerDetails: any;

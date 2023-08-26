@@ -54,7 +54,7 @@ const KANTIBOT_VERSION = GM_info.script.version,
       forceascii: false,
       patterns: false,
       teamtimeout: 0,
-      twoFactorTime: 0,
+      twoFactorTime: 7,
       percent: 0.6,
       wordblock: "",
       ddos: 0,
@@ -80,6 +80,7 @@ const KANTIBOT_VERSION = GM_info.script.version,
       questionStartTime: 0,
       startLockElement: null,
       startLockInterval: null,
+      counters: null,
     },
     methods: {},
     kahootInternals: {
@@ -504,11 +505,10 @@ const METHODS = {
   },
 
   blacklist(name: string): boolean {
-    const list = METHODS.getSetting<string[]>("wordblock", []);
+    const list = METHODS.getSetting<string>("wordblock")
+      .split("\n")
+      .filter(Boolean);
     for (let i = 0; i < list.length; i++) {
-      if (list[i] === "") {
-        continue;
-      }
       if (name.toLowerCase().indexOf(list[i].toLowerCase()) !== -1) {
         return true;
       }
@@ -520,56 +520,12 @@ const METHODS = {
     return kantibotData.kahootInternals.settings[id];
   },
 
-  // TODO: Revise when we change settings.
-  getSetting<T = any>(id: keyof KAntibotSettings, fallback: any = null): T {
-    if (typeof kantibotData.settings[id] !== "undefined") {
-      return kantibotData.settings[id] as T;
-    }
-    const elem = document.querySelector<HTMLInputElement>(
-      `#antibot.config.${id}`
-    ) as HTMLInputElement;
-    if (elem.value === "") {
-      if (elem.nodeName === "TEXTAREA") {
-        return fallback ?? [];
-      }
-      if (elem.type === "checkbox") {
-        return fallback ?? false;
-      }
-      if (elem.type === "number") {
-        return fallback ?? 0;
-      }
-      return fallback ?? "";
-    } else {
-      return (
-        elem.type === "checkbox"
-          ? elem.checked
-          : elem.nodeName === "TEXTAREA"
-          ? elem.value.split("\n")
-          : elem.type === "number"
-          ? +elem.value
-          : elem.value
-      ) as T;
-    }
+  getSetting<T = any>(id: keyof KAntibotSettings): T {
+    return kantibotData.settings[id] as T;
   },
 
   setSetting<T>(id: keyof KAntibotSettings, value: T) {
-    const elem = document.querySelector<HTMLInputElement>(
-      `#antibot.config.${id}`
-    ) as HTMLInputElement;
-    if (elem.type === "checkbox") {
-      elem.checked = !!value;
-    } else if (Array.isArray(value)) {
-      elem.value = value.join("\n");
-    } else if (elem.type === "number") {
-      elem.value = +value as unknown as string;
-    } else {
-      elem.value = `${value}`;
-    }
-    // in case of certain things
-    if (elem.nodeName === "TEXTAREA" && typeof value === "string") {
-      value = value.split("\n") as unknown as T;
-    }
-    const localConfig = JSON.parse(window.localStorage.antibotConfig || "{}");
+    const localConfig = JSON.parse(window.localStorage.antibotConfig ?? "{}");
     localConfig[id] = value;
     window.localStorage.antibotConfig = JSON.stringify(localConfig);
     (kantibotData.settings as any)[id] = value; // as any to avoid weird typescript issue
@@ -796,10 +752,10 @@ const RECV_CHECKS: ((socket: KWebSocket, data: KSocketEvent) => boolean)[] = [
     if (
       !METHODS.isLocked() &&
       !kantibotData.runtimeData.lockingGame &&
-      METHODS.getSetting<number>("ddos", 0) &&
+      METHODS.getSetting<number>("ddos") &&
       kantibotData.runtimeData.killCount -
         kantibotData.runtimeData.oldKillCount >
-        METHODS.getSetting<number>("ddos", 0) / 3
+        METHODS.getSetting<number>("ddos") / 3
     ) {
       METHODS.lockGame();
       log("Detected bot spam, locking game for 1 minute");
@@ -814,10 +770,9 @@ const RECV_CHECKS: ((socket: KWebSocket, data: KSocketEvent) => boolean)[] = [
         const ddosCounterElement = document.createElement("div");
         let timeLeft = 60;
         ddosCounterElement.innerHTML = `
-          <span class="antibot-count-num">60</span>
-          <span class="antibot-count-desc">Until Unlock</span>`;
-        // TODO: FIX THIS
-        // counters.append(ddosCounterElement);
+          <span class="kantibot-count-num">60</span>
+          <span class="kantibot-count-desc">Until Unlock</span>`;
+        counters.append(ddosCounterElement);
         const ddosCounterInterval = setInterval(() => {
           ddosCounterElement.querySelector(
             ".antibot-count-num"
@@ -878,7 +833,7 @@ const RECV_CHECKS: ((socket: KWebSocket, data: KSocketEvent) => boolean)[] = [
         continue;
       if (
         METHODS.similarity(usernames[i].name, player.name) >=
-        METHODS.getSetting<number>("percent", 0.6)
+        METHODS.getSetting<number>("percent")
       ) {
         METHODS.batchData(() => {
           METHODS.kickController(
@@ -1208,20 +1163,20 @@ const RECV_CHECKS: ((socket: KWebSocket, data: KSocketEvent) => boolean)[] = [
     if (
       kantibotData.kahootInternals.services.game.navigation.page === "lobby" &&
       METHODS.getKahootSetting<boolean>("automaticallyProgressGame") &&
-      METHODS.getSetting<number>("start_lock", 0) !== 0
+      METHODS.getSetting<number>("start_lock") !== 0
     ) {
       if (kantibotData.runtimeData.lobbyLoadTime === 0) {
         kantibotData.runtimeData.lobbyLoadTime = Date.now();
         if (METHODS.getSetting<boolean>("counters")) {
           const container = document.createElement("div");
-          container.innerHTML = `<span class="antibot-count-num">${Math.round(
-            METHODS.getSetting<number>("start_lock", 0) -
+          container.innerHTML = `<span class="kantibot-count-num">${Math.round(
+            METHODS.getSetting<number>("start_lock") -
               (Date.now() - kantibotData.runtimeData.lobbyLoadTime) / 1e3
           )}</span>
-            <span class="antibot-count-desc">Until Auto-Start</span>`;
+            <span class="kantibot-count-desc">Until Auto-Start</span>`;
           const startLockInterval = setInterval(() => {
             let time: number | string = Math.round(
-              METHODS.getSetting<number>("start_lock", 0) -
+              METHODS.getSetting<number>("start_lock") -
                 (Date.now() - kantibotData.runtimeData.lobbyLoadTime) / 1e3
             );
             if (time < 0) {
@@ -1231,14 +1186,14 @@ const RECV_CHECKS: ((socket: KWebSocket, data: KSocketEvent) => boolean)[] = [
               ".antibot-count-num"
             )!.innerHTML = `${time}`;
           }, 1e3);
-          // counters.append(container);
+          counters.append(container);
           kantibotData.runtimeData.startLockElement = container;
           kantibotData.runtimeData.startLockInterval = startLockInterval;
         }
       }
       if (
         Date.now() - kantibotData.runtimeData.lobbyLoadTime >
-        METHODS.getSetting<number>("start_lock", 0) * 1e3
+        METHODS.getSetting<number>("start_lock") * 1e3
       ) {
         const controllers = METHODS.getControllers(),
           realController = Object.values(controllers).find((controller) => {
@@ -1332,14 +1287,12 @@ function injectAntibotSettings(target: {
         inputType: "checkbox",
         id: "looksRandom",
         description: "Blocks names that look random, such as 'rAnDOM naMe'",
-        defaultValue: true,
       }),
       KAntibotSettingComponent({
         title: "Block Format F[.,-]L",
         inputType: "checkbox",
         id: "blockformat1",
         description: "Blocks names using the format [First][random char][Last]",
-        defaultValue: true,
       }),
       KAntibotSettingComponent({
         title: "Additional Blocking Filters",
@@ -1383,7 +1336,6 @@ function injectAntibotSettings(target: {
         inputType: "number",
         id: "twoFactorTime",
         description: "Specify the number of seconds for the two-factor auth.",
-        defaultValue: 7,
         inputProps: {
           step: 1,
           min: 1,
@@ -1394,7 +1346,6 @@ function injectAntibotSettings(target: {
         inputType: "number",
         id: "percent",
         description: "Specify the percent of similarity between names to kick.",
-        defaultValue: 0.6,
         inputProps: {
           step: 0.1,
         },
@@ -1411,7 +1362,6 @@ function injectAntibotSettings(target: {
         id: "ddos",
         description:
           "Specify the number of bots to join per minute before locking the game. Set to 0 to disable.",
-        defaultValue: 0,
         inputProps: {
           step: 1,
         },
@@ -1451,7 +1401,7 @@ function injectAntibotSettings(target: {
       createElement(
         "div",
         { className: "kantibot-settings-header" },
-        "KAntibot"
+        `KAntibot v${KANTIBOT_VERSION} by theusaf`
       ),
       ...settings
     );
@@ -1462,6 +1412,9 @@ function injectAntibotSettings(target: {
 
 const styles = document.createElement("style");
 styles.textContent = `
+
+  /* settings */
+
   #kantibot-settings {
     text-align: left;
     display: flex;
@@ -1501,6 +1454,34 @@ styles.textContent = `
     padding: 0 0.25rem;
     margin-right: 0.5rem;
   }
+
+  /* counters */
+
+  #kantibot-counters {
+    position: absolute;
+    right: 10rem;
+    top: 11rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
+    pointer-events: none;
+    z-index: 1;
+  }
+  #kantibot-counters div {
+    background: rgba(0,0,0,0.5);
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .kantibot-count-num {
+    display: block;
+    text-align: center;
+  }
+  .kantibot-count-desc {
+    text-align: center;
+    font-size: 1.25rem;
+    display: block;
+  }
 `;
 document.head.append(styles);
 
@@ -1534,9 +1515,8 @@ function KAntibotSettingLabelComponent({
 interface KAntibotSettingComponentProps {
   title: string;
   inputType: "checkbox" | "text" | "number" | "textarea";
-  id: string;
+  id: keyof KAntibotSettings;
   description: string;
-  defaultValue?: any;
   inputProps?: Record<string, any>;
   onChange?: (value: any) => void;
 }
@@ -1546,7 +1526,6 @@ function KAntibotSettingComponent({
   inputType,
   id,
   description,
-  defaultValue,
   inputProps = {},
   onChange,
 }: KAntibotSettingComponentProps) {
@@ -1561,14 +1540,23 @@ function KAntibotSettingComponent({
       id: `kantibot-setting-${id}`,
       className: `kantibot-setting-input ${inputType}`,
       type: inputType,
-      defaultValue,
       ...inputProps,
-      onChange: (event: any) => {
-        if (onChange) onChange(event.target.value);
+      onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
+        let value: string | number | boolean;
+        if (inputType === "checkbox") value = event.target.checked;
+        else if (inputType === "number") value = +event.target.value;
+        else value = event.target.value;
+        if (onChange) onChange(value);
+        METHODS.setSetting(id, value);
       },
     })
   );
 }
+
+const counters = document.createElement("div");
+counters.id = "kantibot-counters";
+document.body.append(counters);
+kantibotData.runtimeData.countersElement = counters;
 
 // Apply hooks
 
@@ -1646,7 +1634,7 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
       target.twoFactorAuth = (input: unknown, payload: KPayload) => {
         const result = value.call(target, input, payload);
         if (payload.type === "player/two-factor-auth/RESET") {
-          const customTime = METHODS.getSetting<number>("twoFactorTime", 0);
+          const customTime = METHODS.getSetting<number>("twoFactorTime");
           if (customTime > 0) {
             result.counter = Math.floor(customTime);
           }
