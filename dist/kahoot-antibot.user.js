@@ -1,5 +1,5 @@
 ﻿// ==UserScript==
-// @name           KAntibot4
+// @name           KAntibot
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
