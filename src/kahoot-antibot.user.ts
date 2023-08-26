@@ -615,8 +615,6 @@ const METHODS = {
       banishedCachedData.banned = true;
       banishedCachedData.time = 10;
     }
-    // Removed to reduce the amount of memory consumed.
-    // if (controller) {antibotData.kahootInternals.kahootCore.game.core.kickedControllers.push(controller);}
     delete METHODS.getControllers()[id];
     delete kantibotData.runtimeData.controllerData[id];
   },
@@ -1532,7 +1530,8 @@ function KAntibotSettingComponent({
   const { createElement } = window.React;
   let elementName = "input";
   if (inputType === "textarea") elementName = "textarea";
-  if (inputType === "checkbox") inputProps.defaultChecked = METHODS.getSetting<boolean>(id);
+  if (inputType === "checkbox")
+    inputProps.defaultChecked = METHODS.getSetting<boolean>(id);
   else inputProps.defaultValue = METHODS.getSetting<any>(id);
 
   return createElement(
@@ -1659,7 +1658,7 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
         const result = value.call(target, input, payload);
         if (payload.type === "player/game/SET_QUESTION_TIMER") {
           console.log("SET QUESTION TIMER", result);
-          // modify `currentQuestionTimer` (and `startTime`?) to make the question time longer
+          // TODO: modify `currentQuestionTimer` (and `startTime`?) to make the question time longer
         }
         return result;
       };
@@ -1674,7 +1673,7 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
         const result = value.call(target, input, payload);
         if (payload.type === "features/game-blocks/SET_SCORES") {
           console.log("SETTING SCORES", result);
-          // modify `correct` to fix for the question time
+          // TODO: modify `correct` to fix for the question time
         }
         return result;
       };
