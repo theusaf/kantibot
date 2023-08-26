@@ -12,6 +12,14 @@
   "devDependencies": {
     "@types/react": "^18.2.21",
     "@types/tampermonkey": "^4.20.1",
+    "an-array-of-english-words": "^2.0.0",
+    "beepbeep": "^1.3.0",
+    "console-title": "^1.1.0",
+    "kahoot.js-fix": "^0.2.0",
+    "kahoot.js-updated": "2.4.0",
+    "random-name": "^0.1.2",
+    "readline-sync": "^1.4.10",
+    "request": "^2.88.2",
     "typescript": "^5.2.2"
   }
 }

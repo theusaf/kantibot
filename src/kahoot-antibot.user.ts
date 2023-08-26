@@ -516,8 +516,8 @@ const METHODS = {
     return false;
   },
 
-  getKahootSetting<T>(id: keyof KSettings): T {
-    return kantibotData.kahootInternals.settings[id];
+  getKahootSetting<T = boolean>(id: keyof KSettings): T {
+    return kantibotData.kahootInternals.settings[id] as T;
   },
 
   getSetting<T = any>(id: keyof KAntibotSettings): T {
@@ -703,17 +703,12 @@ const SEND_CHECKS: ((socket: KWebSocket, data: KSocketEvent) => void)[] = [
       (data?.data?.id === 10 && data.data.content === "{}")
     ) {
       kantibotData.runtimeData.lobbyLoadTime = 0;
-      const shouldResetData = METHODS.getKahootSetting("requireRejoin");
-      if (shouldResetData) {
-        Object.assign(kantibotData.runtimeData, {
-          controllerData: {},
-          captchaIds: new Set(),
-          englishWordDetectionData: new Set(),
-          controllerNamePatternData: {},
-          verifiedControllerNames: new Set(),
-          unverifiedControllerNames: [],
-        });
-      }
+      // Reset some data, which may be stale from previous round.
+      Object.assign(kantibotData.runtimeData, {
+        captchaIds: new Set(),
+        englishWordDetectionData: new Set(),
+        controllerNamePatternData: {},
+      });
     }
   },
   function quizStartCheck(socket, data) {
@@ -1213,6 +1208,31 @@ const RECV_CHECKS: ((socket: KWebSocket, data: KSocketEvent) => boolean)[] = [
   },
 ];
 
+setInterval(function updateStats() {
+  const unverifiedControllerNames =
+      kantibotData.runtimeData.unverifiedControllerNames,
+    verifiedControllerNames = kantibotData.runtimeData.verifiedControllerNames;
+  for (const i in unverifiedControllerNames) {
+    const data = unverifiedControllerNames[i];
+    if (
+      data.time <= 0 &&
+      !data.banned &&
+      !verifiedControllerNames.has(data.name)
+    ) {
+      verifiedControllerNames.add(data.name);
+      continue;
+    }
+    if (data.time <= -20) {
+      unverifiedControllerNames.splice(+i, 1);
+      continue;
+    }
+    data.time--;
+  }
+}, 1e3);
+setInterval(function updateOldKillCount() {
+  kantibotData.runtimeData.oldKillCount = kantibotData.runtimeData.killCount;
+}, 20e3);
+
 function websocketMessageSendHandler(
   socket: KWebSocket,
   message: string
@@ -1234,6 +1254,12 @@ function websocketMessageReceiveVerification(
     if (check(socket, data) === BOT_DETECTED) {
       return BOT_DETECTED;
     }
+  }
+  if (METHODS.isEventJoinEvent(data)) {
+    kantibotData.runtimeData.controllerData[data.data.cid] = {
+      loginTime: Date.now(),
+      twoFactorAttempts: 0,
+    };
   }
   return !BOT_DETECTED;
 }

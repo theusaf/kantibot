@@ -77,7 +77,7 @@ declare global {
     uuid: string;
   }
 
-  interface KSettings extends Record<string, any> {
+  interface KSettings {
     automaticallyProgressGame: boolean;
     avatars: boolean;
     gameBlockTalk: boolean;
@@ -135,7 +135,13 @@ declare global {
     methods: {};
     runtimeData: {
       captchaIds: Set<string>;
-      controllerData: Record<string, any>;
+      controllerData: Record<
+        string,
+        {
+          loginTime: number;
+          twoFactorAttempts: number;
+        }
+      >;
       controllerNamePatternData: Record<string, any>;
       englishWordDetectionData: Set<any>;
       killCount: number;
@@ -144,7 +150,12 @@ declare global {
       lobbyLoadTime: number;
       lockingGame: boolean;
       oldKillCount: number;
-      unverifiedControllerNames: any[];
+      unverifiedControllerNames: {
+        time: number;
+        name: string;
+        banned: boolean;
+        cid: string;
+      }[];
       verifiedControllerNames: Set<string>;
       questionStartTime: number;
       startLockElement: HTMLElement | null;
