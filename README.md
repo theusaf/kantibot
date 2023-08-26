@@ -88,6 +88,7 @@ If you would like to make scripts that access various internals without interfer
 * The hook listens for when certain properties of any object is set to something
 * The filter is a function that takes the value of the property and returns true if the callback should be called
 * The callback is called when the filter returns true, and is passed the value of the property, which can be used however the developer requires.
+  * If it returns true, the hook will be removed after completion, otherwise it will remain active.
 
 **Example:**
 
@@ -100,6 +101,7 @@ window.kantibotAddHook({
   callback: function(target, value) {
     console.log("The object the property is put on is", target);
     console.log("The example property is set to", value);
+    return true;
   }
 });
 ```
