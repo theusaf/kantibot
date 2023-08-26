@@ -1529,9 +1529,12 @@ function KAntibotSettingComponent({
   inputProps = {},
   onChange,
 }: KAntibotSettingComponentProps) {
+  const { createElement } = window.React;
   let elementName = "input";
   if (inputType === "textarea") elementName = "textarea";
-  const { createElement } = window.React;
+  if (inputType === "checkbox") inputProps.defaultChecked = METHODS.getSetting<boolean>(id);
+  else inputProps.defaultValue = METHODS.getSetting<any>(id);
+
   return createElement(
     "div",
     { className: "kantibot-setting-container" },
@@ -1543,9 +1546,13 @@ function KAntibotSettingComponent({
       ...inputProps,
       onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
         let value: string | number | boolean;
-        if (inputType === "checkbox") value = event.target.checked;
-        else if (inputType === "number") value = +event.target.value;
-        else value = event.target.value;
+        if (inputType === "checkbox") {
+          value = event.target.checked;
+        } else if (inputType === "number") {
+          value = +event.target.value;
+        } else {
+          value = event.target.value;
+        }
         if (onChange) onChange(value);
         METHODS.setSetting(id, value);
       },
