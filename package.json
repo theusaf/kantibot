@@ -10,7 +10,8 @@
   "author": "theusaf",
   "license": "MIT",
   "devDependencies": {
-    "@types/tampermonkey": "^4.0.11",
-    "typescript": "^5.1.6"
+    "@types/react": "^18.2.21",
+    "@types/tampermonkey": "^4.20.1",
+    "typescript": "^5.2.2"
   }
 }

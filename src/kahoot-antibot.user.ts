@@ -113,15 +113,6 @@ function addHook(hook: KAntibotHook) {
 }
 
 const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
-  questionTimer: {
-    prop: "currentQuestionTimer",
-    condition: () => true,
-    callback: (target) => {
-      console.log("questionTimer", target);
-      kantibotData.kahootInternals.debugData.questionTimer ??= target;
-      return false;
-    },
-  },
   startQuizFunction: {
     prop: "startQuiz",
     condition: (target, value) =>
@@ -150,7 +141,6 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
       typeof target.features === "object" &&
       typeof target.router === "object",
     callback: (target) => {
-      console.log(Object.keys(target));
       kantibotData.kahootInternals.services = target;
       return true;
     },
@@ -170,10 +160,74 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
       typeof target.reset === "function" &&
       typeof target.onOpen === "function",
     callback: (target, value) => {
-      target.onMessage = (socket: WebSocket, message: MessageEvent) => {
+      target.onMessage = function (socket: WebSocket, message: MessageEvent) {
         kantibotData.kahootInternals.socket = socket;
-        value(socket, message);
+        value.call(target, socket, message);
       };
+      return true;
+    },
+  },
+  twoFactor: {
+    prop: "twoFactorAuth",
+    condition: (_, value) => typeof value === "function",
+    callback: (target, value) => {
+      kantibotData.kahootInternals.gameConstructors = target;
+      target.twoFactorAuth = (input: any, payload: KPayload) => {
+        const result = value.call(target, input, payload);
+        if (payload.type === "player/two-factor-auth/RESET") {
+          result.counter = 9; // TODO: Make this configurable
+        }
+        return result;
+      };
+      return true;
+    },
+  },
+  questionTime: {
+    prop: "core",
+    condition: (_, value) => typeof value === "function",
+    callback: (target, value) => {
+      target.core = function (input: any, payload: KPayload) {
+        const result = value.call(target, input, payload);
+        if (payload.type === "player/game/SET_QUESTION_TIMER") {
+          console.log("SET QUESTION TIMER", result);
+          // modify `currentQuestionTimer` (and `startTime`?) to make the question time longer
+        }
+        return result;
+      };
+      return true;
+    },
+  },
+  questionTimeAnswerFix: {
+    prop: "answers",
+    condition: (_, value) => typeof value === "function",
+    callback: (target, value) => {
+      target.answers = function (input: any, payload: KPayload) {
+        const result = value.call(target, input, payload);
+        if (payload.type === "features/game-blocks/SET_SCORES") {
+          console.log("SETTING SCORES", result);
+          // modify `correct` to fix for the question time
+        }
+        return result;
+      };
+      return true;
+    },
+  },
+  settings: {
+    prop: "children",
+    condition: (target, value) =>
+      Array.isArray(value) &&
+      value.length > 8 &&
+      typeof target.isOpen === "boolean",
+    callback: (target) => {
+      // TODO: Inject!!!
+      return false;
+    },
+  },
+  react: {
+    prop: "createElement",
+    condition: (_, value) => typeof value === "function",
+    callback: (target) => {
+      window.React = target;
       return true;
     },
   },

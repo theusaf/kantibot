@@ -70,14 +70,14 @@
 
 window.antibotAdditionalScripts = window.antibotAdditionalScripts || [];
 window.antibotAdditionalScripts.push(()=>{
-  // code to run
+// code to run
 });
 
 // To add custom replacements/patches
 window.antibotAdditionalReplacements = window.antibotAdditionalReplacements || [];
 window.antibotAdditionalReplacements.push((code) => {
-  // modify the code
-  return code;
+// modify the code
+return code;
 });
 </code></pre>
 

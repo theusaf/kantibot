@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",
-    "moduleResolution": "NodeNext",
+    "moduleResolution": "Classic",
     "outDir": "./dist",
     "removeComments": false,
     "emitBOM": true,
@@ -10,7 +10,5 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "include": [
-    "src"
-  ]
+  "include": ["src"]
 }
