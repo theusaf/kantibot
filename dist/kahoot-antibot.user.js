@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        4.0.0
+// @version        4.1.0
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -66,7 +66,7 @@ const KANTIBOT_VERSION = GM_info.script.version, kantibotData = {
         englishWordDetectionData: new Set(),
         killCount: 0,
         lastFakeLoginTime: 0,
-        lastFakeUserID: null,
+        lastFakeUserID: "",
         lobbyLoadTime: 0,
         lockingGame: false,
         oldKillCount: 0,
@@ -74,13 +74,22 @@ const KANTIBOT_VERSION = GM_info.script.version, kantibotData = {
         verifiedControllerNames: new Set(),
         questionStartTime: 0,
         startLockElement: null,
-        startLockInterval: null,
-        counters: null,
+        startLockInterval: 0,
+        countersElement: null,
+        currentQuestionActualTime: 0,
     },
     methods: {},
     kahootInternals: {
+        answerDetails: null,
+        gameCore: null,
+        gameDetails: null,
+        gameConstructors: null,
         methods: {},
         quizData: {},
+        userData: null,
+        services: null,
+        settings: null,
+        socket: null,
         debugData: {},
     },
 };
@@ -116,6 +125,10 @@ function createMultiHook(prop) {
                     hookSet.delete(hook);
                 }
             }
+        }
+        if (hookSet.size === 0) {
+            delete hooks[prop];
+            return true;
         }
         return false;
     });
@@ -1300,7 +1313,12 @@ styles.textContent = `
     display: block;
   }
 `;
-document.head.append(styles);
+const waitForHeader = setInterval(() => {
+    if (document.head) {
+        document.head.append(styles);
+        clearInterval(waitForHeader);
+    }
+}, 100);
 function KAntibotSettingLabelComponent({ title, id, description, }) {
     const { createElement, Fragment } = window.React;
     return createElement(Fragment, {}, createElement("span", {
@@ -1378,9 +1396,9 @@ const KANTIBOT_HOOKS = {
     },
     answersData: {
         prop: "answers",
-        condition: (_, value) => !!value.answerMaps,
+        condition: (_, value) => !!value?.answerMaps,
         callback: (_, value) => {
-            kantibotData.kahootInternals.anwerDetails = value;
+            kantibotData.kahootInternals.answerDetails = value;
             return false;
         },
     },
@@ -1416,7 +1434,7 @@ const KANTIBOT_HOOKS = {
                 if (payload.type === "player/two-factor-auth/RESET") {
                     const customTime = METHODS.getSetting("twoFactorTime");
                     if (customTime > 0) {
-                        result.counter = Math.floor(customTime);
+                        result.counter = Math.ceil(customTime);
                     }
                 }
                 return result;
@@ -1429,25 +1447,24 @@ const KANTIBOT_HOOKS = {
         condition: (_, value) => typeof value === "function",
         callback: (target, value) => {
             target.core = function (input, payload) {
+                if (payload.type === "player/answers/RECORD_CONTROLLER_ANSWERS") {
+                    for (let i = 0; i < payload.payload.answers.length; i++) {
+                        const answerData = payload.payload.answers[i];
+                        const receivedTime = answerData.answerStats.receivedTime;
+                        const additionalTime = METHODS.getSetting("teamtimeout") * 1000;
+                        const actualQuestiontime = kantibotData.runtimeData.currentQuestionActualTime;
+                        const actualTimeRemaining = receivedTime + additionalTime;
+                        const timeMultiplier = actualQuestiontime / (actualQuestiontime + additionalTime);
+                        answerData.answerStats.receivedTime =
+                            actualTimeRemaining * timeMultiplier;
+                    }
+                }
                 const result = value.call(target, input, payload);
                 if (payload.type === "player/game/SET_QUESTION_TIMER") {
-                    console.log("SET QUESTION TIMER", result);
-                    // TODO: modify `currentQuestionTimer` (and `startTime`?) to make the question time longer
-                }
-                return result;
-            };
-            return true;
-        },
-    },
-    questionTimeAnswerFix: {
-        prop: "answers",
-        condition: (_, value) => typeof value === "function",
-        callback: (target, value) => {
-            target.answers = function (input, payload) {
-                const result = value.call(target, input, payload);
-                if (payload.type === "features/game-blocks/SET_SCORES") {
-                    console.log("SETTING SCORES", result);
-                    // TODO: modify `correct` to fix for the question time
+                    kantibotData.runtimeData.currentQuestionActualTime =
+                        result.currentQuestionTimer;
+                    const additionalTime = METHODS.getSetting("teamtimeout") * 1000;
+                    result.currentQuestionTimer += additionalTime;
                 }
                 return result;
             };
@@ -1460,7 +1477,6 @@ const KANTIBOT_HOOKS = {
             value.length > 8 &&
             typeof target.isOpen === "boolean",
         callback: (target) => {
-            kantibotData.kahootInternals.debugData.settings = target;
             injectAntibotSettings(target);
             return false;
         },

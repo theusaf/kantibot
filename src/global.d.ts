@@ -1,7 +1,7 @@
 declare global {
   interface KPayload {
     type: string;
-    payload: Object;
+    payload: any;
   }
 
   interface KAntibotHook {
@@ -161,9 +161,10 @@ declare global {
       startLockElement: HTMLElement | null;
       startLockInterval: number;
       countersElement: HTMLDivElement;
+      currentQuestionActualTime: number;
     };
     kahootInternals: {
-      anwerDetails: any;
+      answerDetails: any;
       debugData: Record<string, any>;
       gameCore: KGameCore;
       gameDetails: any;
