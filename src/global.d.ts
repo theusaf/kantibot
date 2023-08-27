@@ -132,7 +132,7 @@ declare global {
 
   interface KAntibotData {
     settings: KAntibotSettings;
-    methods: {};
+    methods: Record<string, CallableFunction>;
     runtimeData: {
       captchaIds: Set<string>;
       controllerData: Record<
@@ -162,6 +162,7 @@ declare global {
       startLockInterval: number;
       countersElement: HTMLDivElement;
       currentQuestionActualTime: number;
+      kantibotModifiedQuiz: KQuiz;
     };
     kahootInternals: {
       answerDetails: any;
@@ -175,6 +176,8 @@ declare global {
       services: KServices;
       settings: KSettings;
       socket: WebSocket;
+      apparentCurrentQuestion: KQuestion;
+      apparentCurrentQuestionIndex: number;
     };
   }
 

@@ -82,6 +82,7 @@ const KANTIBOT_VERSION = GM_info.script.version,
       startLockInterval: 0,
       countersElement: null as unknown as HTMLDivElement,
       currentQuestionActualTime: 0,
+      kantibotModifiedQuiz: null as unknown as KQuiz,
     },
     methods: {},
     kahootInternals: {
@@ -96,6 +97,8 @@ const KANTIBOT_VERSION = GM_info.script.version,
       settings: null as unknown as KSettings,
       socket: null as unknown as WebSocket,
       debugData: {},
+      apparentCurrentQuestion: null as unknown as KQuestion,
+      apparentCurrentQuestionIndex: 0,
     },
   };
 
@@ -678,6 +681,10 @@ const METHODS = {
       .currentGameBlockIndex;
   },
 
+  getAntibotQuizData(): KQuiz {
+    return kantibotData.runtimeData.kantibotModifiedQuiz;
+  },
+
   getQuizData(): KQuiz {
     return kantibotData.kahootInternals.quizData;
   },
@@ -778,7 +785,7 @@ const RECV_CHECKS: ((socket: KWebSocket, data: KSocketEvent) => boolean)[] = [
         ddosCounterElement.innerHTML = `
           <span class="kantibot-count-num">60</span>
           <span class="kantibot-count-desc">Until Unlock</span>`;
-        counters.append(ddosCounterElement);
+        kantibotData.runtimeData.countersElement.append(ddosCounterElement);
         const ddosCounterInterval = setInterval(() => {
           ddosCounterElement.querySelector(
             ".kantibot-count-num"
@@ -1192,7 +1199,7 @@ const RECV_CHECKS: ((socket: KWebSocket, data: KSocketEvent) => boolean)[] = [
               ".kantibot-count-num"
             )!.innerHTML = `${time}`;
           }, 1e3);
-          counters.append(container);
+          kantibotData.runtimeData.countersElement.append(container);
           kantibotData.runtimeData.startLockElement = container;
           kantibotData.runtimeData.startLockInterval = startLockInterval;
         }
@@ -1535,7 +1542,12 @@ styles.textContent = `
 `;
 
 const waitForHeader = setInterval(() => {
-  if (document.head) {
+  if (document.head && document.body) {
+    const counters = document.createElement("div");
+    counters.id = "kantibot-counters";
+    document.body.append(counters);
+    kantibotData.runtimeData.countersElement = counters;
+
     document.head.append(styles);
     clearInterval(waitForHeader);
   }
@@ -1617,14 +1629,39 @@ function KAntibotSettingComponent({
   );
 }
 
-const counters = document.createElement("div");
-counters.id = "kantibot-counters";
-document.body.append(counters);
-kantibotData.runtimeData.countersElement = counters;
-
 // Apply hooks
 
+let currentQuestionChanged = true,
+  quizRepairTimeout: any = null;
+
 const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
+  // This hook is pretty expensive, try to limit how heavy it is
+  shuffledQuizObject: {
+    target: Array.prototype,
+    prop: 0 as unknown as string,
+    condition: (_, value) =>
+      typeof value === "object" &&
+      value &&
+      typeof value.type === "string" &&
+      typeof value.question === "string",
+    callback: (_, value) => {
+      const valueString = JSON.stringify(value);
+      if (
+        valueString !==
+        JSON.stringify(kantibotData.kahootInternals.apparentCurrentQuestion)
+      ) {
+        currentQuestionChanged = true;
+      }
+      if (currentQuestionChanged) {
+        kantibotData.kahootInternals.apparentCurrentQuestion = value;
+        kantibotData.kahootInternals.apparentCurrentQuestionIndex =
+          kantibotData.kahootInternals.quizData.questions.findIndex(
+            (question) => JSON.stringify(question) === valueString
+          );
+      }
+      return false;
+    },
+  },
   startQuizFunction: {
     prop: "startQuiz",
     condition: (target, value) =>
@@ -1730,6 +1767,25 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
           }
         }
         const result = value.call(target, input, payload);
+        if (
+          payload.type === "player/game/START_GAME" ||
+          payload.type === "player/game/PLAY_AGAIN"
+        ) {
+          const quiz = JSON.parse(JSON.stringify(METHODS.getQuizData())),
+            quizCopy = JSON.parse(JSON.stringify(quiz));
+          // TODO: Modify quiz data to add antibot question(s)
+          kantibotData.runtimeData.kantibotModifiedQuiz = quiz;
+          result.quiz = quiz;
+          if (!quizRepairTimeout) {
+            // To ensure that the quiz data is not modified
+            // for the next game, we need to reset it
+            quizRepairTimeout = setTimeout(() => {
+              kantibotData.kahootInternals.gameCore.quiz.questions =
+                quizCopy.questions;
+              quizRepairTimeout = null;
+            }, 100);
+          }
+        }
         if (payload.type === "player/game/SET_QUESTION_TIMER") {
           kantibotData.runtimeData.currentQuestionActualTime =
             result.currentQuestionTimer;
@@ -1764,11 +1820,7 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
 };
 
 for (const hook of Object.values(KANTIBOT_HOOKS)) {
-  if (hook.target) {
-    createObjectHook(hook.target, hook.prop, hook.condition, hook.callback);
-  } else {
-    addHook(hook);
-  }
+  addHook(hook);
 }
 
 // Exposing KAntibot information to the window
