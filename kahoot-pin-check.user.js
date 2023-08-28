@@ -2,27 +2,21 @@
 // @name         KPin Checker
 // @namespace    http://tampermonkey.net/
 // @homepage     https://theusaf.org
-// @version      1.4.0
+// @version      2.0.0
 // @license      MIT
 // @description  Check the pin of a kahoot game.
 // @author       theusaf
 // @match        *://play.kahoot.it/*
 // @exclude      *://play.kahoot.it/v2/assets/*
-// @icon         https://kahoot-win.com/resource/img/game/medal/gold.svg
-// @copyright    2020-2022, Daniel Lau (https://github.com/theusaf/kahoot-antibot)
+// @copyright    2020-2023, Daniel Lau (https://github.com/theusaf/kahoot-antibot)
 // @grant        none
 // @run-at       document-start
 // ==/UserScript==
 
-if (window.fireLoaded || (window.parent && window.parent.PinCheckerMain)) {
-  throw "[PIN-CHECKER] - Already loaded.";
-}
-console.log("[PIN-CHECKER] - Looking for AntiBot");
-
 /**
  * PinCheckerMain - The main pin checking function
  */
-window.PinCheckerMain = function () {
+function main() {
   function listenForTeamMode() {
     document
       .querySelector("[data-functional-selector=team-mode-card]")
@@ -30,9 +24,7 @@ window.PinCheckerMain = function () {
         console.log("[PIN-CHECKER] - Entered team mode card.");
         setTimeout(() => {
           document
-            .querySelector(
-              "[data-functional-selector=launch-page] > div:nth-of-type(4) button"
-            )
+            .querySelector("[data-functional-selector=leave-game-mode-details]")
             .addEventListener("click", () => {
               console.log("[PIN-CHECKER] - Listening again");
               setTimeout(() => listenForTeamMode(), 250);
@@ -41,14 +33,11 @@ window.PinCheckerMain = function () {
             .querySelector("[data-functional-selector=start-team-mode-button]")
             .addEventListener("click", () => {
               console.log("[PIN-CHECKER] - Using team mode.");
-              windw.localStorage.PinCheckerMode = "team";
+              window.localStorage.pinCheckerMode = "team";
             });
         }, 250);
       });
   }
-
-  const windw = window.parent;
-  window.windw = windw;
 
   const loader = setInterval(() => {
     if (!document.querySelector("[data-functional-selector=team-mode-card]")) {
@@ -58,31 +47,25 @@ window.PinCheckerMain = function () {
     clearInterval(loader);
     listenForTeamMode();
 
-    if (document.querySelector("#antibotwtr")) {
-      const p = document.createElement("p");
-      p.innerHTML = "[KPC] v1.4.0";
-      document.querySelector("#antibotwtr").append(p);
-    }
-
-    if (windw.localStorage.PinCheckerAutoRelogin === "true") {
+    if (window.localStorage.pinCheckerAutoRelogin === "true") {
       const waiter = setInterval(() => {
-        let a = document.querySelector(
+        let button = document.querySelector(
           "[data-functional-selector=classic-mode-card]"
         );
-        if (windw.localStorage.PinCheckerMode === "team") {
-          a = document.querySelector(
+        if (window.localStorage.pinCheckerMode === "team") {
+          button = document.querySelector(
             "[data-functional-selector=team-mode-card]"
           );
         }
-        if (a && !a.disabled) {
+        if (button && !button.disabled) {
           const guestButton = document.querySelector(
             "[data-functional-selector=play-as-guest-button]"
           );
           if (guestButton) {
             guestButton.click();
           }
-          a.click();
-          if (windw.localStorage.PinCheckerMode === "team") {
+          button.click();
+          if (window.localStorage.pinCheckerMode === "team") {
             setTimeout(() => {
               document
                 .querySelector(
@@ -91,67 +74,62 @@ window.PinCheckerMain = function () {
                 .click();
             }, 250);
           }
-          windw.localStorage.PinCheckerAutoRelogin = false;
+          window.localStorage.pinCheckerAutoRelogin = false;
           if (
-            +windw.localStorage.PinCheckerLastQuizIndex <=
-            (
-              windw.specialData.kahootCore ||
-              windw.antibotData.kahootInternals.kahootCore
-            ).game.core.playList.length
+            +window.localStorage.pinCheckerLastQuizIndex <=
+            window.kantibotData.kahootInternals.services.game.core.playList
+              .length
           ) {
-            (
-              windw.specialData.kahootCore ||
-              windw.antibotData.kahootInternals.kahootCore
-            ).game.navigation.currentQuizIndex =
-              +windw.localStorage.PinCheckerLastQuizIndex || 0;
+            kantibotData.kahootInternals.services.game.navigation.currentQuizIndex =
+              +window.localStorage.pinCheckerLastQuizIndex ?? 0;
           }
           clearInterval(waiter);
-          delete windw.localStorage.PinCheckerMode;
-          delete windw.localStorage.PinCheckerLastQuizIndex;
+          delete window.localStorage.pinCheckerMode;
+          delete window.localStorage.pinCheckerLastQuizIndex;
           // check for start button
         }
       }, 500);
     } else {
-      delete windw.localStorage.PinCheckerMode;
+      delete window.localStorage.pinCheckerMode;
     }
   }, 500);
-  let checks = 0;
+  let loadChecks = 0;
   const themeLoadChecker = setInterval(() => {
-    const errButton = document.querySelector('[data-functional-selector="dialog-actions"]');
-    if (errButton) {
+    const errorButton = document.querySelector(
+      '[data-functional-selector="dialog-actions"]'
+    );
+    if (errorButton) {
       clearInterval(themeLoadChecker);
-      errButton.querySelector("button").click();
-    } else if (++checks > 10) {
+      errorButton.querySelector("button").click();
+    } else if (++loadChecks > 10) {
       clearInterval(themeLoadChecker);
     }
   }, 500);
 
-  windw.PinCheckerNameList = [];
-  windw.PinCheckerPin = null;
-  windw.PinCheckerSendIDs = {};
-  windw.specialData = windw.specialData || {};
-  windw.PinCheckerFalsePositive = false;
-  windw.PinCheckerFalsePositiveTimeout = null;
+  window.pinCheckerNameList = [];
+  window.pinCheckerPin = null;
+  window.pinCheckerSendIds = {};
+  window.specialData = window.specialData || {};
+  window.pinCheckerFalsePositive = false;
+  window.pinCheckerFalsePositiveTimeout = null;
 
   /**
    * ResetGame - Reloads the page
    */
-  function ResetGame(message) {
-    if (windw.PinCheckerFalsePositive) {
+  function resetGame(message) {
+    if (window.pinCheckerFalsePositive) {
       return console.log(
         "[PIN-CHECKER] - Detected false-positive broken pin. Not restarting."
       );
     }
     console.error(message || "[PIN-CHECKER] - Pin Broken. Attempting restart.");
-    windw.localStorage.PinCheckerAutoRelogin = true;
-    windw.localStorage.PinCheckerLastQuizIndex = (
-      windw.specialData.kahootCore ||
-      windw.antibotData.kahootInternals.kahootCore
-    ).game.navigation.currentQuizIndex;
-    windw.document.write(
+    window.localStorage.pinCheckerAutoRelogin = true;
+    window.localStorage.pinCheckerLastQuizIndex =
+      window.kantibotData.kahootInternals.services.game.navigation.currentQuizIndex;
+    window.document.write(
       "<scr" +
         "ipt>" +
-        `window.location = "https://play.kahoot.it/v2/${windw.location.search}";` +
+        `window.location = "https://play.kahoot.it/v2/${window.location.search}";` +
         "</scr" +
         "ipt>"
     );
@@ -182,24 +160,24 @@ window.PinCheckerMain = function () {
    *
    * @param  {Number} pin The gameid
    */
-  function CreateClient(pin) {
+  function createClient(pin) {
     console.log("[PIN-CHECKER] - Creating client");
     pin += "";
-    const SessionGetter = new XMLHttpRequest();
-    SessionGetter.open("GET", "/reserve/session/" + pin);
-    SessionGetter.send();
-    SessionGetter.onload = function () {
-      let SessionData;
+    const sessionRequest = new XMLHttpRequest();
+    sessionRequest.open("GET", "/reserve/session/" + pin);
+    sessionRequest.send();
+    sessionRequest.onload = function () {
+      let sessionData;
       try {
-        SessionData = JSON.parse(SessionGetter.responseText);
+        sessionData = JSON.parse(sessionRequest.responseText);
       } catch (e) {
         // probably not found
-        return ResetGame();
+        return resetGame();
       }
-      const TokenHeader = atob(
-        SessionGetter.getResponseHeader("x-kahoot-session-token")
+      const headerToken = atob(
+        sessionRequest.getResponseHeader("x-kahoot-session-token")
       );
-      let { challenge } = SessionData;
+      let { challenge } = sessionData;
       challenge = challenge.replace(/(\u0009|\u2003)/gm, "");
       challenge = challenge.replace(/this /gm, "this");
       challenge = challenge.replace(/ *\. */gm, ".");
@@ -221,22 +199,22 @@ window.PinCheckerMain = function () {
           "var log = function(){};" +
           "return ",
         solver = Function(merger + challenge),
-        ChallengeHeader = solver(),
-        FinalToken = concatTokens(TokenHeader, ChallengeHeader),
+        headerChallenge = solver(),
+        finalToken = concatTokens(headerToken, headerChallenge),
         connection = new WebSocket(
-          "wss://play.kahoot.it/cometd/" + pin + "/" + FinalToken
+          `wss://kahoot.it/cometd/${pin}/${finalToken}`
         ),
         timesync = {};
       let shoken = false,
         clientId = "",
-        mid = 2,
+        messageId = 2,
         closed = false,
         name = "";
       connection.addEventListener("error", () => {
         console.error(
           "[PIN-CHECKER] - Socket connection failed. Assuming network connection is lost and realoading page."
         );
-        ResetGame();
+        resetGame();
       });
       connection.addEventListener("open", () => {
         connection.send(
@@ -302,17 +280,17 @@ window.PinCheckerMain = function () {
                   {
                     clientId,
                     channel: "/service/controller",
-                    id: ++mid,
+                    id: ++messageId,
                     ext: {},
                     data: {
                       gameid: pin,
                       host: "play.kahoot.it",
                       content: JSON.stringify({
                         device: {
-                          userAgent: windw.navigator.userAgent,
+                          userAgent: window.navigator.userAgent,
                           screen: {
-                            width: windw.screen.width,
-                            height: windw.screen.height
+                            width: window.screen.width,
+                            height: window.screen.height
                           }
                         }
                       }),
@@ -329,7 +307,7 @@ window.PinCheckerMain = function () {
             JSON.stringify([
               {
                 channel: "/meta/connect",
-                id: ++mid,
+                id: ++messageId,
                 ext: {
                   ack: message.ext.ack,
                   timesync
@@ -347,7 +325,7 @@ window.PinCheckerMain = function () {
                   {
                     channel: "/meta/disconnect",
                     clientId,
-                    id: ++mid,
+                    id: ++messageId,
                     ext: {
                       timesync
                     }
@@ -355,13 +333,13 @@ window.PinCheckerMain = function () {
                 ])
               );
               connection.close();
-              ResetGame();
+              resetGame();
             } else {
               // Check if the client is in the game after 10 seconds
               setTimeout(() => {
-                if (!windw.PinCheckerNameList.includes(name)) {
+                if (!window.pinCheckerNameList.includes(name)) {
                   // Uh oh! the client didn't join!
-                  ResetGame();
+                  resetGame();
                 }
               }, 10e3);
               // good. leave the game.
@@ -370,7 +348,7 @@ window.PinCheckerMain = function () {
                   {
                     channel: "/meta/disconnect",
                     clientId,
-                    id: ++mid,
+                    id: ++messageId,
                     ext: {
                       timesync
                     }
@@ -393,7 +371,7 @@ window.PinCheckerMain = function () {
                 {
                   channel: "/meta/disconnect",
                   clientId,
-                  id: ++mid,
+                  id: ++messageId,
                   ext: {
                     timesync
                   }
@@ -409,22 +387,22 @@ window.PinCheckerMain = function () {
     };
   }
 
-  windw.PinCheckerInterval = setInterval(() => {
-    if (windw.PinCheckerPin) {
-      CreateClient(windw.PinCheckerPin);
+  window.pinCheckerInterval = setInterval(() => {
+    if (window.pinCheckerPin) {
+      createClient(window.pinCheckerPin);
     }
   }, 60 * 1000);
 
   /**
-   * PinCheckerSendInjector
+   * pinCheckerSendInjector
    * - Checks the sent messages to ensure events are occuring
    * - This is a small fix for a bug in Kahoot.
    *
    * @param  {String} data The sent message.
    */
-  windw.PinCheckerSendInjector = function (data) {
+  window.pinCheckerSendInjector = function pinCheckerSendInjector(data) {
     data = JSON.parse(data)[0];
-    const n = Date.now();
+    const now = Date.now();
     let content = {};
     try {
       content = JSON.parse(data.data.content);
@@ -432,13 +410,11 @@ window.PinCheckerMain = function () {
       /* likely no content */
     }
     if (data.data && typeof data.data.id !== "undefined") {
-      for (const i in windw.PinCheckerSendIDs) {
-        windw.PinCheckerSendIDs[i].add(data.data.id);
+      for (const i in window.pinCheckerSendIds) {
+        window.pinCheckerSendIds[i].add(data.data.id);
       }
       // content slides act differently, ignore them
-      if (content.gameBlockType === "content") {
-        return;
-      }
+      if (content.gameBlockType === "content") return;
 
       /**
        * Checks for events and attempts to make sure that it succeeds (doesn't crash)
@@ -448,47 +424,47 @@ window.PinCheckerMain = function () {
        */
       switch (data.data.id) {
         case 9: {
-          windw.PinCheckerSendIDs[n] = new Set();
+          window.pinCheckerSendIds[now] = new Set();
           setTimeout(() => {
-            if (!windw.PinCheckerSendIDs[n].has(1)) {
+            if (!window.pinCheckerSendIds[now].has(1)) {
               // Restart, likely stuck
-              ResetGame(
+              resetGame(
                 "[PIN-CHECKER] - Detected stuck on loading screen. Reloading the page."
               );
             } else {
-              delete windw.PinCheckerSendIDs[n];
+              delete window.pinCheckerSendIds[now];
             }
           }, 60e3);
           break;
         }
         case 1: {
-          windw.PinCheckerSendIDs[n] = new Set();
+          window.pinCheckerSendIds[now] = new Set();
           setTimeout(() => {
-            if (!windw.PinCheckerSendIDs[n].has(2)) {
+            if (!window.pinCheckerSendIds[now].has(2)) {
               // Restart, likely stuck
-              ResetGame(
+              resetGame(
                 "[PIN-CHECKER] - Detected stuck on get ready screen. Reloading the page."
               );
             } else {
-              delete windw.PinCheckerSendIDs[n];
+              delete window.pinCheckerSendIds[now];
             }
           }, 60e3);
           break;
         }
         case 2: {
-          windw.PinCheckerSendIDs[n] = new Set();
+          window.pinCheckerSendIds[now] = new Set();
           // wait up to 5 minutes, assume something wrong
           setTimeout(() => {
             if (
-              !windw.PinCheckerSendIDs[n].has(4) &&
-              !windw.PinCheckerSendIDs[n].has(8)
+              !window.pinCheckerSendIds[now].has(4) &&
+              !window.pinCheckerSendIds[now].has(8)
             ) {
               // Restart, likely stuck
-              ResetGame(
+              resetGame(
                 "[PIN-CHECKER] - Detected stuck on question answer. Reloading the page."
               );
             } else {
-              delete windw.PinCheckerSendIDs[n];
+              delete window.pinCheckerSendIds[now];
             }
           }, 300e3);
           break;
@@ -498,60 +474,47 @@ window.PinCheckerMain = function () {
   };
 
   /**
-   * CloseError
+   * closeError
    * - Used when the game is closed and fails to reconnect properly
    */
-  windw.CloseError = function () {
-    ResetGame("[PIN-CHECKER] - Detected broken disconnected game, reloading!");
+  window.closeError = function () {
+    resetGame("[PIN-CHECKER] - Detected broken disconnected game, reloading!");
   };
-};
+}
 
 /**
  * PinCheckerInjector - Checks messages and stores the names of players who joined within the last few seconds
  *
  * @param  {String} message The websocket message
  */
-window.PinCheckerInjector = function (socket, message) {
-  function PinCheckerFalsePositiveReset() {
-    windw.PinCheckerFalsePositive = true;
-    clearTimeout(windw.PinCheckerFalsePositiveTimeout);
-    windw.PinCheckerFalsePositiveTimeout = setTimeout(function () {
-      windw.PinCheckerFalsePositive = false;
+function messageInjector(socket, message) {
+  function pinCheckerFalsePositiveReset() {
+    window.pinCheckerFalsePositive = true;
+    clearTimeout(window.pinCheckerFalsePositiveTimeout);
+    window.pinCheckerFalsePositiveTimeout = setTimeout(function () {
+      window.pinCheckerFalsePositive = false;
     }, 15e3);
   }
-  const windw = window.parent,
-    data = JSON.parse(message.data)[0];
-  if (!socket.webSocket.PinCheckClose) {
-    socket.webSocket.PinCheckClose = socket.webSocket.onclose;
+  const data = JSON.parse(message.data)[0];
+  if (!socket.webSocket.pinCheckClose) {
+    socket.webSocket.pinCheckClose = socket.webSocket.onclose;
     socket.webSocket.onclose = function () {
-      socket.webSocket.PinCheckClose();
+      socket.webSocket.pinCheckClose();
       setTimeout(() => {
-        const StillNotConnected = document.querySelector(
+        const stillNotConnected = document.querySelector(
           '[data-functional-selector="disconnected-page"]'
         );
-        if (StillNotConnected) {
-          windw.CloseError();
+        if (stillNotConnected) {
+          window.closeError();
         }
       }, 30e3);
     };
   }
-  if (!socket.webSocket.PinCheckSend) {
-    if (windw.page) {
-      // Antibot exists, don't overwrite.
-      if (socket.webSocket.oldSend) {
-        socket.webSocket.PinCheckSend = socket.webSocket.oldSend;
-        socket.webSocket.AntiBotSendData = socket.webSocket.send;
-        socket.webSocket.send = function (data) {
-          windw.PinCheckerSendInjector(data);
-          socket.webSocket.AntiBotSendData(data);
-        };
-      }
-      return;
-    }
-    socket.webSocket.PinCheckSend = socket.webSocket.send;
+  if (!socket.webSocket.pinCheckSend) {
+    socket.webSocket.pinCheckSend = socket.webSocket.send;
     socket.webSocket.send = function (data) {
-      windw.PinCheckerSendInjector(data);
-      socket.webSocket.PinCheckSend(data);
+      window.pinCheckerSendInjector(data);
+      socket.webSocket.pinCheckSend(data);
     };
   }
   try {
@@ -561,14 +524,16 @@ window.PinCheckerInjector = function (socket, message) {
         '[data-functional-selector="bottom-bar-game-pin"]'
       );
     if (
-      Number(part.innerText) != windw.PinCheckerPin &&
+      Number(part.innerText) != window.pinCheckerPin &&
       Number(part.innerText) != 0 &&
       !isNaN(Number(part.innerText))
     ) {
-      windw.PinCheckerPin = Number(part.innerText);
-      console.log("[PIN-CHECKER] - Discovered new PIN: " + windw.PinCheckerPin);
+      window.pinCheckerPin = Number(part.innerText);
+      console.log(
+        "[PIN-CHECKER] - Discovered new PIN: " + window.pinCheckerPin
+      );
     } else if (Number(part.innerText) == 0 || isNaN(Number(part.innerText))) {
-      windw.PinCheckerPin = null;
+      window.pinCheckerPin = null;
       console.log(
         "[PIN-CHECKER] - PIN is hidden or game is locked. Unable to test."
       );
@@ -577,191 +542,30 @@ window.PinCheckerInjector = function (socket, message) {
     /* Unable to get pin, hidden */
   }
   if (data.data && data.data.type === "joined") {
-    PinCheckerFalsePositiveReset();
-    windw.PinCheckerNameList.push(data.data.name);
+    pinCheckerFalsePositiveReset();
+    window.pinCheckerNameList.push(data.data.name);
     setTimeout(() => {
       // remove after 20 seconds (for performance)
-      windw.PinCheckerNameList.splice(0, 1);
+      window.pinCheckerNameList.splice(0, 1);
     }, 20e3);
   } else if (data.data && data.data.id === 45) {
-    PinCheckerFalsePositiveReset();
+    pinCheckerFalsePositiveReset();
   }
-};
+}
 
-function makeHttpRequest(url) {
-  const request = new XMLHttpRequest();
-  request.open("GET", url);
-  request.send();
-  return new Promise((resolve, reject) => {
-    request.onerror = request.onload = () => {
-      if (request.readyState === 4 && request.status === 200) {
-        resolve(request);
-      } else {
-        reject(request);
-      }
+window.kantibotAddHook({
+  prop: "onMessage",
+  condition: (target, value) =>
+    typeof value === "function" &&
+    typeof target.reset === "function" &&
+    typeof target.onOpen === "function",
+  callback: (target, value) => {
+    target.onMessage = function (socket, message) {
+      messageInjector(socket, message);
+      return value.call(this, socket, message);
     };
-  });
-}
-
-async function kpinImport(url) {
-  const importBlobURLs =
-      window.kpinBlobURLs ??
-      window.parent?.kpinBlobURLs ??
-      window.windw?.kpinBlobURLs,
-    makeHttpRequest =
-      window.kpinMakeHttpRequest ??
-      window.parent?.kpinMakeHttpRequest ??
-      window.windw?.kpinMakeHttpRequest,
-    createBlobURL =
-      window.kpinCreateBlobURL ??
-      window.parent?.kpinCreateBlobURL ??
-      window.windw?.kpinCreateBlobURL;
-
-  console.log(`[KPIN-CHECK] - Handling import of ${url}`);
-  // We need to intercept any requests and modify them!
-  if (url.startsWith(".")) {
-    url = `https://assets-cdn.kahoot.it/player/v2/assets${url.substring(1)}`;
+    return true;
   }
-  if (importBlobURLs[url]) {
-    console.log(`[KPIN-CHECK] - ${url} already exists.`);
-    return import(importBlobURLs[url]);
-  } else {
-    // check if this url needs to be patched!
-    let { response: moduleCode } = await makeHttpRequest(url),
-      needsEdit = false;
-    const importFunctionRegex = /\bimport\b\(/g,
-      importStatementRegex =
-        /\bimport\b[\w.\-{}\s[\],:]*?\bfrom\b"[\w.\-/]*?"/g;
+});
 
-    // if it has dynamic import statements
-    if (importFunctionRegex.test(moduleCode)) {
-      needsEdit = true;
-      moduleCode = moduleCode.replace(importFunctionRegex, "kpinImport(");
-      moduleCode = `${kpinImport.toString()}${moduleCode}`;
-    }
-    // if it has a regular import statement
-    if (importStatementRegex.test(moduleCode)) {
-      // Check if url exists for the import
-      for (const imp of moduleCode.match(importStatementRegex)) {
-        const [, impURL] = imp.match(/"([\w.\-/]*?)"/);
-        let editedImportURL = impURL;
-        if (editedImportURL.startsWith(".")) {
-          editedImportURL = `https://assets-cdn.kahoot.it/player/v2/assets${editedImportURL.substring(
-            1
-          )}`;
-        }
-        if (importBlobURLs[editedImportURL]) {
-          needsEdit = true;
-          moduleCode = moduleCode.replace(
-            impURL,
-            importBlobURLs[editedImportURL]
-          );
-        }
-      }
-    }
-    if (needsEdit) {
-      // Create a blob url and import it!
-      console.log(`[KPIN-CHECK] - Modifying ${url} and creating blob url.`);
-      const blobURL = createBlobURL(moduleCode);
-      importBlobURLs[url] = blobURL;
-      return import(blobURL);
-    } else {
-      console.log(`[KPIN-CHECK] - ${url} does not require a blob version.`);
-      // So we don't keep checking it each time
-      importBlobURLs[url] = url;
-      return import(url);
-    }
-  }
-}
-
-function createBlobURL(script) {
-  return URL.createObjectURL(
-    new Blob([script], { type: "application/javascript" })
-  );
-}
-
-(async () => {
-  if (!window.kantibotEnabled && !window.page) {
-    document.write(
-      '<p id="pin-checker-loading-notice">[PIN-CHECKER] - Patching Kahoot. Please wait.</p><p>If this screen stays blank for a long time, report an issue in <a href="https://discord.gg/pPdvXU6">Discord</a>, <a href="https://github.com/theusaf/kantibot">GitHub</a>, or <a href="https://greasyfork.org/en/scripts/392154-kpin-checker">Greasyfork</a>.</p>'
-    );
-    const page = await makeHttpRequest(location.href),
-      [script2] = page.response.match(
-        /\/\/assets-cdn.*\/v2\/assets\/index.*?(?=")/
-      ),
-      originalPage = page.response.replace(
-        /<script type="module".*?<\/script>/,
-        ""
-      ),
-      script = await makeHttpRequest(script2),
-      patchedScriptRegex = /\.onMessage=function\(([$\w]+),([$\w]+)\)\{/,
-      [, websocketMessageLetter1, websocketMessageLetter2] =
-        script.response.match(patchedScriptRegex);
-    let patchedScript = script.response.replace(
-      patchedScriptRegex,
-      `.onMessage = function(${websocketMessageLetter1},${websocketMessageLetter2}){
-           window.globalMessageListener(${websocketMessageLetter1},${websocketMessageLetter2});`
-    );
-    // Access the core data
-    const cr = /[$\w]+\.game\.core/,
-      letter6 = patchedScript.match(cr)[0].match(/[$\w]+(?=\.game)/)[0];
-    patchedScript = patchedScript.replace(
-      cr,
-      `(()=>{
-        if (typeof windw !== "undefined") {
-          windw.specialData.kahootCore = ${letter6};
-        }
-        return ${letter6}.game.core;
-      })()`
-    );
-    // fix imports
-    patchedScript = patchedScript.replace(/\bimport\b\(/g, "kpinImport(");
-    patchedScript = `${kpinImport.toString()}${patchedScript}`;
-
-    // Create a blob url and import it!
-    const mainBlobURL = createBlobURL(patchedScript);
-    let changed = originalPage.split("</body>");
-    changed = `${changed[0]}
-      <script>
-      import("${mainBlobURL}");
-      </script>
-      <script>
-        window.globalMessageListener=${window.PinCheckerInjector.toString()};
-        (${window.PinCheckerMain.toString()})();
-        try{(${window.localStorage.kahootThemeScript})();}catch(err){}
-        window.fireLoaded = window.parent.fireLoaded = true;
-      </script>
-      </body>${changed[1]}`;
-    console.log("[PIN-CHECKER] - loaded");
-    window.kpinImport = kpinImport;
-    window.kpinCreateBlobURL = createBlobURL;
-    window.kpinMakeHttpRequest = makeHttpRequest;
-    window.kpinBlobURLs = {};
-    document.open();
-    document.write(
-      `<style>
-        body{
-          margin:0;
-        }
-        iframe{
-          border:0;
-          width:100%;
-          height:100%;
-        }
-      </style>
-      <iframe src="about:blank"></iframe>`
-    );
-    document.close();
-    window.stop();
-    const doc = document.querySelector("iframe");
-    doc.contentDocument.write(changed);
-    document.title = doc.contentDocument.title;
-    doc.addEventListener("load", () => {
-      window.location.reload();
-    });
-  } else {
-    console.warn("[PIN-CHECKER] - found AntiBot, waiting for injection");
-    window.localStorage.extraCheck = window.PinCheckerMain.toString();
-    window.localStorage.extraCheck2 = window.PinCheckerInjector.toString();
-  }
-})();
+main();
