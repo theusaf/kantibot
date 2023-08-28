@@ -197,6 +197,7 @@ declare global {
   }
 
   interface Window {
+    antibotAdditionalScripts: CallableFunction[];
     aSetOfEnglishWords?: Set<string>;
     randomName?: {
       first: Set<string>;
@@ -206,7 +207,6 @@ declare global {
     kantibotData: KAntibotData;
     kantibotEnabled: boolean;
     kantibotVersion: string;
-    kantibotAdditionalScripts: string[];
     kantibotAddHook: (hook: KAntibotHook) => void;
   }
 }

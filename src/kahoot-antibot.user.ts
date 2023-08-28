@@ -1929,11 +1929,19 @@ for (const hook of Object.values(KANTIBOT_HOOKS)) {
 }
 
 // Exposing KAntibot information to the window
+window.antibotAdditionalScripts ??= [];
 window.kantibotData = kantibotData;
-window.kantibotAdditionalScripts = [];
 window.kantibotEnabled = true;
 window.kantibotVersion = KANTIBOT_VERSION;
 window.kantibotAddHook = addHook;
+
+for (const script of window.antibotAdditionalScripts) {
+  try {
+    script();
+  } catch {
+    /* ignored */
+  }
+}
 
 /**
  * External Libraries

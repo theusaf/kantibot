@@ -1598,10 +1598,18 @@ for (const hook of Object.values(KANTIBOT_HOOKS)) {
 }
 // Exposing KAntibot information to the window
 window.kantibotData = kantibotData;
-window.kantibotAdditionalScripts = [];
+window.kantibotAdditionalScripts ??= [];
 window.kantibotEnabled = true;
 window.kantibotVersion = KANTIBOT_VERSION;
 window.kantibotAddHook = addHook;
+for (const script of window.kantibotAdditionalScripts) {
+    try {
+        script();
+    }
+    catch {
+        /* ignored */
+    }
+}
 /**
  * External Libraries
  * Note: This script requires https://raw.githubusercontent.com/theusaf/a-set-of-english-words/master/index.js
