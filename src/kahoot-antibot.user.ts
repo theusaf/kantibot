@@ -121,8 +121,12 @@ function createObjectHook<E extends Object = Object>(
       set(value) {
         delete target[prop as keyof E];
         this[prop] = value;
-        if (!(condition(this, value) && callback(this, value))) {
-          recursiveHook();
+        try {
+          if (!(condition(this, value) && callback(this, value))) {
+            recursiveHook();
+          }
+        } catch (e) {
+          console.error(e);
         }
       },
       configurable: true,
@@ -548,8 +552,11 @@ const METHODS = {
   },
 
   extraQuestionSetup(quiz: KQuiz): void {
+    if (quiz.kantibotModified) return;
+    log("Modifying quiz information");
+    quiz.kantibotModified = true;
     if (METHODS.getSetting<boolean>("counterCheats")) {
-      quiz.questions.push({
+      quiz.questions.splice(1, 0, {
         question:
           "[ANTIBOT] - This poll is for countering Kahoot cheating sites.",
         time: 5000,
@@ -576,10 +583,10 @@ const METHODS = {
         kantibotQuestionType: "captcha",
         kantibotCaptchaCorrectIndex: imageIndex,
         choices: [
-          { answer: "OK" },
-          { answer: "OK" },
-          { answer: "OK" },
-          { answer: "OK" },
+          { answer: "OK", correct: imageIndex === 0 },
+          { answer: "OK", correct: imageIndex === 1 },
+          { answer: "OK", correct: imageIndex === 2 },
+          { answer: "OK", correct: imageIndex === 3 },
         ],
         image: `https://media.kahoot.it/${images[imageIndex]}`,
         imageMetadata: {
@@ -1125,11 +1132,6 @@ const RECV_CHECKS: ((socket: KWebSocket, data: KSocketEvent) => boolean)[] = [
       } catch {
         /* ignore */
       }
-      const answerMap =
-        kantibotData.kahootInternals.answerDetails.answerMaps[
-          METHODS.getCurrentGameBlockIndex()
-        ];
-      choice = answerMap[choice] ?? choice;
       if (choice !== currentQuestion.kantibotCaptchaCorrectIndex) {
         METHODS.kickController(
           player.cid,
@@ -1457,6 +1459,9 @@ function injectAntibotSettings(target: {
         id: "counterCheats",
         description:
           "Adds an additional 5 second question at the end to counter cheats.",
+        onChange() {
+          alert("This feature may only be applied upon reload.");
+        },
       }),
       KAntibotSettingComponent({
         title: "Enable CAPTCHA",
@@ -1464,6 +1469,9 @@ function injectAntibotSettings(target: {
         id: "enableCAPTCHA",
         description:
           "Adds a 30 second poll at the start of the quiz. If players don't answer it correctly, they get banned.",
+        onChange() {
+          alert("This feature may only be applied upon reload.");
+        },
       }),
       KAntibotSettingComponent({
         title: "Reduce False Positives",
@@ -1702,7 +1710,7 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
     callback: (_, value) => {
       kantibotData.kahootInternals.gameCore = value;
       kantibotData.kahootInternals.quizData = value.quiz;
-      // TODO: potentially modify the quiz data to add the antibot question(s)
+      METHODS.extraQuestionSetup(value.quiz);
       return false;
     },
   },
@@ -1789,25 +1797,9 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
           }
         }
         const result = value.call(target, input, payload);
-        if (
-          payload.type === "player/game/START_GAME" ||
-          payload.type === "player/game/PLAY_AGAIN"
-        ) {
-          const quiz = JSON.parse(JSON.stringify(METHODS.getQuizData())),
-            quizCopy = JSON.parse(JSON.stringify(quiz));
-          METHODS.extraQuestionSetup(quiz);
-          kantibotData.runtimeData.kantibotModifiedQuiz = quiz;
-          result.quiz = quiz;
-          if (!quizRepairTimeout) {
-            // To ensure that the quiz data is not modified
-            // for the next game, we need to reset it
-            quizRepairTimeout = setTimeout(() => {
-              kantibotData.kahootInternals.gameCore.quiz.questions =
-                quizCopy.questions;
-              quizRepairTimeout = null;
-            }, 100);
-          }
-        }
+        // Warning to future maintainer
+        // Adding questions here may seem to work, but will
+        // cause Kahoot! to crash.
         if (payload.type === "player/game/SET_QUESTION_TIMER") {
           kantibotData.runtimeData.currentQuestionActualTime =
             result.currentQuestionTimer;

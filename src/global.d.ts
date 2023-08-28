@@ -63,6 +63,8 @@ declare global {
     points?: boolean;
     pointsMultiplier?: number;
     image?: string;
+    questionFormat?: number;
+    media?: any[];
     imageMetadata?: {
       width: number;
       height: number;
