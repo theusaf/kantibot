@@ -554,7 +554,8 @@ const METHODS = {
           "[ANTIBOT] - This poll is for countering Kahoot cheating sites.",
         time: 5000,
         type: "survey",
-        isAntibotQuestion: true,
+        isKAntibotQuestion: true,
+        kantibotQuestionType: "counterCheats",
         choices: [{ answer: "OK", correct: true }],
       });
     }
@@ -571,15 +572,16 @@ const METHODS = {
         question: `[ANTIBOT] - CAPTCHA: Please select ${answers[imageIndex]}`,
         time: 30000,
         type: "quiz",
-        isAntibotQuestion: true,
-        AntibotCaptchaCorrectIndex: imageIndex,
+        isKAntibotQuestion: true,
+        kantibotQuestionType: "captcha",
+        kantibotCaptchaCorrectIndex: imageIndex,
         choices: [
           { answer: "OK" },
           { answer: "OK" },
           { answer: "OK" },
           { answer: "OK" },
         ],
-        image: "https://media.kahoot.it/" + images[imageIndex],
+        image: `https://media.kahoot.it/${images[imageIndex]}`,
         imageMetadata: {
           width: 512,
           height: 512,
@@ -676,7 +678,17 @@ const METHODS = {
     return kantibotData.kahootInternals.gameCore.isLocked;
   },
 
-  getCurrentQuestionIndex(): number {
+  getCurrentQuestion(): KQuestion {
+    return (
+      kantibotData.kahootInternals.apparentCurrentQuestion ??
+      METHODS.getAntibotQuizData()?.questions[
+        METHODS.getCurrentGameBlockIndex()
+      ] ??
+      METHODS.getQuizData()?.questions[METHODS.getCurrentGameBlockIndex()]
+    );
+  },
+
+  getCurrentGameBlockIndex(): number {
     return kantibotData.kahootInternals.services.game.navigation
       .currentGameBlockIndex;
   },
@@ -739,10 +751,11 @@ const SEND_CHECKS: ((socket: KWebSocket, data: KSocketEvent) => void)[] = [
     }
   },
   function questionEndCheck(socket, data) {
+    const currentQuestion = METHODS.getCurrentQuestion();
     if (
       (data?.data?.id === 4 || data?.data?.id === 8) &&
-      METHODS.getCurrentQuestionIndex() === 0 &&
-      METHODS.getQuizData().questions[0].isAntibotQuestion
+      currentQuestion?.isKAntibotQuestion &&
+      currentQuestion?.kantibotQuestionType === "captcha"
     ) {
       const controllers = METHODS.getControllers(),
         answeredControllers = kantibotData.runtimeData.captchaIds;
@@ -1097,13 +1110,13 @@ const RECV_CHECKS: ((socket: KWebSocket, data: KSocketEvent) => boolean)[] = [
     }
     return !BOT_DETECTED;
   },
-  function fastAnswerCheck(socket, data) {
+  function captchaAnswerCheck(socket, data) {
     if (!METHODS.isEventAnswerEvent(data)) return !BOT_DETECTED;
     const player = data.data!,
-      controllerData = kantibotData.runtimeData.controllerData[player.cid];
+      currentQuestion = METHODS.getCurrentQuestion();
     if (
-      METHODS.getCurrentQuestionIndex() === 0 &&
-      METHODS.getQuizData().questions[0].isAntibotQuestion
+      currentQuestion?.isKAntibotQuestion &&
+      currentQuestion?.kantibotQuestionType === "captcha"
     ) {
       kantibotData.runtimeData.captchaIds.add(player.cid);
       let choice = -1;
@@ -1112,17 +1125,25 @@ const RECV_CHECKS: ((socket: KWebSocket, data: KSocketEvent) => boolean)[] = [
       } catch {
         /* ignore */
       }
-      if (
-        choice !== METHODS.getQuizData().questions[0].AntibotCaptchaCorrectIndex
-      ) {
+      const answerMap =
+        kantibotData.kahootInternals.answerDetails.answerMaps[
+          METHODS.getCurrentGameBlockIndex()
+        ];
+      choice = answerMap[choice] ?? choice;
+      if (choice !== currentQuestion.kantibotCaptchaCorrectIndex) {
         METHODS.kickController(
           player.cid,
           "Incorrectly answered the CAPTCHA",
           player
         );
-        return !BOT_DETECTED;
       }
     }
+    return !BOT_DETECTED;
+  },
+  function fastAnswerCheck(socket, data) {
+    if (!METHODS.isEventAnswerEvent(data)) return !BOT_DETECTED;
+    const player = data.data!,
+      controllerData = kantibotData.runtimeData.controllerData[player.cid];
     if (
       Date.now() - kantibotData.runtimeData.questionStartTime < 500 &&
       METHODS.getSetting<boolean>("timeout")
@@ -1658,6 +1679,7 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
           kantibotData.kahootInternals.quizData.questions.findIndex(
             (question) => JSON.stringify(question) === valueString
           );
+        currentQuestionChanged = false;
       }
       return false;
     },
@@ -1773,7 +1795,7 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
         ) {
           const quiz = JSON.parse(JSON.stringify(METHODS.getQuizData())),
             quizCopy = JSON.parse(JSON.stringify(quiz));
-          // TODO: Modify quiz data to add antibot question(s)
+          METHODS.extraQuestionSetup(quiz);
           kantibotData.runtimeData.kantibotModifiedQuiz = quiz;
           result.quiz = quiz;
           if (!quizRepairTimeout) {

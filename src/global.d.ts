@@ -95,6 +95,8 @@ declare global {
   interface KController extends Record<string, any> {
     name?: string;
     cid?: string;
+    isGhost?: boolean;
+    hasLeft?: boolean;
   }
 
   interface KGameCore extends Record<string, any> {

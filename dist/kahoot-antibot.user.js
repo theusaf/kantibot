@@ -77,6 +77,7 @@ const KANTIBOT_VERSION = GM_info.script.version, kantibotData = {
         startLockInterval: 0,
         countersElement: null,
         currentQuestionActualTime: 0,
+        kantibotModifiedQuiz: null,
     },
     methods: {},
     kahootInternals: {
@@ -612,9 +613,16 @@ const METHODS = {
     isLocked() {
         return kantibotData.kahootInternals.gameCore.isLocked;
     },
+    getCurrentQuestion() {
+        return kantibotData.kahootInternals.apparentCurrentQuestion ??
+            METHODS.getAntibotQuizData()?.questions[METHODS.getCurrentQuestionIndex()] ?? METHODS.getQuizData()?.questions[METHODS.getCurrentQuestionIndex()];
+    },
     getCurrentQuestionIndex() {
         return kantibotData.kahootInternals.services.game.navigation
             .currentGameBlockIndex;
+    },
+    getAntibotQuizData() {
+        return kantibotData.runtimeData.kantibotModifiedQuiz;
     },
     getQuizData() {
         return kantibotData.kahootInternals.quizData;
@@ -1364,8 +1372,9 @@ function KAntibotSettingComponent({ title, inputType, id, description, inputProp
     }));
 }
 // Apply hooks
-let questionSetCounter = 0, quizCopy, quizResetTimeout = null;
+let currentQuestionChanged = true, quizRepairTimeout = null;
 const KANTIBOT_HOOKS = {
+    // This hook is pretty expensive, try to limit how heavy it is
     shuffledQuizObject: {
         target: Array.prototype,
         prop: 0,
@@ -1375,19 +1384,15 @@ const KANTIBOT_HOOKS = {
             typeof value.question === "string",
         callback: (_, value) => {
             const valueString = JSON.stringify(value);
-            if (questionSetCounter === 0) {
+            if (valueString !==
+                JSON.stringify(kantibotData.kahootInternals.apparentCurrentQuestion)) {
+                currentQuestionChanged = true;
+            }
+            if (currentQuestionChanged) {
                 kantibotData.kahootInternals.apparentCurrentQuestion = value;
                 kantibotData.kahootInternals.apparentCurrentQuestionIndex =
                     kantibotData.kahootInternals.quizData.questions.findIndex((question) => JSON.stringify(question) === valueString);
-            }
-            if (valueString === JSON.stringify(kantibotData.kahootInternals.apparentCurrentQuestion)) {
-                questionSetCounter++;
-            }
-            else {
-                questionSetCounter = 0;
-            }
-            if (questionSetCounter > 20) {
-                questionSetCounter = 0;
+                currentQuestionChanged = false;
             }
             return false;
         },
@@ -1489,18 +1494,19 @@ const KANTIBOT_HOOKS = {
                     }
                 }
                 const result = value.call(target, input, payload);
-                if (payload.type === "player/game/START_GAME"
-                    || payload.type.startsWith("player/game/PLAY_AGAIN")) {
-                    console.log("START_GAME/AGAIN", payload.type);
-                    kantibotData.kahootInternals.debugData.gameStartInfo = { input, payload, result };
-                    // try copying the quiz and messing with questions...
+                if (payload.type === "player/game/START_GAME" ||
+                    payload.type === "player/game/PLAY_AGAIN") {
                     const quiz = JSON.parse(JSON.stringify(METHODS.getQuizData())), quizCopy = JSON.parse(JSON.stringify(quiz));
-                    quiz.questions = [...quiz.questions.slice(0, Math.floor(Math.random() * 3 + 3))];
+                    // TODO: Modify quiz data to add antibot question(s)
+                    kantibotData.runtimeData.kantibotModifiedQuiz = quiz;
                     result.quiz = quiz;
-                    if (!quizResetTimeout) {
-                        quizResetTimeout = setTimeout(() => {
-                            kantibotData.kahootInternals.gameCore.quiz.questions = quizCopy.questions;
-                            quizResetTimeout = null;
+                    if (!quizRepairTimeout) {
+                        // To ensure that the quiz data is not modified
+                        // for the next game, we need to reset it
+                        quizRepairTimeout = setTimeout(() => {
+                            kantibotData.kahootInternals.gameCore.quiz.questions =
+                                quizCopy.questions;
+                            quizRepairTimeout = null;
                         }, 100);
                     }
                 }
