@@ -57,14 +57,25 @@ declare global {
     correct?: boolean;
   }
 
-  interface KQuestion extends Record<string, any> {
+  interface KQuestion {
     choices: KChoice[];
     layout?: string;
     points?: boolean;
     pointsMultiplier?: number;
+    image?: string;
+    imageMetadata?: {
+      width: number;
+      height: number;
+      id?: string;
+      contentType?: string;
+      resources?: string;
+    };
     question: string;
     time: number;
     type: string;
+    isKAntibotQuestion?: boolean;
+    kantibotQuestionType?: "captcha" | "counterCheats";
+    kantibotCaptchaCorrectIndex?: number;
   }
 
   interface KQuiz extends Record<string, any> {
