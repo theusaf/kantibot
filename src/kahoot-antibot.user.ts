@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        4.1.0
+// @version        4.2.0
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -551,12 +551,35 @@ const METHODS = {
     (kantibotData.settings as any)[id] = value; // as any to avoid weird typescript issue
   },
 
+  applyCaptchaQuestion(question: KQuestion): void {
+    const answers = ["red", "blue", "yellow", "green"],
+      images = [
+        "361bdde0-48cd-4a92-ae9f-486263ba8529", // red
+        "9237bdd2-f281-4f04-b4e5-255e9055a194", // blue
+        "d25c9d13-4147-4056-a722-e2a13fbb4af9", // yellow
+        "2aca62f2-ead5-4197-9c63-34da0400703a", // green
+      ],
+      imageIndex = Math.floor(Math.random() * answers.length);
+    question.question = `[ANTIBOT] - CAPTCHA: Please select ${answers[imageIndex]}`;
+    question.image = `https://media.kahoot.it/${images[imageIndex]}`;
+    question.imageMetadata!.id = images[imageIndex];
+    question.kantibotCaptchaCorrectIndex = imageIndex;
+    for (let i = 0; i < question.choices.length; i++) {
+      question.choices[i].correct = i === imageIndex;
+    }
+  },
+
+  /**
+   * This function is called when the quiz is loaded.
+   * It adds additional questions to the quiz. These questions can be removed or modified later.
+   * This is done to prevent strange crashes during the game.
+   */
   extraQuestionSetup(quiz: KQuiz): void {
     if (quiz.kantibotModified) return;
     log("Modifying quiz information");
     quiz.kantibotModified = true;
-    if (METHODS.getSetting<boolean>("counterCheats")) {
-      quiz.questions.splice(1, 0, {
+    {
+      quiz.questions.push({
         question:
           "[ANTIBOT] - This poll is for countering Kahoot cheating sites.",
         time: 5000,
@@ -566,38 +589,32 @@ const METHODS = {
         choices: [{ answer: "OK", correct: true }],
       });
     }
-    if (METHODS.getSetting<boolean>("enableCAPTCHA")) {
-      const answers = ["red", "blue", "yellow", "green"],
-        images = [
-          "361bdde0-48cd-4a92-ae9f-486263ba8529", // red
-          "9237bdd2-f281-4f04-b4e5-255e9055a194", // blue
-          "d25c9d13-4147-4056-a722-e2a13fbb4af9", // yellow
-          "2aca62f2-ead5-4197-9c63-34da0400703a", // green
-        ],
-        imageIndex = Math.floor(Math.random() * answers.length);
-      quiz.questions.splice(0, 0, {
-        question: `[ANTIBOT] - CAPTCHA: Please select ${answers[imageIndex]}`,
+    {
+      const question: KQuestion = {
+        question: `[ANTIBOT] - CAPTCHA: Please select placeholder`,
         time: 30000,
         type: "quiz",
         isKAntibotQuestion: true,
         kantibotQuestionType: "captcha",
-        kantibotCaptchaCorrectIndex: imageIndex,
+        kantibotCaptchaCorrectIndex: 0,
         choices: [
-          { answer: "OK", correct: imageIndex === 0 },
-          { answer: "OK", correct: imageIndex === 1 },
-          { answer: "OK", correct: imageIndex === 2 },
-          { answer: "OK", correct: imageIndex === 3 },
+          { answer: "OK", correct: false },
+          { answer: "OK", correct: false },
+          { answer: "OK", correct: false },
+          { answer: "OK", correct: false },
         ],
-        image: `https://media.kahoot.it/${images[imageIndex]}`,
+        image: "",
         imageMetadata: {
           width: 512,
           height: 512,
-          id: images[imageIndex],
+          id: "",
           contentType: "image/png",
           resources: "",
         },
         points: false,
-      });
+      };
+      METHODS.applyCaptchaQuestion(question);
+      quiz.questions.splice(0, 0, question);
     }
   },
 
@@ -1460,7 +1477,7 @@ function injectAntibotSettings(target: {
         description:
           "Adds an additional 5 second question at the end to counter cheats.",
         onChange() {
-          alert("This feature may only be applied upon reload.");
+          // alert("This feature may only be applied upon reload.");
         },
       }),
       KAntibotSettingComponent({
@@ -1470,7 +1487,7 @@ function injectAntibotSettings(target: {
         description:
           "Adds a 30 second poll at the start of the quiz. If players don't answer it correctly, they get banned.",
         onChange() {
-          alert("This feature may only be applied upon reload.");
+          // alert("This feature may only be applied upon reload.");
         },
       }),
       KAntibotSettingComponent({
@@ -1800,6 +1817,60 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
         // Warning to future maintainer
         // Adding questions here may seem to work, but will
         // cause Kahoot! to crash.
+        if (
+          payload.type === "player/game/START_GAME" ||
+          payload.type === "player/game/PLAY_AGAIN"
+        ) {
+          const quiz: KQuiz = JSON.parse(JSON.stringify(result.quiz)),
+            originalQuestions: KQuestion[] = [...result.quiz.questions];
+
+          quiz.questions = [...result.quiz.questions];
+          if (!METHODS.getSetting<boolean>("counterCheats")) {
+            const index = quiz.questions.findIndex(
+              (question) =>
+                question.isKAntibotQuestion &&
+                question.kantibotQuestionType === "counterCheats"
+            );
+            if (index !== -1) {
+              log("Removing counterCheats question");
+              quiz.questions.splice(index, 1);
+            }
+          }
+          if (!METHODS.getSetting<boolean>("enableCAPTCHA")) {
+            const index = quiz.questions.findIndex(
+              (question) =>
+                question.isKAntibotQuestion &&
+                question.kantibotQuestionType === "captcha"
+            );
+            if (index !== -1) {
+              log("Removing CAPTCHA question");
+              quiz.questions.splice(index, 1);
+            }
+          } else {
+            const index = quiz.questions.findIndex(
+              (question) =>
+                question.isKAntibotQuestion &&
+                question.kantibotQuestionType === "captcha"
+            );
+            if (index !== -1) {
+              log("Updating CAPTCHA question");
+              METHODS.applyCaptchaQuestion(quiz.questions[index]);
+            }
+          }
+
+          kantibotData.runtimeData.kantibotModifiedQuiz = quiz;
+          result.quiz = quiz;
+          log("Modified quiz data", quiz.questions);
+          if (!quizRepairTimeout) {
+            // To ensure that the quiz data is not modified
+            // for the next game, we need to reset it
+            quizRepairTimeout = setTimeout(() => {
+              kantibotData.kahootInternals.gameCore.quiz.questions =
+                originalQuestions;
+              quizRepairTimeout = null;
+            }, 100);
+          }
+        }
         if (payload.type === "player/game/SET_QUESTION_TIMER") {
           kantibotData.runtimeData.currentQuestionActualTime =
             result.currentQuestionTimer;
