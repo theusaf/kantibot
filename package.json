@@ -1,6 +1,6 @@
 {
   "name": "kantibot",
-  "version": "4.0.0",
+  "version": "4.2.0",
   "description": "Remove all bots from a kahoot game.",
   "main": "index.js",
   "scripts": {
@@ -12,6 +12,8 @@
   "devDependencies": {
     "@types/react": "^18.2.21",
     "@types/tampermonkey": "^4.20.1",
+    "@typescript-eslint/eslint-plugin": "^6.5.0",
+    "@typescript-eslint/parser": "^6.5.0",
     "typescript": "^5.2.2"
   }
 }

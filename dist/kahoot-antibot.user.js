@@ -421,7 +421,7 @@ const METHODS = {
     editDistance(s1, s2) {
         s1 = s1.toLowerCase();
         s2 = s2.toLowerCase();
-        const costs = new Array();
+        const costs = [];
         for (let i = 0; i <= s1.length; i++) {
             let lastValue = i;
             for (let j = 0; j <= s2.length; j++) {
@@ -713,8 +713,7 @@ const SEND_CHECKS = [
             });
         }
     },
-];
-const RECV_CHECKS = [
+], RECV_CHECKS = [
     function ddosCheck() {
         if (!METHODS.isLocked() &&
             !kantibotData.runtimeData.lockingGame &&
@@ -1047,7 +1046,8 @@ const RECV_CHECKS = [
     function lobbyAutoStartCheck(socket, data) {
         if (!METHODS.isEventJoinEvent(data))
             return !BOT_DETECTED;
-        if (kantibotData.kahootInternals.services.game.navigation.page === "lobby" &&
+        if (kantibotData.kahootInternals.services.game.navigation.page ===
+            "lobby" &&
             METHODS.getKahootSetting("automaticallyProgressGame") &&
             METHODS.getSetting("start_lock") !== 0) {
             if (kantibotData.runtimeData.lobbyLoadTime === 0) {
@@ -1146,9 +1146,7 @@ for (const setting in localConfig) {
     }
 }
 function injectAntibotSettings(target) {
-    const lastIndex = target.children.length - 1;
-    const antibotIndex = lastIndex - 2;
-    const lastItem = target.children[lastIndex];
+    const lastIndex = target.children.length - 1, antibotIndex = lastIndex - 2, lastItem = target.children[lastIndex];
     if (typeof lastItem.type === "function" &&
         lastItem.props?.text?.id ===
             "player.components.game-options-menu.unableToResetToDefaultsInGame") {
@@ -1158,8 +1156,7 @@ function injectAntibotSettings(target) {
             antibotItem.props?.id === "kantibot-settings") {
             return;
         }
-        const { createElement } = window.React;
-        const settings = [
+        const { createElement } = window.React, settings = [
             KAntibotSettingComponent({
                 title: "Block Fast Answers",
                 inputType: "checkbox",
@@ -1265,18 +1262,12 @@ function injectAntibotSettings(target) {
                 inputType: "checkbox",
                 id: "counterCheats",
                 description: "Adds an additional 5 second question at the end to counter cheats.",
-                onChange() {
-                    // alert("This feature may only be applied upon reload.");
-                },
             }),
             KAntibotSettingComponent({
                 title: "Enable CAPTCHA",
                 inputType: "checkbox",
                 id: "enableCAPTCHA",
                 description: "Adds a 30 second poll at the start of the quiz. If players don't answer it correctly, they get banned.",
-                onChange() {
-                    // alert("This feature may only be applied upon reload.");
-                },
             }),
             KAntibotSettingComponent({
                 title: "Reduce False Positives",
@@ -1284,8 +1275,7 @@ function injectAntibotSettings(target) {
                 id: "reduceFalsePositives",
                 description: "Reduces false positives by making the antibot less strict.",
             }),
-        ];
-        const antibotSettingsContainer = createElement("div", { id: "kantibot-settings" }, createElement("div", { className: "kantibot-settings-header" }, `KAntibot v${KANTIBOT_VERSION} by theusaf`), ...settings);
+        ], antibotSettingsContainer = createElement("div", { id: "kantibot-settings" }, createElement("div", { className: "kantibot-settings-header" }, `KAntibot v${KANTIBOT_VERSION} by theusaf`), ...settings);
         // Inject the antibot settings
         target.children.splice(antibotIndex + 1, 0, antibotSettingsContainer);
     }
@@ -1492,7 +1482,7 @@ const KANTIBOT_HOOKS = {
                     };
                 }
                 if (websocketMessageReceiveVerification(socket, message) === !BOT_DETECTED) {
-                    return value.call(this, ...arguments);
+                    return value.call(this, socket, message);
                 }
             };
             return true;
@@ -1523,12 +1513,7 @@ const KANTIBOT_HOOKS = {
             target.core = function (input, payload) {
                 if (payload.type === "player/answers/RECORD_CONTROLLER_ANSWERS") {
                     for (let i = 0; i < payload.payload.answers.length; i++) {
-                        const answerData = payload.payload.answers[i];
-                        const receivedTime = answerData.answerStats.receivedTime;
-                        const additionalTime = METHODS.getSetting("teamtimeout") * 1000;
-                        const actualQuestiontime = kantibotData.runtimeData.currentQuestionActualTime;
-                        const actualTimeRemaining = receivedTime + additionalTime;
-                        const timeMultiplier = actualQuestiontime / (actualQuestiontime + additionalTime);
+                        const answerData = payload.payload.answers[i], receivedTime = answerData.answerStats.receivedTime, additionalTime = METHODS.getSetting("teamtimeout") * 1000, actualQuestiontime = kantibotData.runtimeData.currentQuestionActualTime, actualTimeRemaining = receivedTime + additionalTime, timeMultiplier = actualQuestiontime / (actualQuestiontime + additionalTime);
                         answerData.answerStats.receivedTime =
                             actualTimeRemaining * timeMultiplier;
                     }
