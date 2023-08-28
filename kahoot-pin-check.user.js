@@ -342,6 +342,9 @@ function main() {
                   resetGame();
                 }
               }, 10e3);
+              console.log(
+                "[PIN-CHECKER] - Client joined game. Connection is good."
+              );
               // good. leave the game.
               connection.send(
                 JSON.stringify([
@@ -560,10 +563,13 @@ window.kantibotAddHook({
     typeof target.reset === "function" &&
     typeof target.onOpen === "function",
   callback: (target, value) => {
-    target.onMessage = function (socket, message) {
-      messageInjector(socket, message);
-      return value.call(this, socket, message);
-    };
+    console.log(target, value);
+    target.onMessage = new Proxy(target.onMessage, {
+      apply: function (target, thisArg, argumentsList) {
+        messageInjector(argumentsList[0], argumentsList[1]);
+        return target.apply(thisArg, argumentsList);
+      }
+    });
     return true;
   }
 });
