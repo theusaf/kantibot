@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        4.2.0
+// @version        4.2.1
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -1701,35 +1701,40 @@ function KAntibotSettingComponent({
 let currentQuestionChanged = true,
   quizRepairTimeout: number | null = null;
 
+const originalPush = Array.prototype.push;
+
+window.addEventListener("load", () => {
+  Array.prototype.push = function (...args) {
+    if (args.length) {
+      const value = args[0];
+      const isQuestion =
+        typeof value === "object" &&
+        value &&
+        typeof value.type === "string" &&
+        typeof value.question === "string";
+      if (isQuestion) {
+        const valueString = JSON.stringify(value);
+        if (
+          valueString !==
+          JSON.stringify(kantibotData.kahootInternals.apparentCurrentQuestion)
+        ) {
+          currentQuestionChanged = true;
+        }
+        if (currentQuestionChanged) {
+          kantibotData.kahootInternals.apparentCurrentQuestion = value;
+          kantibotData.kahootInternals.apparentCurrentQuestionIndex =
+            kantibotData.kahootInternals.quizData.questions.findIndex(
+              (question) => JSON.stringify(question) === valueString
+            );
+          currentQuestionChanged = false;
+        }
+      }
+    }
+    return originalPush.call(this, ...args);
+  };
+});
+
 const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
-  // This hook is pretty expensive, try to limit how heavy it is
-  shuffledQuizObject: {
-    target: Array.prototype,
-    prop: 0 as unknown as string,
-    condition: (_, value) =>
-      typeof value === "object" &&
-      value &&
-      typeof value.type === "string" &&
-      typeof value.question === "string",
-    callback: (_, value) => {
-      const valueString = JSON.stringify(value);
-      if (
-        valueString !==
-        JSON.stringify(kantibotData.kahootInternals.apparentCurrentQuestion)
-      ) {
-        currentQuestionChanged = true;
-      }
-      if (currentQuestionChanged) {
-        kantibotData.kahootInternals.apparentCurrentQuestion = value;
-        kantibotData.kahootInternals.apparentCurrentQuestionIndex =
-          kantibotData.kahootInternals.quizData.questions.findIndex(
-            (question) => JSON.stringify(question) === valueString
-          );
-        currentQuestionChanged = false;
-      }
-      return false;
-    },
-  },
   startQuizFunction: {
     prop: "startQuiz",
     condition: (target, value) =>
