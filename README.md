@@ -15,9 +15,9 @@
 
   <img src="https://cdn.discordapp.com/attachments/552323024083484700/665721772481708032/Screen_Shot_2020-01-11_at_5.00.07_PM.png" height="100" width="200">
 
-4. Open a kahoot game. The antibot should be installed if you see some text that says "vx.y.z ©theusaf at the bottom right.
+4. Open a kahoot game. The antibot should be installed if you see the antibot settings in the Kahoot! settings menu.
 
-  <img src="https://cdn.discordapp.com/attachments/552323024083484700/665600000318898214/Screen_Shot_2020-01-11_at_8.55.56_AM.png" height="100" width="200">
+  <img src="https://cdn.discordapp.com/attachments/761663703673733201/1146141241600385024/image.png" height="100" width="200">
 
 5. Enjoy a bot-less game!
 
