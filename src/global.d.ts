@@ -146,6 +146,7 @@ declare global {
   }
 
   interface KAntibotData {
+    settingsTypes: Record<keyof KAntibotSettings, string>;
     settings: KAntibotSettings;
     methods: Record<string, CallableFunction>;
     runtimeData: {

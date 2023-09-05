@@ -70,6 +70,7 @@ Sometimes, just an antibot is not enough... Here are ways to prevent bots from j
 
 - More Blocking Options (When new botting patterns are found).
 - Prevent answers during team talk
+- Ensuring banned bots are removed from the UI
 
 ## Support for other play.kahoot.it scripts
 

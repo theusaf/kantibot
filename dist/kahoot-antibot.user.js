@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        4.2.1
+// @version        4.2.2
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -40,6 +40,25 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
  * for helping with contribution and testing of this project
  */
 const KANTIBOT_VERSION = GM_info.script.version, kantibotData = {
+    settingsTypes: {
+        timeout: "boolean",
+        looksRandom: "boolean",
+        blockformat1: "boolean",
+        blockservice1: "boolean",
+        blocknum: "boolean",
+        forceascii: "boolean",
+        patterns: "boolean",
+        teamtimeout: "number",
+        twoFactorTime: "number",
+        percent: "number",
+        wordblock: "string",
+        ddos: "number",
+        start_lock: "number",
+        counters: "boolean",
+        counterCheats: "boolean",
+        enableCAPTCHA: "boolean",
+        reduceFalsePositives: "boolean",
+    },
     settings: {
         timeout: false,
         looksRandom: true,
@@ -510,10 +529,8 @@ const METHODS = {
         return kantibotData.settings[id];
     },
     setSetting(id, value) {
-        const localConfig = JSON.parse(window.localStorage.antibotConfig ?? "{}");
-        localConfig[id] = value;
-        window.localStorage.antibotConfig = JSON.stringify(localConfig);
         kantibotData.settings[id] = value; // as any to avoid weird typescript issue
+        window.localStorage.kantibotConfig = JSON.stringify(kantibotData.settings);
     },
     applyCaptchaQuestion(question) {
         const answers = ["red", "blue", "yellow", "green"], images = [
@@ -1138,8 +1155,22 @@ const localConfig = JSON.parse(window.localStorage.kantibotConfig ??
     "{}");
 for (const setting in localConfig) {
     try {
+        const settingType = kantibotData.settingsTypes[setting];
         const current = METHODS.getSetting(setting);
-        METHODS.setSetting(setting, localConfig[setting] ?? current);
+        let value = localConfig[setting] ?? current;
+        if (value)
+            switch (settingType) {
+                case "boolean":
+                    value = !!value;
+                    break;
+                case "number":
+                    value = +value;
+                    break;
+                case "string":
+                    value = `${value}`;
+                    break;
+            }
+        METHODS.setSetting(setting, value);
     }
     catch {
         /* ignored */
@@ -1480,11 +1511,25 @@ const KANTIBOT_HOOKS = {
                 if (!socket.webSocket.oldSend) {
                     socket.webSocket.oldSend = socket.webSocket.send;
                     socket.webSocket.send = function (data) {
-                        websocketMessageSendHandler(socket, data);
+                        try {
+                            websocketMessageSendHandler(socket, data);
+                        }
+                        catch (err) {
+                            log("Error in websocketMessageSendHandler");
+                            console.error(err);
+                        }
                         socket.webSocket.oldSend(data);
                     };
                 }
-                if (websocketMessageReceiveVerification(socket, message) === !BOT_DETECTED) {
+                let verificationResult = !BOT_DETECTED;
+                try {
+                    verificationResult = websocketMessageReceiveVerification(socket, message);
+                }
+                catch (err) {
+                    log("Error in websocketMessageReceiveVerification");
+                    console.error(err);
+                }
+                if (verificationResult === !BOT_DETECTED) {
                     return value.call(this, socket, message);
                 }
             };
