@@ -534,9 +534,9 @@ const METHODS = {
     },
     applyCaptchaQuestion(question) {
         const answers = ["red", "blue", "yellow", "green"], images = [
-            "361bdde0-48cd-4a92-ae9f-486263ba8529",
-            "9237bdd2-f281-4f04-b4e5-255e9055a194",
-            "d25c9d13-4147-4056-a722-e2a13fbb4af9",
+            "361bdde0-48cd-4a92-ae9f-486263ba8529", // red
+            "9237bdd2-f281-4f04-b4e5-255e9055a194", // blue
+            "d25c9d13-4147-4056-a722-e2a13fbb4af9", // yellow
             "2aca62f2-ead5-4197-9c63-34da0400703a", // green
         ], imageIndex = Math.floor(Math.random() * answers.length);
         question.question = `[ANTIBOT] - CAPTCHA: Please select ${answers[imageIndex]}`;
@@ -1460,15 +1460,40 @@ window.addEventListener("load", () => {
         return originalPush.call(this, ...args);
     };
 });
+function scanElements(...args) {
+    const params = args?.[1];
+    if (typeof params?.onClick === "function" && typeof params?.functionalSelector === "string") {
+        if (params.functionalSelector === "start-button") {
+            kantibotData.kahootInternals.methods.startQuiz = params.onClick;
+        }
+    }
+}
 const KANTIBOT_HOOKS = {
-    startQuizFunction: {
-        prop: "startQuiz",
-        condition: (target, value) => typeof value === "function" && target.isGameReady,
+    jsx: {
+        prop: "jsx",
+        condition: (_, value) => typeof value === "function",
         callback: (target, value) => {
-            kantibotData.kahootInternals.gameDetails = target;
-            kantibotData.kahootInternals.methods.startQuiz = value;
-            kantibotData.kahootInternals.userData = target.currentUser;
-            kantibotData.kahootInternals.settings = target.gameOptions;
+            console.debug("jsx detect");
+            const original = value;
+            target.jsx = function (...args) {
+                scanElements(...args);
+                const result = original.call(this, ...args);
+                return result;
+            };
+            return true;
+        },
+    },
+    jsxs: {
+        prop: "jsxs",
+        condition: (_, value) => typeof value === "function",
+        callback: (target, value) => {
+            console.debug("jsxs detect");
+            const original = value;
+            target.jsxs = function (...args) {
+                scanElements(...args);
+                const result = original.call(this, ...args);
+                return result;
+            };
             return true;
         },
     },
@@ -1559,14 +1584,30 @@ const KANTIBOT_HOOKS = {
         condition: (_, value) => typeof value === "function",
         callback: (target, value) => {
             target.core = function (input, payload) {
-                if (payload.type === "player/answers/RECORD_CONTROLLER_ANSWERS") {
-                    for (let i = 0; i < payload.payload.answers.length; i++) {
-                        const answerData = payload.payload.answers[i], receivedTime = answerData.answerStats.receivedTime, additionalTime = METHODS.getSetting("teamtimeout") * 1000, actualQuestiontime = kantibotData.runtimeData.currentQuestionActualTime, actualTimeRemaining = receivedTime + additionalTime, timeMultiplier = actualQuestiontime / (actualQuestiontime + additionalTime);
-                        answerData.answerStats.receivedTime =
-                            actualTimeRemaining * timeMultiplier;
+                switch (payload.type) {
+                    case "player/answers/RECORD_CONTROLLER_ANSWERS": {
+                        for (let i = 0; i < payload.payload.answers.length; i++) {
+                            const answerData = payload.payload.answers[i], receivedTime = answerData.answerStats.receivedTime, additionalTime = METHODS.getSetting("teamtimeout") * 1000, actualQuestiontime = kantibotData.runtimeData.currentQuestionActualTime, actualTimeRemaining = receivedTime + additionalTime, timeMultiplier = actualQuestiontime / (actualQuestiontime + additionalTime);
+                            answerData.answerStats.receivedTime =
+                                actualTimeRemaining * timeMultiplier;
+                        }
+                        break;
+                    }
+                    case "services/rest/FETCH_USER_DATA": {
+                        const original = payload.payload.onSuccess;
+                        payload.payload.onSuccess = function (data) {
+                            kantibotData.kahootInternals.userData = data;
+                            return original(data);
+                        };
+                        break;
+                    }
+                    case "services/rest/GET_USER_SETTINGS": {
+                        console.log("GET_USER_SETTINGS", payload);
+                        break;
                     }
                 }
                 const result = value.call(target, input, payload);
+                console.debug("GAMECORE TEST", input, payload, result);
                 // Warning to future maintainer
                 // Adding questions here may seem to work, but will
                 // cause Kahoot! to crash.

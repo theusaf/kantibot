@@ -112,17 +112,21 @@ declare global {
     hasLeft?: boolean;
   }
 
-  interface KGameCore extends Record<string, any> {
+  interface KGameCore extends Record<string, unknown> {
     controllers: Record<string, KController>;
     currentQuestionTimer: number;
     gameMode: string;
     isLocked: boolean;
-    kickedControllers: any[];
-    liveGameId: string;
+    kickedControllers: unknown[];
     pin: string;
     playList: string[];
     quiz: KQuiz;
     startTime: number;
+    selectedGameMode: string;
+    ghostModeType: string;
+    playAgainMode: string;
+    gameBlockTalkTimer: number;
+    currentQuestionIntroTime: number;
   }
 
   interface KAntibotSettings {
@@ -181,14 +185,14 @@ declare global {
       kantibotModifiedQuiz: KQuiz;
     };
     kahootInternals: {
-      answerDetails: any;
-      debugData: Record<string, any>;
+      answerDetails: unknown;
+      debugData: Record<string, unknown>;
       gameCore: KGameCore;
-      gameDetails: any;
-      gameConstructors: any;
+      gameDetails: unknown;
+      gameConstructors: unknown;
       methods: Record<string, CallableFunction>;
       quizData: KQuiz;
-      userData: any;
+      userData: unknown;
       services: KServices;
       settings: KSettings;
       socket: WebSocket;
