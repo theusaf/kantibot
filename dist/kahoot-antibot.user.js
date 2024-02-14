@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        4.2.2
+// @version        4.2.3
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -523,13 +523,14 @@ const METHODS = {
         return false;
     },
     getKahootSetting(id) {
-        return kantibotData.kahootInternals.settings[id];
+        return kantibotData.kahootInternals.methods.getRootState().game.options
+            .optionsState[id];
     },
     getSetting(id) {
         return kantibotData.settings[id];
     },
     setSetting(id, value) {
-        kantibotData.settings[id] = value; // as any to avoid weird typescript issue
+        kantibotData.settings[id] = value;
         window.localStorage.kantibotConfig = JSON.stringify(kantibotData.settings);
     },
     applyCaptchaQuestion(question) {
@@ -1462,18 +1463,26 @@ window.addEventListener("load", () => {
 });
 function scanElements(...args) {
     const params = args?.[1];
-    if (typeof params?.onClick === "function" && typeof params?.functionalSelector === "string") {
+    if (typeof params?.onClick === "function" &&
+        typeof params?.functionalSelector === "string") {
         if (params.functionalSelector === "start-button") {
             kantibotData.kahootInternals.methods.startQuiz = params.onClick;
         }
     }
 }
 const KANTIBOT_HOOKS = {
+    options: {
+        prop: "store",
+        condition: (_, value) => true,
+        callback: (_, value) => {
+            kantibotData.kahootInternals.methods.getRootState = value.getState;
+            return true;
+        },
+    },
     jsx: {
         prop: "jsx",
         condition: (_, value) => typeof value === "function",
         callback: (target, value) => {
-            console.debug("jsx detect");
             const original = value;
             target.jsx = function (...args) {
                 scanElements(...args);
@@ -1487,7 +1496,6 @@ const KANTIBOT_HOOKS = {
         prop: "jsxs",
         condition: (_, value) => typeof value === "function",
         callback: (target, value) => {
-            console.debug("jsxs detect");
             const original = value;
             target.jsxs = function (...args) {
                 scanElements(...args);
@@ -1601,13 +1609,8 @@ const KANTIBOT_HOOKS = {
                         };
                         break;
                     }
-                    case "services/rest/GET_USER_SETTINGS": {
-                        console.log("GET_USER_SETTINGS", payload);
-                        break;
-                    }
                 }
                 const result = value.call(target, input, payload);
-                console.debug("GAMECORE TEST", input, payload, result);
                 // Warning to future maintainer
                 // Adding questions here may seem to work, but will
                 // cause Kahoot! to crash.
