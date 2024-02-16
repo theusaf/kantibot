@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        4.2.3
+// @version        4.2.4
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -1779,7 +1779,7 @@ function scanElements(...args: unknown[]) {
 const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
   options: {
     prop: "store",
-    condition: (_, value) => true,
+    condition: (_, value) => typeof value?.getState === "function",
     callback: (_, value) => {
       kantibotData.kahootInternals.methods.getRootState = value.getState;
       return true;
