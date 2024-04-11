@@ -9,15 +9,15 @@
 1. Make sure you have a script manager such as https://www.tampermonkey.net/
 2. Come back to this page and press the green install button.
 
-  <img src="https://cdn.discordapp.com/attachments/552323024083484700/665721774993834024/Screen_Shot_2020-01-11_at_4.59.39_PM.png" height="100" width="200">
+  <img src="https://i.imgur.com/iu6hbCt.png" height="100" width="200">
 
 3. Your script manager should ask to install it. Press install.
 
-  <img src="https://cdn.discordapp.com/attachments/552323024083484700/665721772481708032/Screen_Shot_2020-01-11_at_5.00.07_PM.png" height="100" width="200">
+  <img src="https://i.imgur.com/TvRqjFG.png" height="100" width="200">
 
 4. Open a kahoot game. The antibot should be installed if you see the antibot settings in the Kahoot! settings menu.
 
-  <img src="https://cdn.discordapp.com/attachments/761663703673733201/1146141241600385024/image.png" height="100" width="200">
+  <img src="https://i.imgur.com/5bLLJqA.png" height="100" width="200">
 
 5. Enjoy a bot-less game!
 
@@ -48,7 +48,7 @@
       <th>GitHub</th>
     </tr>
     <tr>
-      <td><a href="https://discord.gg/pPdvXU6"><img src="https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png?size=128" alt="Kahoot Hacker Icon" height="100" width="100"></a></td>
+      <td><a href="https://discord.gg/pPdvXU6"><img src="https://i.imgur.com/2fVANMw.png" alt="Kahoot Hacker Icon" height="100" width="100"></a></td>
       <td><a href="https://github.com/theusaf/kahoot-antibot"><img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="Kahoot Hacker Icon" height="100" width="100"></a></td>
     </tr>
   </tbody>

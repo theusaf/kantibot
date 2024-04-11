@@ -5,11 +5,11 @@
 <ol>
   <li>スクリプトマネージャーをインストール(<a href="https://www.tampermonkey.net/">Tampermonkey</a>など)</li>
   <li>このページに来て、緑色のボタンを押す</li>
-  <img src="https://cdn.discordapp.com/attachments/552323024083484700/665721774993834024/Screen_Shot_2020-01-11_at_4.59.39_PM.png" height="100" width="200">
+  <img src="https://i.imgur.com/iu6hbCt.png" height="100" width="200">
   <li>スクリプトマネージャーが開いたら「インストール」を押す</li>
-  <img src="https://cdn.discordapp.com/attachments/552323024083484700/665721772481708032/Screen_Shot_2020-01-11_at_5.00.07_PM.png" height="100" width="200">
+  <img src="https://i.imgur.com/TvRqjFG.png" height="100" width="200">
   <li>Kahoot!ゲームを始めて、下の画像のようになっていたら、アンチボットは多分インストールに成功しています</li>
-  <img src="https://cdn.discordapp.com/attachments/552323024083484700/665600000318898214/Screen_Shot_2020-01-11_at_8.55.56_AM.png" height="100" width="200">
+  <img src="https://i.imgur.com/5bLLJqA.png" height="100" width="200">
   <li>ボットがいないゲームを楽しむ</li>
 </ol>
 <hr>
@@ -36,7 +36,7 @@
       <th>GitHub</th>
     </tr>
     <tr>
-      <td><a href="https://discord.gg/pPdvXU6"><img src="https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png?size=128" alt="Kahoot Hacker Icon" height="100" width="100"></a></td>
+      <td><a href="https://discord.gg/pPdvXU6"><img src="https://i.imgur.com/2fVANMw.png" alt="Kahoot Hacker Icon" height="100" width="100"></a></td>
       <td><a href="https://github.com/theusaf/kahoot-antibot"><img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="Kahoot Hacker Icon" height="100" width="100"></a></td>
     </tr>
   </tbody>
