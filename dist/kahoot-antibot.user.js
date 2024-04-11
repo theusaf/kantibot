@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        4.2.4
+// @version        4.2.5
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -207,6 +207,7 @@ const METHODS = {
             "Arctic",
             "Awesome",
             "Balanced",
+            "Blue",
             "Bold",
             "Brave",
             "Bright",
@@ -248,6 +249,7 @@ const METHODS = {
             "Glowing",
             "Golden",
             "Great",
+            "Green",
             "Groovy",
             "Happy",
             "Helpful",
@@ -279,6 +281,7 @@ const METHODS = {
             "Radiant",
             "Rapid",
             "Rational",
+            "Red",
             "Rockstar",
             "Rocky",
             "Royal",
@@ -302,7 +305,7 @@ const METHODS = {
             "Wise",
             "Witty",
             "Wonder",
-            "Zany",
+            "Yellow",
         ], lastNames = [
             "Alpaca",
             "Ant",
@@ -348,7 +351,6 @@ const METHODS = {
             "Gnu",
             "Goat",
             "Goose",
-            "Gorilla",
             "Griffin",
             "Hamster",
             "Hare",
@@ -371,7 +373,6 @@ const METHODS = {
             "Lobster",
             "Macaw",
             "Meerkat",
-            "Monkey",
             "Mouse",
             "Newt",
             "Octopus",
