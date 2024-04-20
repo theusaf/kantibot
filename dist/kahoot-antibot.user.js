@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        4.2.5
+// @version        4.2.6
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -110,6 +110,7 @@ const KANTIBOT_VERSION = GM_info.script.version, kantibotData = {
         services: null,
         settings: null,
         socket: null,
+        socketHandler: null,
         debugData: {},
         apparentCurrentQuestion: null,
         apparentCurrentQuestionIndex: 0,
@@ -625,8 +626,23 @@ const METHODS = {
             banishedCachedData.banned = true;
             banishedCachedData.time = 10;
         }
-        delete METHODS.getControllers()[id];
+        if (METHODS.getControllers()[id]) {
+            METHODS.removeControllerNative(id);
+        }
         delete kantibotData.runtimeData.controllerData[id];
+    },
+    removeControllerNative(id) {
+        kantibotData.kahootInternals.socketHandler.onMessage(kantibotData.kahootInternals.socketHandler, new MessageEvent("message", {
+            data: JSON.stringify([
+                {
+                    ext: {
+                        timetrack: Date.now(),
+                    },
+                    data: { cid: id, type: "left" },
+                    channel: `/controller/${id}`,
+                },
+            ]),
+        }));
     },
     isEventJoinEvent(event) {
         return event.data?.type === "joined";
@@ -757,7 +773,8 @@ const SEND_CHECKS = [
           <span class="kantibot-count-desc">Until Unlock</span>`;
                 kantibotData.runtimeData.countersElement.append(ddosCounterElement);
                 const ddosCounterInterval = setInterval(() => {
-                    ddosCounterElement.querySelector(".kantibot-count-num").innerHTML = `${--timeLeft}`;
+                    ddosCounterElement.querySelector(".kantibot-count-num").innerHTML =
+                        `${--timeLeft}`;
                     if (timeLeft <= 0) {
                         clearInterval(ddosCounterInterval);
                         ddosCounterElement.remove();
@@ -1082,7 +1099,8 @@ const SEND_CHECKS = [
                         if (time < 0) {
                             time = "Please Wait...";
                         }
-                        container.querySelector(".kantibot-count-num").innerHTML = `${time}`;
+                        container.querySelector(".kantibot-count-num").innerHTML =
+                            `${time}`;
                     }, 1e3);
                     kantibotData.runtimeData.countersElement.append(container);
                     kantibotData.runtimeData.startLockElement = container;
@@ -1540,6 +1558,7 @@ const KANTIBOT_HOOKS = {
             typeof target.reset === "function" &&
             typeof target.onOpen === "function",
         callback: (target, value) => {
+            kantibotData.kahootInternals.socketHandler = target;
             target.onMessage = function (socket, message) {
                 kantibotData.kahootInternals.socket = socket.webSocket;
                 if (!socket.webSocket.oldSend) {

@@ -32,6 +32,7 @@ declare global {
 
   interface KWebSocket {
     webSocket: KAntibotWebSocket;
+    onMessage: (socket: KWebSocket, event: MessageEvent) => void;
   }
 
   interface KServices {
@@ -196,6 +197,7 @@ declare global {
       services: KServices;
       settings: KSettings;
       socket: WebSocket;
+      socketHandler: KWebSocket;
       apparentCurrentQuestion: KQuestion;
       apparentCurrentQuestionIndex: number;
     };

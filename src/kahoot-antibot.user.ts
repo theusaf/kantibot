@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        4.2.5
+// @version        4.2.6
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -115,6 +115,7 @@ const KANTIBOT_VERSION = GM_info.script.version,
       services: null as unknown as KServices,
       settings: null as unknown as KSettings,
       socket: null as unknown as WebSocket,
+      socketHandler: null as unknown as KWebSocket,
       debugData: {},
       apparentCurrentQuestion: null as unknown as KQuestion,
       apparentCurrentQuestionIndex: 0,
@@ -130,7 +131,7 @@ function log(...args: unknown[]) {
 }
 
 function createObjectHook<
-  E extends NonNullable<unknown> = NonNullable<unknown>
+  E extends NonNullable<unknown> = NonNullable<unknown>,
 >(
   target: E,
   prop: string,
@@ -681,8 +682,27 @@ const METHODS = {
       banishedCachedData.banned = true;
       banishedCachedData.time = 10;
     }
-    delete METHODS.getControllers()[id];
+    if (METHODS.getControllers()[id]) {
+      METHODS.removeControllerNative(id);
+    }
     delete kantibotData.runtimeData.controllerData[id];
+  },
+
+  removeControllerNative(id: string): void {
+    kantibotData.kahootInternals.socketHandler.onMessage(
+      kantibotData.kahootInternals.socketHandler,
+      new MessageEvent("message", {
+        data: JSON.stringify([
+          {
+            ext: {
+              timetrack: Date.now(),
+            },
+            data: { cid: id, type: "left" },
+            channel: `/controller/${id}`,
+          },
+        ]),
+      })
+    );
   },
 
   isEventJoinEvent(event: KSocketEvent): boolean {
@@ -847,9 +867,8 @@ const SEND_CHECKS: ((_socket: KWebSocket, _data: KSocketEvent) => void)[] = [
           <span class="kantibot-count-desc">Until Unlock</span>`;
           kantibotData.runtimeData.countersElement.append(ddosCounterElement);
           const ddosCounterInterval = setInterval(() => {
-            ddosCounterElement.querySelector(
-              ".kantibot-count-num"
-            )!.innerHTML = `${--timeLeft}`;
+            ddosCounterElement.querySelector(".kantibot-count-num")!.innerHTML =
+              `${--timeLeft}`;
             if (timeLeft <= 0) {
               clearInterval(ddosCounterInterval);
               ddosCounterElement.remove();
@@ -1265,9 +1284,8 @@ const SEND_CHECKS: ((_socket: KWebSocket, _data: KSocketEvent) => void)[] = [
               if (time < 0) {
                 time = "Please Wait...";
               }
-              container.querySelector(
-                ".kantibot-count-num"
-              )!.innerHTML = `${time}`;
+              container.querySelector(".kantibot-count-num")!.innerHTML =
+                `${time}`;
             }, 1e3);
             kantibotData.runtimeData.countersElement.append(container);
             kantibotData.runtimeData.startLockElement = container;
@@ -1848,6 +1866,7 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
       typeof target.reset === "function" &&
       typeof target.onOpen === "function",
     callback: (target, value) => {
+      kantibotData.kahootInternals.socketHandler = target;
       target.onMessage = function (socket: KWebSocket, message: MessageEvent) {
         kantibotData.kahootInternals.socket = socket.webSocket;
         if (!socket.webSocket.oldSend) {

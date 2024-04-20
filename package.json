@@ -1,6 +1,6 @@
 {
   "name": "kantibot",
-  "version": "4.2.5",
+  "version": "4.2.6",
   "description": "Remove all bots from a kahoot game.",
   "main": "index.js",
   "scripts": {
@@ -10,10 +10,10 @@
   "author": "theusaf",
   "license": "MIT",
   "devDependencies": {
-    "@types/react": "^18.2.55",
+    "@types/react": "^18.2.79",
     "@types/tampermonkey": "^5.0.2",
-    "@typescript-eslint/eslint-plugin": "^7.0.1",
-    "@typescript-eslint/parser": "^7.0.1",
-    "typescript": "^5.3.3"
+    "@typescript-eslint/eslint-plugin": "^7.7.0",
+    "@typescript-eslint/parser": "^7.7.0",
+    "typescript": "^5.4.5"
   }
 }
