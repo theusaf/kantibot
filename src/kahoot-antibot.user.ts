@@ -115,7 +115,8 @@ const KANTIBOT_VERSION = GM_info.script.version,
       services: null as unknown as KServices,
       settings: null as unknown as KSettings,
       socket: null as unknown as WebSocket,
-      socketHandler: null as unknown as KWebSocket,
+      socketLib: null as unknown as KWebSocket,
+      socketHandler: null as unknown as KWebSocketHandler,
       debugData: {},
       apparentCurrentQuestion: null as unknown as KQuestion,
       apparentCurrentQuestionIndex: 0,
@@ -689,18 +690,22 @@ const METHODS = {
   },
 
   removeControllerNative(id: string): void {
+    this.simulateIncomingMessage([
+      {
+        ext: {
+          timetrack: Date.now(),
+        },
+        data: { cid: id, type: "left" },
+        channel: `/controller/${METHODS.getPin()}`,
+      },
+    ]);
+  },
+
+  simulateIncomingMessage(data: unknown): void {
     kantibotData.kahootInternals.socketHandler.onMessage(
-      kantibotData.kahootInternals.socketHandler,
+      kantibotData.kahootInternals.socketLib,
       new MessageEvent("message", {
-        data: JSON.stringify([
-          {
-            ext: {
-              timetrack: Date.now(),
-            },
-            data: { cid: id, type: "left" },
-            channel: `/controller/${id}`,
-          },
-        ]),
+        data: JSON.stringify(data),
       })
     );
   },
@@ -1871,6 +1876,7 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
       kantibotData.kahootInternals.socketHandler = target;
       target.onMessage = function (socket: KWebSocket, message: MessageEvent) {
         kantibotData.kahootInternals.socket = socket.webSocket;
+        kantibotData.kahootInternals.socketLib = socket;
         if (!socket.webSocket.oldSend) {
           socket.webSocket.oldSend = socket.webSocket.send;
           socket.webSocket.send = function (data: string) {

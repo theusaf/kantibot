@@ -110,6 +110,7 @@ const KANTIBOT_VERSION = GM_info.script.version, kantibotData = {
         services: null,
         settings: null,
         socket: null,
+        socketLib: null,
         socketHandler: null,
         debugData: {},
         apparentCurrentQuestion: null,
@@ -632,16 +633,19 @@ const METHODS = {
         delete kantibotData.runtimeData.controllerData[id];
     },
     removeControllerNative(id) {
-        kantibotData.kahootInternals.socketHandler.onMessage(kantibotData.kahootInternals.socketHandler, new MessageEvent("message", {
-            data: JSON.stringify([
-                {
-                    ext: {
-                        timetrack: Date.now(),
-                    },
-                    data: { cid: id, type: "left" },
-                    channel: `/controller/${id}`,
+        this.simulateIncomingMessage([
+            {
+                ext: {
+                    timetrack: Date.now(),
                 },
-            ]),
+                data: { cid: id, type: "left" },
+                channel: `/controller/${METHODS.getPin()}`,
+            },
+        ]);
+    },
+    simulateIncomingMessage(data) {
+        kantibotData.kahootInternals.socketHandler.onMessage(kantibotData.kahootInternals.socketLib, new MessageEvent("message", {
+            data: JSON.stringify(data),
         }));
     },
     isEventJoinEvent(event) {
@@ -1156,17 +1160,19 @@ function websocketMessageSendHandler(socket, message) {
 }
 const BOT_DETECTED = true;
 function websocketMessageReceiveVerification(socket, message) {
-    const data = JSON.parse(message.data)[0];
-    for (const check of RECV_CHECKS) {
-        if (check(socket, data) === BOT_DETECTED) {
-            return BOT_DETECTED;
+    const incoming = JSON.parse(message.data);
+    for (const data of incoming) {
+        for (const check of RECV_CHECKS) {
+            if (check(socket, data) === BOT_DETECTED) {
+                return BOT_DETECTED;
+            }
         }
-    }
-    if (METHODS.isEventJoinEvent(data)) {
-        kantibotData.runtimeData.controllerData[data.data.cid] = {
-            loginTime: Date.now(),
-            twoFactorAttempts: 0,
-        };
+        if (METHODS.isEventJoinEvent(data)) {
+            kantibotData.runtimeData.controllerData[data.data.cid] = {
+                loginTime: Date.now(),
+                twoFactorAttempts: 0,
+            };
+        }
     }
     return !BOT_DETECTED;
 }
@@ -1561,6 +1567,7 @@ const KANTIBOT_HOOKS = {
             kantibotData.kahootInternals.socketHandler = target;
             target.onMessage = function (socket, message) {
                 kantibotData.kahootInternals.socket = socket.webSocket;
+                kantibotData.kahootInternals.socketLib = socket;
                 if (!socket.webSocket.oldSend) {
                     socket.webSocket.oldSend = socket.webSocket.send;
                     socket.webSocket.send = function (data) {
