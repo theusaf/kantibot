@@ -1357,17 +1357,19 @@ function websocketMessageReceiveVerification(
   socket: KWebSocket,
   message: { data: string }
 ): boolean {
-  const data = JSON.parse(message.data)[0];
-  for (const check of RECV_CHECKS) {
-    if (check(socket, data) === BOT_DETECTED) {
-      return BOT_DETECTED;
+  const incoming = JSON.parse(message.data);
+  for (const data of incoming) {
+    for (const check of RECV_CHECKS) {
+      if (check(socket, data) === BOT_DETECTED) {
+        return BOT_DETECTED;
+      }
     }
-  }
-  if (METHODS.isEventJoinEvent(data)) {
-    kantibotData.runtimeData.controllerData[data.data.cid] = {
-      loginTime: Date.now(),
-      twoFactorAttempts: 0,
-    };
+    if (METHODS.isEventJoinEvent(data)) {
+      kantibotData.runtimeData.controllerData[data.data.cid] = {
+        loginTime: Date.now(),
+        twoFactorAttempts: 0,
+      };
+    }
   }
   return !BOT_DETECTED;
 }
