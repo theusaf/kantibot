@@ -18,6 +18,7 @@
 // @run-at         document-start
 // @license        MIT
 // ==/UserScript==
+// biome-ignore lint/suspicious/noRedundantUseStrict: Removing this causes strict to be placed at the top of the file, which causes issues with the userscript
 "use strict";
 /*
 
@@ -39,7 +40,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
  *
  * for helping with contribution and testing of this project
  */
-const KANTIBOT_VERSION = GM_info.script.version, kantibotData = {
+const KANTIBOT_VERSION = GM_info.script.version;
+const kantibotData = {
     settingsTypes: {
         timeout: "boolean",
         looksRandom: "boolean",
@@ -177,14 +179,13 @@ function addHook(hook) {
 // Main logic
 const METHODS = {
     capitalize(text) {
-        text = text.toLowerCase();
-        return text[0].toUpperCase() + text.slice(1);
+        const lower = text.toLowerCase();
+        return lower[0].toUpperCase() + lower.slice(1);
     },
     similarity(s1, s2) {
         // ignore case
-        s1 = s1.toLowerCase();
-        s2 = s2.toLowerCase();
-        let longer = s1, shorter = s2;
+        let longer = s1.toLowerCase();
+        let shorter = s2.toLowerCase();
         // begin math to determine similarity
         if (s1.length < s2.length) {
             longer = s2;
@@ -308,7 +309,8 @@ const METHODS = {
             "Witty",
             "Wonder",
             "Yellow",
-        ], lastNames = [
+        ];
+        const lastNames = [
             "Alpaca",
             "Ant",
             "Badger",
@@ -418,7 +420,8 @@ const METHODS = {
             "Yak",
             "Yeti",
             "Zebra",
-        ], nameMatch = name.match(/[A-Z][a-z]+(?=[A-Z])/);
+        ];
+        const nameMatch = name.match(/[A-Z][a-z]+(?=[A-Z])/);
         if (nameMatch === null || !firstNames.includes(nameMatch[0])) {
             return false;
         }
@@ -441,19 +444,19 @@ const METHODS = {
         return /(^([A-Z][a-z]+){2,3}\d{1,2}$)|(^([A-Z][^A-Z\n]+?)+?(\d[a-z]+\d*?)$)|(^[a-zA-Z]+\d{4,}$)/.test(name);
     },
     editDistance(s1, s2) {
-        s1 = s1.toLowerCase();
-        s2 = s2.toLowerCase();
+        const norm1 = s1.toLowerCase();
+        const norm2 = s2.toLowerCase();
         const costs = [];
-        for (let i = 0; i <= s1.length; i++) {
+        for (let i = 0; i <= norm1.length; i++) {
             let lastValue = i;
-            for (let j = 0; j <= s2.length; j++) {
+            for (let j = 0; j <= norm2.length; j++) {
                 if (i === 0) {
                     costs[j] = j;
                 }
                 else {
                     if (j > 0) {
                         let newValue = costs[j - 1];
-                        if (s1.charAt(i - 1) != s2.charAt(j - 1)) {
+                        if (norm1.charAt(i - 1) !== norm2.charAt(j - 1)) {
                             newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
                         }
                         costs[j - 1] = lastValue;
@@ -462,10 +465,10 @@ const METHODS = {
                 }
             }
             if (i > 0) {
-                costs[s2.length] = lastValue;
+                costs[norm1.length] = lastValue;
             }
         }
-        return costs[s2.length];
+        return costs[norm2.length];
     },
     isUsingNamerator() {
         return METHODS.getKahootSetting("namerator");
@@ -473,12 +476,16 @@ const METHODS = {
     getPatterns(text) {
         const isLetter = (char) => {
             return /\p{L}/u.test(char);
-        }, isUppercaseLetter = (char) => {
+        };
+        const isUppercaseLetter = (char) => {
             return char.toUpperCase() === char;
-        }, isNumber = (char) => {
+        };
+        const isNumber = (char) => {
             return /\p{N}/u.test(char);
         };
-        let output = "", mode = null, count = 0;
+        let output = "";
+        let mode = null;
+        let count = 0;
         for (let i = 0; i < text.length; i++) {
             const char = text[i];
             let type = null;
@@ -537,12 +544,14 @@ const METHODS = {
         window.localStorage.kantibotConfig = JSON.stringify(kantibotData.settings);
     },
     applyCaptchaQuestion(question) {
-        const answers = ["red", "blue", "yellow", "green"], images = [
+        const answers = ["red", "blue", "yellow", "green"];
+        const images = [
             "361bdde0-48cd-4a92-ae9f-486263ba8529", // red
             "9237bdd2-f281-4f04-b4e5-255e9055a194", // blue
             "d25c9d13-4147-4056-a722-e2a13fbb4af9", // yellow
             "2aca62f2-ead5-4197-9c63-34da0400703a", // green
-        ], imageIndex = Math.floor(Math.random() * answers.length);
+        ];
+        const imageIndex = Math.floor(Math.random() * answers.length);
         question.question = `[ANTIBOT] - CAPTCHA: Please select ${answers[imageIndex]}`;
         question.image = `https://media.kahoot.it/${images[imageIndex]}`;
         question.imageMetadata.id = images[imageIndex];
@@ -561,19 +570,17 @@ const METHODS = {
             return;
         log("Modifying quiz information");
         quiz.kantibotModified = true;
-        {
-            quiz.questions.push({
-                question: "[ANTIBOT] - This poll is for countering Kahoot cheating sites.",
-                time: 5000,
-                type: "survey",
-                isKAntibotQuestion: true,
-                kantibotQuestionType: "counterCheats",
-                choices: [{ answer: "OK", correct: true }],
-            });
-        }
+        quiz.questions.push({
+            question: "[ANTIBOT] - This poll is for countering Kahoot cheating sites.",
+            time: 5000,
+            type: "survey",
+            isKAntibotQuestion: true,
+            kantibotQuestionType: "counterCheats",
+            choices: [{ answer: "OK", correct: true }],
+        });
         {
             const question = {
-                question: `[ANTIBOT] - CAPTCHA: Please select placeholder`,
+                question: "[ANTIBOT] - CAPTCHA: Please select placeholder",
                 time: 30000,
                 type: "quiz",
                 isKAntibotQuestion: true,
@@ -605,9 +612,11 @@ const METHODS = {
         alert(notice);
     },
     kickController(id, reason = "", fallbackController = null) {
-        const controller = METHODS.getControllerById(id) ?? fallbackController, name = (controller?.name?.length ?? 0) > 30
-            ? controller?.name?.substring(0, 30) + "..."
-            : controller?.name, banishedCachedData = kantibotData.runtimeData.unverifiedControllerNames.find((controller) => {
+        const controller = METHODS.getControllerById(id) ?? fallbackController;
+        const name = (controller?.name?.length ?? 0) > 30
+            ? `${controller?.name?.substring(0, 30)}...`
+            : controller?.name;
+        const banishedCachedData = kantibotData.runtimeData.unverifiedControllerNames.find((controller) => {
             return controller.cid === id;
         });
         log(`Kicked ${name || id}${reason ? ` - ${reason}` : ""}`);
@@ -739,7 +748,8 @@ const SEND_CHECKS = [
         if ((data?.data?.id === 4 || data?.data?.id === 8) &&
             currentQuestion?.isKAntibotQuestion &&
             currentQuestion?.kantibotQuestionType === "captcha") {
-            const controllers = METHODS.getControllers(), answeredControllers = kantibotData.runtimeData.captchaIds;
+            const controllers = METHODS.getControllers();
+            const answeredControllers = kantibotData.runtimeData.captchaIds;
             METHODS.batchData(() => {
                 for (const id in controllers) {
                     if (controllers[id].isGhost || controllers[id].hasLeft) {
@@ -752,7 +762,8 @@ const SEND_CHECKS = [
             });
         }
     },
-], RECV_CHECKS = [
+];
+const RECV_CHECKS = [
     function ddosCheck() {
         if (!METHODS.isLocked() &&
             !kantibotData.runtimeData.lockingGame &&
@@ -794,7 +805,7 @@ const SEND_CHECKS = [
             return !BOT_DETECTED;
         }
         const player = data.data;
-        if (isNaN(+player.cid) ||
+        if (Number.isNaN(+player.cid) ||
             Object.keys(player).length > 5 ||
             player.name.length >= 16) {
             if (kantibotData.runtimeData.controllerData[player.cid]) {
@@ -822,7 +833,8 @@ const SEND_CHECKS = [
             return !BOT_DETECTED;
         if (METHODS.isUsingNamerator())
             return !BOT_DETECTED;
-        const player = data.data, usernames = kantibotData.runtimeData.unverifiedControllerNames;
+        const player = data.data;
+        const usernames = kantibotData.runtimeData.unverifiedControllerNames;
         for (const i in usernames) {
             if (kantibotData.runtimeData.verifiedControllerNames.has(usernames[i].name))
                 continue;
@@ -867,10 +879,12 @@ const SEND_CHECKS = [
             !METHODS.getSetting("patterns")) {
             return !BOT_DETECTED;
         }
-        const player = data.data, pattern = METHODS.getPatterns(player.name), patternData = kantibotData.runtimeData.controllerNamePatternData;
+        const player = data.data;
+        const pattern = METHODS.getPatterns(player.name);
+        const patternData = kantibotData.runtimeData.controllerNamePatternData;
         if (METHODS.getSetting("reduceFalsePositives")) {
             if (pattern[0] === "L") {
-                if (!isNaN(+pattern.slice(1))) {
+                if (!Number.isNaN(+pattern.slice(1))) {
                     return !BOT_DETECTED;
                 }
             }
@@ -882,7 +896,8 @@ const SEND_CHECKS = [
             playerData: player,
             timeAdded: Date.now(),
         });
-        const PATTERN_SIZE_TEST = 15, PATTERN_REMOVE_TIME = 5e3;
+        const PATTERN_SIZE_TEST = 15;
+        const PATTERN_REMOVE_TIME = 5e3;
         // remove removable controller data
         for (const controller of patternData[pattern]) {
             if (Date.now() - controller.timeAdded > PATTERN_REMOVE_TIME) {
@@ -913,7 +928,8 @@ const SEND_CHECKS = [
             !METHODS.getSetting("looksRandom")) {
             return !BOT_DETECTED;
         }
-        const player = data.data, randomRegex = /(^(([^A-Z\n]*)?[A-Z]?([^A-Z\n]*)?){0,3}$)|^([A-Z]*)$/;
+        const player = data.data;
+        const randomRegex = /(^(([^A-Z\n]*)?[A-Z]?([^A-Z\n]*)?){0,3}$)|^([A-Z]*)$/;
         if (!randomRegex.test(player.name)) {
             METHODS.kickController(player.cid, "Name looks too random", player);
             return BOT_DETECTED;
@@ -937,17 +953,23 @@ const SEND_CHECKS = [
             !METHODS.getSetting("blockservice1")) {
             return !BOT_DETECTED;
         }
-        const player = data.data, englishWords = window.aSetOfEnglishWords ?? new Set(), names = window.randomName, split = player.name.split(/\s|(?=[A-Z0-9])/g), foundNames = Array.from(player.name.match(/([A-Z][a-z]+(?=[A-Z]|[^a-zA-Z]|$))/g) ?? []), detectionData = kantibotData.runtimeData.englishWordDetectionData;
+        const player = data.data;
+        const englishWords = window.aSetOfEnglishWords ?? new Set();
+        const names = window.randomName;
+        const split = player.name.split(/\s|(?=[A-Z0-9])/g);
+        const foundNames = Array.from(player.name.match(/([A-Z][a-z]+(?=[A-Z]|[^a-zA-Z]|$))/g) ?? []);
+        const detectionData = kantibotData.runtimeData.englishWordDetectionData;
         if (player.name.replace(/[ᗩᗷᑕᗪEᖴGᕼIᒍKᒪᗰᑎOᑭᑫᖇᔕTᑌᐯᗯ᙭Yᘔ]/g, "").length /
             player.name.length <
             0.5) {
             METHODS.kickController(player.cid, "Common bot bypass attempt", player);
             return BOT_DETECTED;
         }
-        let findWord, findName;
+        let findWord;
+        let findName;
         if (METHODS.getSetting("reduceFalsePositives") &&
             split.length > 1) {
-            findWord = split.every((word) => englishWords.has(word) || !isNaN(+word));
+            findWord = split.every((word) => englishWords.has(word) || !Number.isNaN(+word));
             findName = split.every((word) => {
                 if (!names)
                     return;
@@ -955,7 +977,7 @@ const SEND_CHECKS = [
                 return (names.first.has(name) ||
                     names.middle.has(name) ||
                     names.last.has(name) ||
-                    !isNaN(+word));
+                    !Number.isNaN(+word));
             });
         }
         else {
@@ -969,7 +991,8 @@ const SEND_CHECKS = [
                     names.last.has(name));
             });
         }
-        const TOTAL_SPAM_AMOUNT_THRESHOLD = 20, TIME_TO_FORGET = 4e3;
+        const TOTAL_SPAM_AMOUNT_THRESHOLD = 20;
+        const TIME_TO_FORGET = 4e3;
         if (findWord || findName) {
             detectionData.add({
                 playerData: player,
@@ -1004,7 +1027,8 @@ const SEND_CHECKS = [
         if (!METHODS.isEventJoinEvent(data) || METHODS.isUsingNamerator()) {
             return !BOT_DETECTED;
         }
-        const player = data.data, TIME_THRESHOLD = 5e3;
+        const player = data.data;
+        const TIME_THRESHOLD = 5e3;
         if (METHODS.isFakeValid(player.name)) {
             if (Date.now() - kantibotData.runtimeData.lastFakeLoginTime <
                 TIME_THRESHOLD) {
@@ -1027,7 +1051,8 @@ const SEND_CHECKS = [
     function captchaAnswerCheck(socket, data) {
         if (!METHODS.isEventAnswerEvent(data))
             return !BOT_DETECTED;
-        const player = data.data, currentQuestion = METHODS.getCurrentQuestion();
+        const player = data.data;
+        const currentQuestion = METHODS.getCurrentQuestion();
         if (currentQuestion?.isKAntibotQuestion &&
             currentQuestion?.kantibotQuestionType === "captcha") {
             kantibotData.runtimeData.captchaIds.add(player.cid);
@@ -1047,7 +1072,8 @@ const SEND_CHECKS = [
     function fastAnswerCheck(socket, data) {
         if (!METHODS.isEventAnswerEvent(data))
             return !BOT_DETECTED;
-        const player = data.data, controllerData = kantibotData.runtimeData.controllerData[player.cid];
+        const player = data.data;
+        const controllerData = kantibotData.runtimeData.controllerData[player.cid];
         if (Date.now() - kantibotData.runtimeData.questionStartTime < 500 &&
             METHODS.getSetting("timeout")) {
             return BOT_DETECTED;
@@ -1061,7 +1087,9 @@ const SEND_CHECKS = [
     function twoFactorCheck(socket, data) {
         if (!METHODS.isEventTwoFactorEvent(data))
             return !BOT_DETECTED;
-        const player = data.data, controllerData = kantibotData.runtimeData.controllerData[player.cid], MAX_ATTEMPTS = 3;
+        const player = data.data;
+        const controllerData = kantibotData.runtimeData.controllerData[player.cid];
+        const MAX_ATTEMPTS = 3;
         if (controllerData) {
             controllerData.twoFactorAttempts++;
             if (controllerData.twoFactorAttempts > MAX_ATTEMPTS) {
@@ -1073,7 +1101,8 @@ const SEND_CHECKS = [
     function teamCheck(socket, data) {
         if (!METHODS.isEventTeamJoinEvent(data))
             return !BOT_DETECTED;
-        const player = data.data, team = JSON.parse(player.content);
+        const player = data.data;
+        const team = JSON.parse(player.content);
         if (team.length === 0 ||
             team.indexOf("") !== -1 ||
             team.indexOf("Player 1") === 0 ||
@@ -1086,8 +1115,7 @@ const SEND_CHECKS = [
     function lobbyAutoStartCheck(socket, data) {
         if (!METHODS.isEventJoinEvent(data))
             return !BOT_DETECTED;
-        if (kantibotData.kahootInternals.services.game.navigation.page ===
-            "lobby" &&
+        if (kantibotData.kahootInternals.services.game.navigation.page === "lobby" &&
             METHODS.getKahootSetting("automaticallyProgressGame") &&
             METHODS.getSetting("start_lock") !== 0) {
             if (kantibotData.runtimeData.lobbyLoadTime === 0) {
@@ -1113,7 +1141,8 @@ const SEND_CHECKS = [
             }
             if (Date.now() - kantibotData.runtimeData.lobbyLoadTime >
                 METHODS.getSetting("start_lock") * 1e3) {
-                const controllers = METHODS.getControllers(), realController = Object.values(controllers).find((controller) => {
+                const controllers = METHODS.getControllers();
+                const realController = Object.values(controllers).find((controller) => {
                     return !controller.isGhost && !controller.hasLeft;
                 });
                 if (!realController) {
@@ -1133,7 +1162,8 @@ const SEND_CHECKS = [
     },
 ];
 setInterval(function updateStats() {
-    const unverifiedControllerNames = kantibotData.runtimeData.unverifiedControllerNames, verifiedControllerNames = kantibotData.runtimeData.verifiedControllerNames;
+    const unverifiedControllerNames = kantibotData.runtimeData.unverifiedControllerNames;
+    const verifiedControllerNames = kantibotData.runtimeData.verifiedControllerNames;
     for (const i in unverifiedControllerNames) {
         const data = unverifiedControllerNames[i];
         if (data.time <= 0 &&
@@ -1203,7 +1233,9 @@ for (const setting in localConfig) {
     }
 }
 function injectAntibotSettings(target) {
-    const lastIndex = target.children.length - 1, antibotIndex = lastIndex - 2, lastItem = target.children[lastIndex];
+    const lastIndex = target.children.length - 1;
+    const antibotIndex = lastIndex - 2;
+    const lastItem = target.children[lastIndex];
     if (typeof lastItem.type === "function" &&
         lastItem.props?.text?.id ===
             "player.components.game-options-menu.unableToResetToDefaultsInGame") {
@@ -1213,7 +1245,8 @@ function injectAntibotSettings(target) {
             antibotItem.props?.id === "kantibot-settings") {
             return;
         }
-        const { createElement } = window.React, settings = [
+        const { createElement } = window.React;
+        const settings = [
             KAntibotSettingComponent({
                 title: "Block Fast Answers",
                 inputType: "checkbox",
@@ -1332,7 +1365,8 @@ function injectAntibotSettings(target) {
                 id: "reduceFalsePositives",
                 description: "Reduces false positives by making the antibot less strict.",
             }),
-        ], antibotSettingsContainer = createElement("div", { id: "kantibot-settings" }, createElement("div", { className: "kantibot-settings-header" }, `KAntibot v${KANTIBOT_VERSION} by theusaf`), ...settings);
+        ];
+        const antibotSettingsContainer = createElement("div", { id: "kantibot-settings" }, createElement("div", { className: "kantibot-settings-header" }, `KAntibot v${KANTIBOT_VERSION} by theusaf`), ...settings);
         // Inject the antibot settings
         target.children.splice(antibotIndex + 1, 0, antibotSettingsContainer);
     }
@@ -1423,7 +1457,7 @@ const waitForHeader = setInterval(() => {
 function KAntibotSettingLabelComponent({ title, id, description, }) {
     const { createElement, Fragment } = window.React;
     return createElement(Fragment, {}, createElement("span", {
-        className: `kantibot-setting-description`,
+        className: "kantibot-setting-description",
         title: description,
     }, "?"), createElement("label", { htmlFor: `kantibot-setting-${id}` }, title));
 }
@@ -1459,7 +1493,8 @@ function KAntibotSettingComponent({ title, inputType, id, description, inputProp
     }));
 }
 // Apply hooks
-let currentQuestionChanged = true, quizRepairTimeout = null;
+let currentQuestionChanged = true;
+let quizRepairTimeout = null;
 const originalPush = Array.prototype.push;
 window.addEventListener("load", () => {
     Array.prototype.push = function (...args) {
@@ -1570,7 +1605,7 @@ const KANTIBOT_HOOKS = {
                 kantibotData.kahootInternals.socketLib = socket;
                 if (!socket.webSocket.oldSend) {
                     socket.webSocket.oldSend = socket.webSocket.send;
-                    socket.webSocket.send = function (data) {
+                    socket.webSocket.send = function send(data) {
                         try {
                             websocketMessageSendHandler(socket, data);
                         }
@@ -1618,11 +1653,16 @@ const KANTIBOT_HOOKS = {
         prop: "core",
         condition: (_, value) => typeof value === "function",
         callback: (target, value) => {
-            target.core = function (input, payload) {
+            target.core = function core(input, payload) {
                 switch (payload.type) {
                     case "player/answers/RECORD_CONTROLLER_ANSWERS": {
                         for (let i = 0; i < payload.payload.answers.length; i++) {
-                            const answerData = payload.payload.answers[i], receivedTime = answerData.answerStats.receivedTime, additionalTime = METHODS.getSetting("teamtimeout") * 1000, actualQuestiontime = kantibotData.runtimeData.currentQuestionActualTime, actualTimeRemaining = receivedTime + additionalTime, timeMultiplier = actualQuestiontime / (actualQuestiontime + additionalTime);
+                            const answerData = payload.payload.answers[i];
+                            const receivedTime = answerData.answerStats.receivedTime;
+                            const additionalTime = METHODS.getSetting("teamtimeout") * 1000;
+                            const actualQuestiontime = kantibotData.runtimeData.currentQuestionActualTime;
+                            const actualTimeRemaining = receivedTime + additionalTime;
+                            const timeMultiplier = actualQuestiontime / (actualQuestiontime + additionalTime);
                             answerData.answerStats.receivedTime =
                                 actualTimeRemaining * timeMultiplier;
                         }
@@ -1630,7 +1670,7 @@ const KANTIBOT_HOOKS = {
                     }
                     case "services/rest/FETCH_USER_DATA": {
                         const original = payload.payload.onSuccess;
-                        payload.payload.onSuccess = function (data) {
+                        payload.payload.onSuccess = function onSuccess(data) {
                             kantibotData.kahootInternals.userData = data;
                             return original(data);
                         };
@@ -1643,7 +1683,8 @@ const KANTIBOT_HOOKS = {
                 // cause Kahoot! to crash.
                 if (payload.type === "player/game/START_GAME" ||
                     payload.type === "player/game/PLAY_AGAIN") {
-                    const quiz = JSON.parse(JSON.stringify(result.quiz)), originalQuestions = [...result.quiz.questions];
+                    const quiz = JSON.parse(JSON.stringify(result.quiz));
+                    const originalQuestions = [...result.quiz.questions];
                     quiz.questions = [...result.quiz.questions];
                     if (!METHODS.getSetting("counterCheats")) {
                         const index = quiz.questions.findIndex((question) => question.isKAntibotQuestion &&

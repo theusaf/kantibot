@@ -19,6 +19,9 @@
 // @license        MIT
 // ==/UserScript==
 
+// biome-ignore lint/suspicious/noRedundantUseStrict: Removing this causes strict to be placed at the top of the file, which causes issues with the userscript
+"use strict";
+
 /*
 
 MIT LICENSE TEXT
