@@ -10,10 +10,9 @@
   "author": "theusaf",
   "license": "MIT",
   "devDependencies": {
-    "@types/react": "^18.2.79",
-    "@types/tampermonkey": "^5.0.2",
-    "@typescript-eslint/eslint-plugin": "^7.7.0",
-    "@typescript-eslint/parser": "^7.7.0",
-    "typescript": "^5.4.5"
+    "@biomejs/biome": "^1.8.3",
+    "@types/react": "^18.3.3",
+    "@types/tampermonkey": "^5.0.3",
+    "typescript": "^5.5.4"
   }
 }

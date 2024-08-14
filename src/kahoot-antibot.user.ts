@@ -19,8 +19,6 @@
 // @license        MIT
 // ==/UserScript==
 
-"use strict";
-
 /*
 
 MIT LICENSE TEXT
@@ -43,85 +41,85 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
  * for helping with contribution and testing of this project
  */
 
-const KANTIBOT_VERSION = GM_info.script.version,
-  kantibotData: KAntibotData = {
-    settingsTypes: {
-      timeout: "boolean",
-      looksRandom: "boolean",
-      blockformat1: "boolean",
-      blockservice1: "boolean",
-      blocknum: "boolean",
-      forceascii: "boolean",
-      patterns: "boolean",
-      teamtimeout: "number",
-      twoFactorTime: "number",
-      percent: "number",
-      wordblock: "string",
-      ddos: "number",
-      start_lock: "number",
-      counters: "boolean",
-      counterCheats: "boolean",
-      enableCAPTCHA: "boolean",
-      reduceFalsePositives: "boolean",
-    },
-    settings: {
-      timeout: false,
-      looksRandom: true,
-      blockformat1: true,
-      blockservice1: false,
-      blocknum: false,
-      forceascii: false,
-      patterns: false,
-      teamtimeout: 0,
-      twoFactorTime: 7,
-      percent: 0.6,
-      wordblock: "",
-      ddos: 0,
-      start_lock: 0,
-      counters: false,
-      counterCheats: false,
-      enableCAPTCHA: false,
-      reduceFalsePositives: false,
-    },
-    runtimeData: {
-      captchaIds: new Set(),
-      controllerData: {},
-      controllerNamePatternData: {},
-      englishWordDetectionData: new Set(),
-      killCount: 0,
-      lastFakeLoginTime: 0,
-      lastFakeUserID: "",
-      lobbyLoadTime: 0,
-      lockingGame: false,
-      oldKillCount: 0,
-      unverifiedControllerNames: [],
-      verifiedControllerNames: new Set(),
-      questionStartTime: 0,
-      startLockElement: null,
-      startLockInterval: 0,
-      countersElement: null as unknown as HTMLDivElement,
-      currentQuestionActualTime: 0,
-      kantibotModifiedQuiz: null as unknown as KQuiz,
-    },
+const KANTIBOT_VERSION = GM_info.script.version;
+const kantibotData: KAntibotData = {
+  settingsTypes: {
+    timeout: "boolean",
+    looksRandom: "boolean",
+    blockformat1: "boolean",
+    blockservice1: "boolean",
+    blocknum: "boolean",
+    forceascii: "boolean",
+    patterns: "boolean",
+    teamtimeout: "number",
+    twoFactorTime: "number",
+    percent: "number",
+    wordblock: "string",
+    ddos: "number",
+    start_lock: "number",
+    counters: "boolean",
+    counterCheats: "boolean",
+    enableCAPTCHA: "boolean",
+    reduceFalsePositives: "boolean",
+  },
+  settings: {
+    timeout: false,
+    looksRandom: true,
+    blockformat1: true,
+    blockservice1: false,
+    blocknum: false,
+    forceascii: false,
+    patterns: false,
+    teamtimeout: 0,
+    twoFactorTime: 7,
+    percent: 0.6,
+    wordblock: "",
+    ddos: 0,
+    start_lock: 0,
+    counters: false,
+    counterCheats: false,
+    enableCAPTCHA: false,
+    reduceFalsePositives: false,
+  },
+  runtimeData: {
+    captchaIds: new Set(),
+    controllerData: {},
+    controllerNamePatternData: {},
+    englishWordDetectionData: new Set(),
+    killCount: 0,
+    lastFakeLoginTime: 0,
+    lastFakeUserID: "",
+    lobbyLoadTime: 0,
+    lockingGame: false,
+    oldKillCount: 0,
+    unverifiedControllerNames: [],
+    verifiedControllerNames: new Set(),
+    questionStartTime: 0,
+    startLockElement: null,
+    startLockInterval: 0,
+    countersElement: null as unknown as HTMLDivElement,
+    currentQuestionActualTime: 0,
+    kantibotModifiedQuiz: null as unknown as KQuiz,
+  },
+  methods: {},
+  kahootInternals: {
+    answerDetails: null,
+    gameCore: null as unknown as KGameCore,
+    gameDetails: null,
+    gameConstructors: null,
     methods: {},
-    kahootInternals: {
-      answerDetails: null,
-      gameCore: null as unknown as KGameCore,
-      gameDetails: null,
-      gameConstructors: null,
-      methods: {},
-      quizData: {} as KQuiz,
-      userData: null,
-      services: null as unknown as KServices,
-      settings: null as unknown as KSettings,
-      socket: null as unknown as WebSocket,
-      socketLib: null as unknown as KWebSocket,
-      socketHandler: null as unknown as KWebSocketHandler,
-      debugData: {},
-      apparentCurrentQuestion: null as unknown as KQuestion,
-      apparentCurrentQuestionIndex: 0,
-    },
-  };
+    quizData: {} as KQuiz,
+    userData: null,
+    services: null as unknown as KServices,
+    settings: null as unknown as KSettings,
+    socket: null as unknown as WebSocket,
+    socketLib: null as unknown as KWebSocket,
+    socketHandler: null as unknown as KWebSocketHandler,
+    debugData: {},
+    apparentCurrentQuestion: null as unknown as KQuestion,
+    apparentCurrentQuestionIndex: 0,
+  },
+};
 
 function log(...args: unknown[]) {
   if (args.every((arg) => typeof arg === "string")) {
@@ -197,16 +195,14 @@ function addHook(hook: KAntibotHook) {
 // Main logic
 const METHODS = {
   capitalize(text: string) {
-    text = text.toLowerCase();
-    return text[0].toUpperCase() + text.slice(1);
+    const lower = text.toLowerCase();
+    return lower[0].toUpperCase() + lower.slice(1);
   },
 
   similarity(s1: string, s2: string): number {
     // ignore case
-    s1 = s1.toLowerCase();
-    s2 = s2.toLowerCase();
-    let longer = s1,
-      shorter = s2;
+    let longer = s1.toLowerCase();
+    let shorter = s2.toLowerCase();
     // begin math to determine similarity
     if (s1.length < s2.length) {
       longer = s2;
@@ -223,229 +219,229 @@ const METHODS = {
 
   isValidNameratorName(name: string): boolean {
     const firstNames = [
-        "Adorable",
-        "Agent",
-        "Agile",
-        "Amazing",
-        "Amazon",
-        "Amiable",
-        "Amusing",
-        "Aquatic",
-        "Arctic",
-        "Awesome",
-        "Balanced",
-        "Blue",
-        "Bold",
-        "Brave",
-        "Bright",
-        "Bronze",
-        "Captain",
-        "Caring",
-        "Champion",
-        "Charming",
-        "Cheerful",
-        "Classy",
-        "Clever",
-        "Creative",
-        "Cute",
-        "Dandy",
-        "Daring",
-        "Dazzled",
-        "Decisive",
-        "Diligent",
-        "Diplomat",
-        "Doctor",
-        "Dynamic",
-        "Eager",
-        "Elated",
-        "Epic",
-        "Excited",
-        "Expert",
-        "Fabulous",
-        "Fast",
-        "Fearless",
-        "Flying",
-        "Focused",
-        "Friendly",
-        "Funny",
-        "Fuzzy",
-        "Genius",
-        "Gentle",
-        "Giving",
-        "Glad",
-        "Glowing",
-        "Golden",
-        "Great",
-        "Green",
-        "Groovy",
-        "Happy",
-        "Helpful",
-        "Hero",
-        "Honest",
-        "Inspired",
-        "Jolly",
-        "Joyful",
-        "Kind",
-        "Knowing",
-        "Legend",
-        "Lively",
-        "Lovely",
-        "Lucky",
-        "Magic",
-        "Majestic",
-        "Melodic",
-        "Mighty",
-        "Mountain",
-        "Mystery",
-        "Nimble",
-        "Noble",
-        "Polite",
-        "Power",
-        "Prairie",
-        "Proud",
-        "Purple",
-        "Quick",
-        "Radiant",
-        "Rapid",
-        "Rational",
-        "Red",
-        "Rockstar",
-        "Rocky",
-        "Royal",
-        "Shining",
-        "Silly",
-        "Silver",
-        "Smart",
-        "Smiling",
-        "Smooth",
-        "Snowy",
-        "Soaring",
-        "Social",
-        "Space",
-        "Speedy",
-        "Stellar",
-        "Sturdy",
-        "Super",
-        "Swift",
-        "Tropical",
-        "Winged",
-        "Wise",
-        "Witty",
-        "Wonder",
-        "Yellow",
-      ],
-      lastNames = [
-        "Alpaca",
-        "Ant",
-        "Badger",
-        "Bat",
-        "Bear",
-        "Bee",
-        "Bison",
-        "Boa",
-        "Bobcat",
-        "Buffalo",
-        "Bunny",
-        "Camel",
-        "Cat",
-        "Cheetah",
-        "Chicken",
-        "Condor",
-        "Crab",
-        "Crane",
-        "Deer",
-        "Dingo",
-        "Dog",
-        "Dolphin",
-        "Dove",
-        "Dragon",
-        "Duck",
-        "Eagle",
-        "Echidna",
-        "Egret",
-        "Elephant",
-        "Elk",
-        "Emu",
-        "Falcon",
-        "Ferret",
-        "Finch",
-        "Fox",
-        "Frog",
-        "Gator",
-        "Gazelle",
-        "Gecko",
-        "Giraffe",
-        "Glider",
-        "Gnu",
-        "Goat",
-        "Goose",
-        "Griffin",
-        "Hamster",
-        "Hare",
-        "Hawk",
-        "Hen",
-        "Horse",
-        "Ibex",
-        "Iguana",
-        "Impala",
-        "Jaguar",
-        "Kitten",
-        "Koala",
-        "Lark",
-        "Lemming",
-        "Lemur",
-        "Leopard",
-        "Lion",
-        "Lizard",
-        "Llama",
-        "Lobster",
-        "Macaw",
-        "Meerkat",
-        "Mouse",
-        "Newt",
-        "Octopus",
-        "Oryx",
-        "Ostrich",
-        "Otter",
-        "Owl",
-        "Panda",
-        "Panther",
-        "Pelican",
-        "Penguin",
-        "Pigeon",
-        "Piranha",
-        "Pony",
-        "Possum",
-        "Puffin",
-        "Quail",
-        "Rabbit",
-        "Raccoon",
-        "Raven",
-        "Rhino",
-        "Rooster",
-        "Sable",
-        "Seal",
-        "SeaLion",
-        "Shark",
-        "Sloth",
-        "Snail",
-        "Sphinx",
-        "Squid",
-        "Stork",
-        "Swan",
-        "Tiger",
-        "Turtle",
-        "Unicorn",
-        "Urchin",
-        "Wallaby",
-        "Wildcat",
-        "Wolf",
-        "Wombat",
-        "Yak",
-        "Yeti",
-        "Zebra",
-      ],
-      nameMatch = name.match(/[A-Z][a-z]+(?=[A-Z])/);
+      "Adorable",
+      "Agent",
+      "Agile",
+      "Amazing",
+      "Amazon",
+      "Amiable",
+      "Amusing",
+      "Aquatic",
+      "Arctic",
+      "Awesome",
+      "Balanced",
+      "Blue",
+      "Bold",
+      "Brave",
+      "Bright",
+      "Bronze",
+      "Captain",
+      "Caring",
+      "Champion",
+      "Charming",
+      "Cheerful",
+      "Classy",
+      "Clever",
+      "Creative",
+      "Cute",
+      "Dandy",
+      "Daring",
+      "Dazzled",
+      "Decisive",
+      "Diligent",
+      "Diplomat",
+      "Doctor",
+      "Dynamic",
+      "Eager",
+      "Elated",
+      "Epic",
+      "Excited",
+      "Expert",
+      "Fabulous",
+      "Fast",
+      "Fearless",
+      "Flying",
+      "Focused",
+      "Friendly",
+      "Funny",
+      "Fuzzy",
+      "Genius",
+      "Gentle",
+      "Giving",
+      "Glad",
+      "Glowing",
+      "Golden",
+      "Great",
+      "Green",
+      "Groovy",
+      "Happy",
+      "Helpful",
+      "Hero",
+      "Honest",
+      "Inspired",
+      "Jolly",
+      "Joyful",
+      "Kind",
+      "Knowing",
+      "Legend",
+      "Lively",
+      "Lovely",
+      "Lucky",
+      "Magic",
+      "Majestic",
+      "Melodic",
+      "Mighty",
+      "Mountain",
+      "Mystery",
+      "Nimble",
+      "Noble",
+      "Polite",
+      "Power",
+      "Prairie",
+      "Proud",
+      "Purple",
+      "Quick",
+      "Radiant",
+      "Rapid",
+      "Rational",
+      "Red",
+      "Rockstar",
+      "Rocky",
+      "Royal",
+      "Shining",
+      "Silly",
+      "Silver",
+      "Smart",
+      "Smiling",
+      "Smooth",
+      "Snowy",
+      "Soaring",
+      "Social",
+      "Space",
+      "Speedy",
+      "Stellar",
+      "Sturdy",
+      "Super",
+      "Swift",
+      "Tropical",
+      "Winged",
+      "Wise",
+      "Witty",
+      "Wonder",
+      "Yellow",
+    ];
+    const lastNames = [
+      "Alpaca",
+      "Ant",
+      "Badger",
+      "Bat",
+      "Bear",
+      "Bee",
+      "Bison",
+      "Boa",
+      "Bobcat",
+      "Buffalo",
+      "Bunny",
+      "Camel",
+      "Cat",
+      "Cheetah",
+      "Chicken",
+      "Condor",
+      "Crab",
+      "Crane",
+      "Deer",
+      "Dingo",
+      "Dog",
+      "Dolphin",
+      "Dove",
+      "Dragon",
+      "Duck",
+      "Eagle",
+      "Echidna",
+      "Egret",
+      "Elephant",
+      "Elk",
+      "Emu",
+      "Falcon",
+      "Ferret",
+      "Finch",
+      "Fox",
+      "Frog",
+      "Gator",
+      "Gazelle",
+      "Gecko",
+      "Giraffe",
+      "Glider",
+      "Gnu",
+      "Goat",
+      "Goose",
+      "Griffin",
+      "Hamster",
+      "Hare",
+      "Hawk",
+      "Hen",
+      "Horse",
+      "Ibex",
+      "Iguana",
+      "Impala",
+      "Jaguar",
+      "Kitten",
+      "Koala",
+      "Lark",
+      "Lemming",
+      "Lemur",
+      "Leopard",
+      "Lion",
+      "Lizard",
+      "Llama",
+      "Lobster",
+      "Macaw",
+      "Meerkat",
+      "Mouse",
+      "Newt",
+      "Octopus",
+      "Oryx",
+      "Ostrich",
+      "Otter",
+      "Owl",
+      "Panda",
+      "Panther",
+      "Pelican",
+      "Penguin",
+      "Pigeon",
+      "Piranha",
+      "Pony",
+      "Possum",
+      "Puffin",
+      "Quail",
+      "Rabbit",
+      "Raccoon",
+      "Raven",
+      "Rhino",
+      "Rooster",
+      "Sable",
+      "Seal",
+      "SeaLion",
+      "Shark",
+      "Sloth",
+      "Snail",
+      "Sphinx",
+      "Squid",
+      "Stork",
+      "Swan",
+      "Tiger",
+      "Turtle",
+      "Unicorn",
+      "Urchin",
+      "Wallaby",
+      "Wildcat",
+      "Wolf",
+      "Wombat",
+      "Yak",
+      "Yeti",
+      "Zebra",
+    ];
+    const nameMatch = name.match(/[A-Z][a-z]+(?=[A-Z])/);
     if (nameMatch === null || !firstNames.includes(nameMatch[0])) {
       return false;
     }
@@ -472,19 +468,19 @@ const METHODS = {
   },
 
   editDistance(s1: string, s2: string): number {
-    s1 = s1.toLowerCase();
-    s2 = s2.toLowerCase();
+    const norm1 = s1.toLowerCase();
+    const norm2 = s2.toLowerCase();
 
     const costs = [];
-    for (let i = 0; i <= s1.length; i++) {
+    for (let i = 0; i <= norm1.length; i++) {
       let lastValue = i;
-      for (let j = 0; j <= s2.length; j++) {
+      for (let j = 0; j <= norm2.length; j++) {
         if (i === 0) {
           costs[j] = j;
         } else {
           if (j > 0) {
             let newValue = costs[j - 1];
-            if (s1.charAt(i - 1) != s2.charAt(j - 1)) {
+            if (norm1.charAt(i - 1) !== norm2.charAt(j - 1)) {
               newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
             }
             costs[j - 1] = lastValue;
@@ -493,10 +489,10 @@ const METHODS = {
         }
       }
       if (i > 0) {
-        costs[s2.length] = lastValue;
+        costs[norm1.length] = lastValue;
       }
     }
-    return costs[s2.length];
+    return costs[norm2.length];
   },
 
   isUsingNamerator(): boolean {
@@ -505,17 +501,17 @@ const METHODS = {
 
   getPatterns(text: string): string {
     const isLetter = (char: string) => {
-        return /\p{L}/u.test(char);
-      },
-      isUppercaseLetter = (char: string) => {
-        return char.toUpperCase() === char;
-      },
-      isNumber = (char: string) => {
-        return /\p{N}/u.test(char);
-      };
-    let output = "",
-      mode = null,
-      count = 0;
+      return /\p{L}/u.test(char);
+    };
+    const isUppercaseLetter = (char: string) => {
+      return char.toUpperCase() === char;
+    };
+    const isNumber = (char: string) => {
+      return /\p{N}/u.test(char);
+    };
+    let output = "";
+    let mode = null;
+    let count = 0;
     for (let i = 0; i < text.length; i++) {
       const char = text[i];
       let type = null;
@@ -578,14 +574,14 @@ const METHODS = {
   },
 
   applyCaptchaQuestion(question: KQuestion): void {
-    const answers = ["red", "blue", "yellow", "green"],
-      images = [
-        "361bdde0-48cd-4a92-ae9f-486263ba8529", // red
-        "9237bdd2-f281-4f04-b4e5-255e9055a194", // blue
-        "d25c9d13-4147-4056-a722-e2a13fbb4af9", // yellow
-        "2aca62f2-ead5-4197-9c63-34da0400703a", // green
-      ],
-      imageIndex = Math.floor(Math.random() * answers.length);
+    const answers = ["red", "blue", "yellow", "green"];
+    const images = [
+      "361bdde0-48cd-4a92-ae9f-486263ba8529", // red
+      "9237bdd2-f281-4f04-b4e5-255e9055a194", // blue
+      "d25c9d13-4147-4056-a722-e2a13fbb4af9", // yellow
+      "2aca62f2-ead5-4197-9c63-34da0400703a", // green
+    ];
+    const imageIndex = Math.floor(Math.random() * answers.length);
     question.question = `[ANTIBOT] - CAPTCHA: Please select ${answers[imageIndex]}`;
     question.image = `https://media.kahoot.it/${images[imageIndex]}`;
     question.imageMetadata!.id = images[imageIndex];
@@ -604,20 +600,18 @@ const METHODS = {
     if (quiz.kantibotModified) return;
     log("Modifying quiz information");
     quiz.kantibotModified = true;
-    {
-      quiz.questions.push({
-        question:
-          "[ANTIBOT] - This poll is for countering Kahoot cheating sites.",
-        time: 5000,
-        type: "survey",
-        isKAntibotQuestion: true,
-        kantibotQuestionType: "counterCheats",
-        choices: [{ answer: "OK", correct: true }],
-      });
-    }
+    quiz.questions.push({
+      question:
+        "[ANTIBOT] - This poll is for countering Kahoot cheating sites.",
+      time: 5000,
+      type: "survey",
+      isKAntibotQuestion: true,
+      kantibotQuestionType: "counterCheats",
+      choices: [{ answer: "OK", correct: true }],
+    });
     {
       const question: KQuestion = {
-        question: `[ANTIBOT] - CAPTCHA: Please select placeholder`,
+        question: "[ANTIBOT] - CAPTCHA: Please select placeholder",
         time: 30000,
         type: "quiz",
         isKAntibotQuestion: true,
@@ -655,17 +649,15 @@ const METHODS = {
     reason = "",
     fallbackController: KController | null = null
   ): void {
-    const controller = METHODS.getControllerById(id) ?? fallbackController,
-      name =
-        (controller?.name?.length ?? 0) > 30
-          ? controller?.name?.substring(0, 30) + "..."
-          : controller?.name,
-      banishedCachedData =
-        kantibotData.runtimeData.unverifiedControllerNames.find(
-          (controller) => {
-            return controller.cid === id;
-          }
-        );
+    const controller = METHODS.getControllerById(id) ?? fallbackController;
+    const name =
+      (controller?.name?.length ?? 0) > 30
+        ? `${controller?.name?.substring(0, 30)}...`
+        : controller?.name;
+    const banishedCachedData =
+      kantibotData.runtimeData.unverifiedControllerNames.find((controller) => {
+        return controller.cid === id;
+      });
     log(`Kicked ${name || id}${reason ? ` - ${reason}` : ""}`);
     METHODS.sendData("/service/player", {
       cid: `${id}`,
@@ -726,7 +718,7 @@ const METHODS = {
     return event.data?.id === 18;
   },
 
-  batchData(callback: CallableFunction): void {
+  batchData(callback: CallableFunction): unknown {
     return kantibotData.kahootInternals.services.network.websocketInstance.batch(
       callback
     );
@@ -786,7 +778,7 @@ const METHODS = {
     return kantibotData.kahootInternals.gameCore.controllers;
   },
 
-  sendData(channel: string, data: unknown): void {
+  sendData(channel: string, data: unknown): unknown {
     return kantibotData.kahootInternals.services.network.websocketInstance.publish(
       channel,
       data
@@ -796,535 +788,530 @@ const METHODS = {
 kantibotData.methods = METHODS;
 
 const SEND_CHECKS: ((_socket: KWebSocket, _data: KSocketEvent) => void)[] = [
-    function questionStartCheck(socket, data) {
-      if (data?.data?.id === 2) {
-        kantibotData.runtimeData.questionStartTime = Date.now();
-        kantibotData.runtimeData.captchaIds = new Set();
-      }
-    },
-    function restartCheck(socket, data) {
-      if (
-        data?.data?.id === 5 ||
-        (data?.data?.id === 10 && data.data.content === "{}")
-      ) {
-        kantibotData.runtimeData.lobbyLoadTime = 0;
-        // Reset some data, which may be stale from previous round.
-        Object.assign(kantibotData.runtimeData, {
-          captchaIds: new Set(),
-          englishWordDetectionData: new Set(),
-          controllerNamePatternData: {},
-        });
-      }
-    },
-    function quizStartCheck(socket, data) {
-      if (data?.data?.id === 9 && kantibotData.runtimeData.startLockElement) {
-        clearInterval(kantibotData.runtimeData.startLockInterval);
-        kantibotData.runtimeData.startLockElement.remove();
-        kantibotData.runtimeData.startLockElement = null;
-      }
-    },
-    function questionEndCheck(socket, data) {
-      const currentQuestion = METHODS.getCurrentQuestion();
-      if (
-        (data?.data?.id === 4 || data?.data?.id === 8) &&
-        currentQuestion?.isKAntibotQuestion &&
-        currentQuestion?.kantibotQuestionType === "captcha"
-      ) {
-        const controllers = METHODS.getControllers(),
-          answeredControllers = kantibotData.runtimeData.captchaIds;
-        METHODS.batchData(() => {
-          for (const id in controllers) {
-            if (controllers[id].isGhost || controllers[id].hasLeft) {
-              continue;
-            }
-            if (!answeredControllers.has(id)) {
-              METHODS.kickController(id, "Did not answer the CAPTCHA");
-            }
+  function questionStartCheck(socket, data) {
+    if (data?.data?.id === 2) {
+      kantibotData.runtimeData.questionStartTime = Date.now();
+      kantibotData.runtimeData.captchaIds = new Set();
+    }
+  },
+  function restartCheck(socket, data) {
+    if (
+      data?.data?.id === 5 ||
+      (data?.data?.id === 10 && data.data.content === "{}")
+    ) {
+      kantibotData.runtimeData.lobbyLoadTime = 0;
+      // Reset some data, which may be stale from previous round.
+      Object.assign(kantibotData.runtimeData, {
+        captchaIds: new Set(),
+        englishWordDetectionData: new Set(),
+        controllerNamePatternData: {},
+      });
+    }
+  },
+  function quizStartCheck(socket, data) {
+    if (data?.data?.id === 9 && kantibotData.runtimeData.startLockElement) {
+      clearInterval(kantibotData.runtimeData.startLockInterval);
+      kantibotData.runtimeData.startLockElement.remove();
+      kantibotData.runtimeData.startLockElement = null;
+    }
+  },
+  function questionEndCheck(socket, data) {
+    const currentQuestion = METHODS.getCurrentQuestion();
+    if (
+      (data?.data?.id === 4 || data?.data?.id === 8) &&
+      currentQuestion?.isKAntibotQuestion &&
+      currentQuestion?.kantibotQuestionType === "captcha"
+    ) {
+      const controllers = METHODS.getControllers();
+      const answeredControllers = kantibotData.runtimeData.captchaIds;
+      METHODS.batchData(() => {
+        for (const id in controllers) {
+          if (controllers[id].isGhost || controllers[id].hasLeft) {
+            continue;
           }
-        });
-      }
-    },
-  ],
-  RECV_CHECKS: ((_socket: KWebSocket, _data: KSocketEvent) => boolean)[] = [
-    function ddosCheck() {
-      if (
-        !METHODS.isLocked() &&
-        !kantibotData.runtimeData.lockingGame &&
-        METHODS.getSetting<number>("ddos") &&
-        kantibotData.runtimeData.killCount -
-          kantibotData.runtimeData.oldKillCount >
-          METHODS.getSetting<number>("ddos") / 3
-      ) {
+          if (!answeredControllers.has(id)) {
+            METHODS.kickController(id, "Did not answer the CAPTCHA");
+          }
+        }
+      });
+    }
+  },
+];
+const RECV_CHECKS: ((_socket: KWebSocket, _data: KSocketEvent) => boolean)[] = [
+  function ddosCheck() {
+    if (
+      !METHODS.isLocked() &&
+      !kantibotData.runtimeData.lockingGame &&
+      METHODS.getSetting<number>("ddos") &&
+      kantibotData.runtimeData.killCount -
+        kantibotData.runtimeData.oldKillCount >
+        METHODS.getSetting<number>("ddos") / 3
+    ) {
+      METHODS.lockGame();
+      log("Detected bot spam, locking game for 1 minute");
+      const lockEnforcingInterval = setInterval(() => {
+        if (METHODS.isLocked()) {
+          clearInterval(lockEnforcingInterval);
+          kantibotData.runtimeData.lockingGame = false;
+        }
         METHODS.lockGame();
-        log("Detected bot spam, locking game for 1 minute");
-        const lockEnforcingInterval = setInterval(() => {
-          if (METHODS.isLocked()) {
-            clearInterval(lockEnforcingInterval);
-            kantibotData.runtimeData.lockingGame = false;
-          }
-          METHODS.lockGame();
-        }, 250);
-        if (METHODS.getSetting<boolean>("counters")) {
-          const ddosCounterElement = document.createElement("div");
-          let timeLeft = 60;
-          ddosCounterElement.innerHTML = `
+      }, 250);
+      if (METHODS.getSetting<boolean>("counters")) {
+        const ddosCounterElement = document.createElement("div");
+        let timeLeft = 60;
+        ddosCounterElement.innerHTML = `
           <span class="kantibot-count-num">60</span>
           <span class="kantibot-count-desc">Until Unlock</span>`;
-          kantibotData.runtimeData.countersElement.append(ddosCounterElement);
-          const ddosCounterInterval = setInterval(() => {
-            ddosCounterElement.querySelector(".kantibot-count-num")!.innerHTML =
-              `${--timeLeft}`;
-            if (timeLeft <= 0) {
-              clearInterval(ddosCounterInterval);
-              ddosCounterElement.remove();
-            }
-          }, 1e3);
-        }
-        setTimeout(METHODS.unlockGame, 60e3);
+        kantibotData.runtimeData.countersElement.append(ddosCounterElement);
+        const ddosCounterInterval = setInterval(() => {
+          ddosCounterElement.querySelector(".kantibot-count-num")!.innerHTML =
+            `${--timeLeft}`;
+          if (timeLeft <= 0) {
+            clearInterval(ddosCounterInterval);
+            ddosCounterElement.remove();
+          }
+        }, 1e3);
       }
+      setTimeout(METHODS.unlockGame, 60e3);
+    }
+    return !BOT_DETECTED;
+  },
+  function basicDataCheck(socket, data) {
+    if (!METHODS.isEventJoinEvent(data)) {
       return !BOT_DETECTED;
-    },
-    function basicDataCheck(socket, data) {
-      if (!METHODS.isEventJoinEvent(data)) {
+    }
+
+    const player = data.data!;
+    if (
+      Number.isNaN(+player.cid) ||
+      Object.keys(player).length > 5 ||
+      player.name.length >= 16
+    ) {
+      if (kantibotData.runtimeData.controllerData[player.cid]) {
         return !BOT_DETECTED;
       }
-
+      METHODS.kickController(player.cid, "Invalid name or information", player);
+      return BOT_DETECTED;
+    }
+    return !BOT_DETECTED;
+  },
+  function nameratorCheck(socket, data) {
+    if (!METHODS.isEventJoinEvent(data)) return !BOT_DETECTED;
+    if (METHODS.isUsingNamerator()) {
       const player = data.data!;
-      if (
-        isNaN(+player.cid) ||
-        Object.keys(player).length > 5 ||
-        player.name.length >= 16
-      ) {
-        if (kantibotData.runtimeData.controllerData[player.cid]) {
-          return !BOT_DETECTED;
-        }
+      if (!METHODS.isValidNameratorName(player.name)) {
         METHODS.kickController(
           player.cid,
-          "Invalid name or information",
+          "Name violates namerator rules",
           player
         );
         return BOT_DETECTED;
       }
-      return !BOT_DETECTED;
-    },
-    function nameratorCheck(socket, data) {
-      if (!METHODS.isEventJoinEvent(data)) return !BOT_DETECTED;
-      if (METHODS.isUsingNamerator()) {
-        const player = data.data!;
-        if (!METHODS.isValidNameratorName(player.name)) {
+    }
+    return !BOT_DETECTED;
+  },
+  function nameSimilarityCheck(socket, data) {
+    if (!METHODS.isEventJoinEvent(data)) return !BOT_DETECTED;
+    if (METHODS.isUsingNamerator()) return !BOT_DETECTED;
+    const player = data.data!;
+    const usernames = kantibotData.runtimeData.unverifiedControllerNames;
+    for (const i in usernames) {
+      if (
+        kantibotData.runtimeData.verifiedControllerNames.has(usernames[i].name)
+      )
+        continue;
+      if (
+        METHODS.similarity(usernames[i].name, player.name) >=
+        METHODS.getSetting<number>("percent")
+      ) {
+        METHODS.batchData(() => {
           METHODS.kickController(
             player.cid,
-            "Name violates namerator rules",
+            "Name similar to other clients",
             player
           );
-          return BOT_DETECTED;
-        }
-      }
-      return !BOT_DETECTED;
-    },
-    function nameSimilarityCheck(socket, data) {
-      if (!METHODS.isEventJoinEvent(data)) return !BOT_DETECTED;
-      if (METHODS.isUsingNamerator()) return !BOT_DETECTED;
-      const player = data.data!,
-        usernames = kantibotData.runtimeData.unverifiedControllerNames;
-      for (const i in usernames) {
-        if (
-          kantibotData.runtimeData.verifiedControllerNames.has(
-            usernames[i].name
-          )
-        )
-          continue;
-        if (
-          METHODS.similarity(usernames[i].name, player.name) >=
-          METHODS.getSetting<number>("percent")
-        ) {
-          METHODS.batchData(() => {
+          if (!usernames[i].banned) {
             METHODS.kickController(
-              player.cid,
+              usernames[i].cid,
               "Name similar to other clients",
-              player
+              usernames[i]
             );
-            if (!usernames[i].banned) {
-              METHODS.kickController(
-                usernames[i].cid,
-                "Name similar to other clients",
-                usernames[i]
-              );
-            }
-          });
-          return BOT_DETECTED;
-        }
-      }
-      return !BOT_DETECTED;
-    },
-    function blacklistCheck(socket, data) {
-      if (!METHODS.isEventJoinEvent(data)) return !BOT_DETECTED;
-      const player = data.data!;
-      if (METHODS.blacklist(player.name)) {
-        METHODS.kickController(player.cid, "Name is blacklisted", player);
+          }
+        });
         return BOT_DETECTED;
       }
+    }
+    return !BOT_DETECTED;
+  },
+  function blacklistCheck(socket, data) {
+    if (!METHODS.isEventJoinEvent(data)) return !BOT_DETECTED;
+    const player = data.data!;
+    if (METHODS.blacklist(player.name)) {
+      METHODS.kickController(player.cid, "Name is blacklisted", player);
+      return BOT_DETECTED;
+    }
+    return !BOT_DETECTED;
+  },
+  function addNameIfNotBannedYet(socket, data) {
+    if (!METHODS.isEventJoinEvent(data)) return !BOT_DETECTED;
+    const player = data.data!;
+    kantibotData.runtimeData.unverifiedControllerNames.push({
+      name: player.name,
+      cid: player.cid,
+      time: 10,
+      banned: false,
+    });
+    return !BOT_DETECTED;
+  },
+  function patternSimilarityCheck(socket, data) {
+    if (
+      !METHODS.isEventJoinEvent(data) ||
+      METHODS.isUsingNamerator() ||
+      !METHODS.getSetting<boolean>("patterns")
+    ) {
       return !BOT_DETECTED;
-    },
-    function addNameIfNotBannedYet(socket, data) {
-      if (!METHODS.isEventJoinEvent(data)) return !BOT_DETECTED;
-      const player = data.data!;
-      kantibotData.runtimeData.unverifiedControllerNames.push({
-        name: player.name,
-        cid: player.cid,
-        time: 10,
-        banned: false,
-      });
-      return !BOT_DETECTED;
-    },
-    function patternSimilarityCheck(socket, data) {
-      if (
-        !METHODS.isEventJoinEvent(data) ||
-        METHODS.isUsingNamerator() ||
-        !METHODS.getSetting<boolean>("patterns")
-      ) {
-        return !BOT_DETECTED;
-      }
-      const player = data.data!,
-        pattern = METHODS.getPatterns(player.name),
-        patternData = kantibotData.runtimeData.controllerNamePatternData;
-      if (METHODS.getSetting<boolean>("reduceFalsePositives")) {
-        if (pattern[0] === "L") {
-          if (!isNaN(+pattern.slice(1))) {
-            return !BOT_DETECTED;
-          }
+    }
+    const player = data.data!;
+    const pattern = METHODS.getPatterns(player.name);
+    const patternData = kantibotData.runtimeData.controllerNamePatternData;
+    if (METHODS.getSetting<boolean>("reduceFalsePositives")) {
+      if (pattern[0] === "L") {
+        if (!Number.isNaN(+pattern.slice(1))) {
+          return !BOT_DETECTED;
         }
       }
-      if (typeof patternData[pattern] === "undefined") {
-        patternData[pattern] = new Set();
+    }
+    if (typeof patternData[pattern] === "undefined") {
+      patternData[pattern] = new Set();
+    }
+    patternData[pattern].add({
+      playerData: player,
+      timeAdded: Date.now(),
+    });
+    const PATTERN_SIZE_TEST = 15;
+    const PATTERN_REMOVE_TIME = 5e3;
+    // remove removable controller data
+    for (const controller of patternData[pattern]) {
+      if (Date.now() - controller.timeAdded > PATTERN_REMOVE_TIME) {
+        patternData[pattern].delete(controller);
       }
-      patternData[pattern].add({
+    }
+    if (patternData[pattern].size >= PATTERN_SIZE_TEST) {
+      METHODS.batchData(() => {
+        for (const controller of patternData[pattern]) {
+          if (controller.playerData.banned) continue;
+          METHODS.kickController(
+            controller.playerData.cid,
+            "Names have very similar patterns",
+            controller.playerData
+          );
+          if (patternData[pattern].size >= PATTERN_SIZE_TEST + 10) {
+            patternData[pattern].delete(controller);
+          } else {
+            controller.playerData.banned = true;
+            controller.timeAdded = Date.now(); // updates the 'time added' to current time, since the spam is still ongoing
+          }
+        }
+      });
+      return BOT_DETECTED;
+    }
+    return !BOT_DETECTED;
+  },
+  function randomNameCheck(socket, data) {
+    if (
+      !METHODS.isEventJoinEvent(data) ||
+      !METHODS.getSetting<boolean>("looksRandom")
+    ) {
+      return !BOT_DETECTED;
+    }
+    const player = data.data!;
+    const randomRegex = /(^(([^A-Z\n]*)?[A-Z]?([^A-Z\n]*)?){0,3}$)|^([A-Z]*)$/;
+    if (!randomRegex.test(player.name)) {
+      METHODS.kickController(player.cid, "Name looks too random", player);
+      return BOT_DETECTED;
+    }
+    return !BOT_DETECTED;
+  },
+  function commonBotFormatCheck1(socket, data) {
+    if (
+      !METHODS.isEventJoinEvent(data) ||
+      !METHODS.getSetting<boolean>("blockformat1")
+    ) {
+      return !BOT_DETECTED;
+    }
+    const player = data.data!;
+    if (/[a-z0-9]+[^a-z0-9\s][a-z0-9]+/gi.test(player.name)) {
+      METHODS.kickController(
+        player.cid,
+        "Name fits common bot format #1",
+        player
+      );
+      return BOT_DETECTED;
+    }
+    return !BOT_DETECTED;
+  },
+  function specializedFormatCheck(socket, data) {
+    if (
+      !METHODS.isEventJoinEvent(data) ||
+      !METHODS.getSetting<boolean>("blockservice1")
+    ) {
+      return !BOT_DETECTED;
+    }
+    const player = data.data!;
+    const englishWords = window.aSetOfEnglishWords ?? new Set();
+    const names = window.randomName;
+    const split: string[] = player.name.split(/\s|(?=[A-Z0-9])/g);
+    const foundNames: string[] = Array.from(
+      player.name.match(/([A-Z][a-z]+(?=[A-Z]|[^a-zA-Z]|$))/g) ?? []
+    );
+    const detectionData = kantibotData.runtimeData.englishWordDetectionData;
+    if (
+      player.name.replace(/[ᗩᗷᑕᗪEᖴGᕼIᒍKᒪᗰᑎOᑭᑫᖇᔕTᑌᐯᗯ᙭Yᘔ]/g, "").length /
+        player.name.length <
+      0.5
+    ) {
+      METHODS.kickController(player.cid, "Common bot bypass attempt", player);
+      return BOT_DETECTED;
+    }
+    let findWord: boolean | string | undefined;
+    let findName: boolean | string | undefined;
+    if (
+      METHODS.getSetting<boolean>("reduceFalsePositives") &&
+      split.length > 1
+    ) {
+      findWord = split.every(
+        (word: string) => englishWords.has(word) || !Number.isNaN(+word)
+      );
+      findName = split.every((word: string) => {
+        if (!names) return;
+        const name = METHODS.capitalize(word);
+        return (
+          names.first.has(name) ||
+          names.middle.has(name) ||
+          names.last.has(name) ||
+          !Number.isNaN(+word)
+        );
+      });
+    } else {
+      findWord = split.find((word) => englishWords.has(word));
+      findName = foundNames.find((word) => {
+        if (!names) return;
+        const name = METHODS.capitalize(word);
+        return (
+          names.first.has(name) ||
+          names.middle.has(name) ||
+          names.last.has(name)
+        );
+      });
+    }
+    const TOTAL_SPAM_AMOUNT_THRESHOLD = 20;
+    const TIME_TO_FORGET = 4e3;
+    if (findWord || findName) {
+      detectionData.add({
         playerData: player,
         timeAdded: Date.now(),
       });
-      const PATTERN_SIZE_TEST = 15,
-        PATTERN_REMOVE_TIME = 5e3;
-      // remove removable controller data
-      for (const controller of patternData[pattern]) {
-        if (Date.now() - controller.timeAdded > PATTERN_REMOVE_TIME) {
-          patternData[pattern].delete(controller);
+      for (const controller of detectionData) {
+        if (Date.now() - controller.timeAdded > TIME_TO_FORGET) {
+          detectionData.delete(controller);
         }
       }
-      if (patternData[pattern].size >= PATTERN_SIZE_TEST) {
+      if (detectionData.size > TOTAL_SPAM_AMOUNT_THRESHOLD) {
         METHODS.batchData(() => {
-          for (const controller of patternData[pattern]) {
+          for (const controller of detectionData) {
             if (controller.playerData.banned) continue;
             METHODS.kickController(
               controller.playerData.cid,
-              "Names have very similar patterns",
+              "Appears to be a spam of randomized names",
               controller.playerData
             );
-            if (patternData[pattern].size >= PATTERN_SIZE_TEST + 10) {
-              patternData[pattern].delete(controller);
+            if (detectionData.size >= TOTAL_SPAM_AMOUNT_THRESHOLD + 10) {
+              detectionData.delete(controller);
             } else {
               controller.playerData.banned = true;
-              controller.timeAdded = Date.now(); // updates the 'time added' to current time, since the spam is still ongoing
+              controller.timeAdded = Date.now();
             }
           }
         });
         return BOT_DETECTED;
       }
+    }
+    return !BOT_DETECTED;
+  },
+  function fakeValidNameCheck(socket, data) {
+    if (!METHODS.isEventJoinEvent(data) || METHODS.isUsingNamerator()) {
       return !BOT_DETECTED;
-    },
-    function randomNameCheck(socket, data) {
+    }
+    const player = data.data!;
+    const TIME_THRESHOLD = 5e3;
+    if (METHODS.isFakeValid(player.name)) {
       if (
-        !METHODS.isEventJoinEvent(data) ||
-        !METHODS.getSetting<boolean>("looksRandom")
+        Date.now() - kantibotData.runtimeData.lastFakeLoginTime <
+        TIME_THRESHOLD
       ) {
-        return !BOT_DETECTED;
-      }
-      const player = data.data!,
-        randomRegex = /(^(([^A-Z\n]*)?[A-Z]?([^A-Z\n]*)?){0,3}$)|^([A-Z]*)$/;
-      if (!randomRegex.test(player.name)) {
-        METHODS.kickController(player.cid, "Name looks too random", player);
-        return BOT_DETECTED;
-      }
-      return !BOT_DETECTED;
-    },
-    function commonBotFormatCheck1(socket, data) {
-      if (
-        !METHODS.isEventJoinEvent(data) ||
-        !METHODS.getSetting<boolean>("blockformat1")
-      ) {
-        return !BOT_DETECTED;
-      }
-      const player = data.data!;
-      if (/[a-z0-9]+[^a-z0-9\s][a-z0-9]+/gi.test(player.name)) {
-        METHODS.kickController(
-          player.cid,
-          "Name fits common bot format #1",
-          player
-        );
-        return BOT_DETECTED;
-      }
-      return !BOT_DETECTED;
-    },
-    function specializedFormatCheck(socket, data) {
-      if (
-        !METHODS.isEventJoinEvent(data) ||
-        !METHODS.getSetting<boolean>("blockservice1")
-      ) {
-        return !BOT_DETECTED;
-      }
-      const player = data.data!,
-        englishWords = window.aSetOfEnglishWords ?? new Set(),
-        names = window.randomName,
-        split: string[] = player.name.split(/\s|(?=[A-Z0-9])/g),
-        foundNames: string[] = Array.from(
-          player.name.match(/([A-Z][a-z]+(?=[A-Z]|[^a-zA-Z]|$))/g) ?? []
-        ),
-        detectionData = kantibotData.runtimeData.englishWordDetectionData;
-      if (
-        player.name.replace(/[ᗩᗷᑕᗪEᖴGᕼIᒍKᒪᗰᑎOᑭᑫᖇᔕTᑌᐯᗯ᙭Yᘔ]/g, "").length /
-          player.name.length <
-        0.5
-      ) {
-        METHODS.kickController(player.cid, "Common bot bypass attempt", player);
-        return BOT_DETECTED;
-      }
-      let findWord, findName;
-      if (
-        METHODS.getSetting<boolean>("reduceFalsePositives") &&
-        split.length > 1
-      ) {
-        findWord = split.every(
-          (word: string) => englishWords.has(word) || !isNaN(+word)
-        );
-        findName = split.every((word: string) => {
-          if (!names) return;
-          const name = METHODS.capitalize(word);
-          return (
-            names.first.has(name) ||
-            names.middle.has(name) ||
-            names.last.has(name) ||
-            !isNaN(+word)
+        METHODS.batchData(() => {
+          METHODS.kickController(
+            player.cid,
+            "Uses a suspicious fake, 'valid' name"
           );
-        });
-      } else {
-        findWord = split.find((word) => englishWords.has(word));
-        findName = foundNames.find((word) => {
-          if (!names) return;
-          const name = METHODS.capitalize(word);
-          return (
-            names.first.has(name) ||
-            names.middle.has(name) ||
-            names.last.has(name)
+          const previous = METHODS.getControllerById(
+            kantibotData.runtimeData.lastFakeUserID
           );
-        });
-      }
-      const TOTAL_SPAM_AMOUNT_THRESHOLD = 20,
-        TIME_TO_FORGET = 4e3;
-      if (findWord || findName) {
-        detectionData.add({
-          playerData: player,
-          timeAdded: Date.now(),
-        });
-        for (const controller of detectionData) {
-          if (Date.now() - controller.timeAdded > TIME_TO_FORGET) {
-            detectionData.delete(controller);
-          }
-        }
-        if (detectionData.size > TOTAL_SPAM_AMOUNT_THRESHOLD) {
-          METHODS.batchData(() => {
-            for (const controller of detectionData) {
-              if (controller.playerData.banned) continue;
-              METHODS.kickController(
-                controller.playerData.cid,
-                "Appears to be a spam of randomized names",
-                controller.playerData
-              );
-              if (detectionData.size >= TOTAL_SPAM_AMOUNT_THRESHOLD + 10) {
-                detectionData.delete(controller);
-              } else {
-                controller.playerData.banned = true;
-                controller.timeAdded = Date.now();
-              }
-            }
-          });
-          return BOT_DETECTED;
-        }
-      }
-      return !BOT_DETECTED;
-    },
-    function fakeValidNameCheck(socket, data) {
-      if (!METHODS.isEventJoinEvent(data) || METHODS.isUsingNamerator()) {
-        return !BOT_DETECTED;
-      }
-      const player = data.data!,
-        TIME_THRESHOLD = 5e3;
-      if (METHODS.isFakeValid(player.name)) {
-        if (
-          Date.now() - kantibotData.runtimeData.lastFakeLoginTime <
-          TIME_THRESHOLD
-        ) {
-          METHODS.batchData(() => {
+          if (previous) {
             METHODS.kickController(
-              player.cid,
-              "Uses a suspicious fake, 'valid' name"
+              previous.cid!,
+              "Uses a suspicious fake, 'valid' name",
+              player
             );
-            const previous = METHODS.getControllerById(
-              kantibotData.runtimeData.lastFakeUserID
-            );
-            if (previous) {
-              METHODS.kickController(
-                previous.cid!,
-                "Uses a suspicious fake, 'valid' name",
-                player
-              );
-            }
-          });
-          kantibotData.runtimeData.lastFakeLoginTime = Date.now();
-          kantibotData.runtimeData.lastFakeUserID = player.cid;
-          return BOT_DETECTED;
-        }
+          }
+        });
         kantibotData.runtimeData.lastFakeLoginTime = Date.now();
         kantibotData.runtimeData.lastFakeUserID = player.cid;
-      }
-      return !BOT_DETECTED;
-    },
-    function captchaAnswerCheck(socket, data) {
-      if (!METHODS.isEventAnswerEvent(data)) return !BOT_DETECTED;
-      const player = data.data!,
-        currentQuestion = METHODS.getCurrentQuestion();
-      if (
-        currentQuestion?.isKAntibotQuestion &&
-        currentQuestion?.kantibotQuestionType === "captcha"
-      ) {
-        kantibotData.runtimeData.captchaIds.add(player.cid);
-        let choice = -1;
-        try {
-          choice = JSON.parse(player.content!).choice;
-        } catch {
-          /* ignore */
-        }
-        if (choice !== currentQuestion.kantibotCaptchaCorrectIndex) {
-          METHODS.kickController(
-            player.cid,
-            "Incorrectly answered the CAPTCHA",
-            player
-          );
-        }
-      }
-      return !BOT_DETECTED;
-    },
-    function fastAnswerCheck(socket, data) {
-      if (!METHODS.isEventAnswerEvent(data)) return !BOT_DETECTED;
-      const player = data.data!,
-        controllerData = kantibotData.runtimeData.controllerData[player.cid];
-      if (
-        Date.now() - kantibotData.runtimeData.questionStartTime < 500 &&
-        METHODS.getSetting<boolean>("timeout")
-      ) {
         return BOT_DETECTED;
       }
-      if (controllerData && Date.now() - controllerData.loginTime < 1e3) {
+      kantibotData.runtimeData.lastFakeLoginTime = Date.now();
+      kantibotData.runtimeData.lastFakeUserID = player.cid;
+    }
+    return !BOT_DETECTED;
+  },
+  function captchaAnswerCheck(socket, data) {
+    if (!METHODS.isEventAnswerEvent(data)) return !BOT_DETECTED;
+    const player = data.data!;
+    const currentQuestion = METHODS.getCurrentQuestion();
+    if (
+      currentQuestion?.isKAntibotQuestion &&
+      currentQuestion?.kantibotQuestionType === "captcha"
+    ) {
+      kantibotData.runtimeData.captchaIds.add(player.cid);
+      let choice = -1;
+      try {
+        choice = JSON.parse(player.content!).choice;
+      } catch {
+        /* ignore */
+      }
+      if (choice !== currentQuestion.kantibotCaptchaCorrectIndex) {
         METHODS.kickController(
           player.cid,
-          "Answered immediately after joining!",
+          "Incorrectly answered the CAPTCHA",
           player
         );
-        return BOT_DETECTED;
       }
-      return !BOT_DETECTED;
-    },
-    function twoFactorCheck(socket, data) {
-      if (!METHODS.isEventTwoFactorEvent(data)) return !BOT_DETECTED;
-      const player = data.data!,
-        controllerData = kantibotData.runtimeData.controllerData[player.cid],
-        MAX_ATTEMPTS = 3;
-      if (controllerData) {
-        controllerData.twoFactorAttempts++;
-        if (controllerData.twoFactorAttempts > MAX_ATTEMPTS) {
-          METHODS.kickController(
-            player.cid,
-            "Attempted to answer the two-factor code using brute force",
-            player
-          );
-        }
+    }
+    return !BOT_DETECTED;
+  },
+  function fastAnswerCheck(socket, data) {
+    if (!METHODS.isEventAnswerEvent(data)) return !BOT_DETECTED;
+    const player = data.data!;
+    const controllerData = kantibotData.runtimeData.controllerData[player.cid];
+    if (
+      Date.now() - kantibotData.runtimeData.questionStartTime < 500 &&
+      METHODS.getSetting<boolean>("timeout")
+    ) {
+      return BOT_DETECTED;
+    }
+    if (controllerData && Date.now() - controllerData.loginTime < 1e3) {
+      METHODS.kickController(
+        player.cid,
+        "Answered immediately after joining!",
+        player
+      );
+      return BOT_DETECTED;
+    }
+    return !BOT_DETECTED;
+  },
+  function twoFactorCheck(socket, data) {
+    if (!METHODS.isEventTwoFactorEvent(data)) return !BOT_DETECTED;
+    const player = data.data!;
+    const controllerData = kantibotData.runtimeData.controllerData[player.cid];
+    const MAX_ATTEMPTS = 3;
+    if (controllerData) {
+      controllerData.twoFactorAttempts++;
+      if (controllerData.twoFactorAttempts > MAX_ATTEMPTS) {
+        METHODS.kickController(
+          player.cid,
+          "Attempted to answer the two-factor code using brute force",
+          player
+        );
       }
-      return !BOT_DETECTED;
-    },
-    function teamCheck(socket, data) {
-      if (!METHODS.isEventTeamJoinEvent(data)) return !BOT_DETECTED;
-      const player = data.data!,
-        team = JSON.parse(player.content!);
-      if (
-        team.length === 0 ||
-        team.indexOf("") !== -1 ||
-        team.indexOf("Player 1") === 0 ||
-        team.join("") === "Youjustgotbotted"
-      ) {
-        METHODS.kickController(player.cid, "Team names are suspicious", player);
-        return BOT_DETECTED;
-      }
-      return !BOT_DETECTED;
-    },
-    function lobbyAutoStartCheck(socket, data) {
-      if (!METHODS.isEventJoinEvent(data)) return !BOT_DETECTED;
-      if (
-        kantibotData.kahootInternals.services.game.navigation.page ===
-          "lobby" &&
-        METHODS.getKahootSetting<boolean>("automaticallyProgressGame") &&
-        METHODS.getSetting<number>("start_lock") !== 0
-      ) {
-        if (kantibotData.runtimeData.lobbyLoadTime === 0) {
-          kantibotData.runtimeData.lobbyLoadTime = Date.now();
-          if (METHODS.getSetting<boolean>("counters")) {
-            const container = document.createElement("div");
-            container.innerHTML = `<span class="kantibot-count-num">${Math.round(
+    }
+    return !BOT_DETECTED;
+  },
+  function teamCheck(socket, data) {
+    if (!METHODS.isEventTeamJoinEvent(data)) return !BOT_DETECTED;
+    const player = data.data!;
+    const team = JSON.parse(player.content!);
+    if (
+      team.length === 0 ||
+      team.indexOf("") !== -1 ||
+      team.indexOf("Player 1") === 0 ||
+      team.join("") === "Youjustgotbotted"
+    ) {
+      METHODS.kickController(player.cid, "Team names are suspicious", player);
+      return BOT_DETECTED;
+    }
+    return !BOT_DETECTED;
+  },
+  function lobbyAutoStartCheck(socket, data) {
+    if (!METHODS.isEventJoinEvent(data)) return !BOT_DETECTED;
+    if (
+      kantibotData.kahootInternals.services.game.navigation.page === "lobby" &&
+      METHODS.getKahootSetting<boolean>("automaticallyProgressGame") &&
+      METHODS.getSetting<number>("start_lock") !== 0
+    ) {
+      if (kantibotData.runtimeData.lobbyLoadTime === 0) {
+        kantibotData.runtimeData.lobbyLoadTime = Date.now();
+        if (METHODS.getSetting<boolean>("counters")) {
+          const container = document.createElement("div");
+          container.innerHTML = `<span class="kantibot-count-num">${Math.round(
+            METHODS.getSetting<number>("start_lock") -
+              (Date.now() - kantibotData.runtimeData.lobbyLoadTime) / 1e3
+          )}</span>
+            <span class="kantibot-count-desc">Until Auto-Start</span>`;
+          const startLockInterval = setInterval(() => {
+            let time: number | string = Math.round(
               METHODS.getSetting<number>("start_lock") -
                 (Date.now() - kantibotData.runtimeData.lobbyLoadTime) / 1e3
-            )}</span>
-            <span class="kantibot-count-desc">Until Auto-Start</span>`;
-            const startLockInterval = setInterval(() => {
-              let time: number | string = Math.round(
-                METHODS.getSetting<number>("start_lock") -
-                  (Date.now() - kantibotData.runtimeData.lobbyLoadTime) / 1e3
-              );
-              if (time < 0) {
-                time = "Please Wait...";
-              }
-              container.querySelector(".kantibot-count-num")!.innerHTML =
-                `${time}`;
-            }, 1e3);
-            kantibotData.runtimeData.countersElement.append(container);
-            kantibotData.runtimeData.startLockElement = container;
-            kantibotData.runtimeData.startLockInterval = startLockInterval;
-          }
-        }
-        if (
-          Date.now() - kantibotData.runtimeData.lobbyLoadTime >
-          METHODS.getSetting<number>("start_lock") * 1e3
-        ) {
-          const controllers = METHODS.getControllers(),
-            realController = Object.values(controllers).find((controller) => {
-              return !controller.isGhost && !controller.hasLeft;
-            });
-          if (!realController) {
-            kantibotData.runtimeData.lobbyLoadTime = Date.now();
-          } else {
-            kantibotData.kahootInternals.methods.startQuiz();
-            if (kantibotData.runtimeData.startLockElement) {
-              clearInterval(kantibotData.runtimeData.startLockInterval);
-              kantibotData.runtimeData.startLockElement.remove();
-              kantibotData.runtimeData.startLockElement = null;
+            );
+            if (time < 0) {
+              time = "Please Wait...";
             }
+            container.querySelector(".kantibot-count-num")!.innerHTML =
+              `${time}`;
+          }, 1e3);
+          kantibotData.runtimeData.countersElement.append(container);
+          kantibotData.runtimeData.startLockElement = container;
+          kantibotData.runtimeData.startLockInterval = startLockInterval;
+        }
+      }
+      if (
+        Date.now() - kantibotData.runtimeData.lobbyLoadTime >
+        METHODS.getSetting<number>("start_lock") * 1e3
+      ) {
+        const controllers = METHODS.getControllers();
+        const realController = Object.values(controllers).find((controller) => {
+          return !controller.isGhost && !controller.hasLeft;
+        });
+        if (!realController) {
+          kantibotData.runtimeData.lobbyLoadTime = Date.now();
+        } else {
+          kantibotData.kahootInternals.methods.startQuiz();
+          if (kantibotData.runtimeData.startLockElement) {
+            clearInterval(kantibotData.runtimeData.startLockInterval);
+            kantibotData.runtimeData.startLockElement.remove();
+            kantibotData.runtimeData.startLockElement = null;
           }
         }
       }
-      return !BOT_DETECTED;
-    },
-  ];
+    }
+    return !BOT_DETECTED;
+  },
+];
 
 setInterval(function updateStats() {
   const unverifiedControllerNames =
-      kantibotData.runtimeData.unverifiedControllerNames,
-    verifiedControllerNames = kantibotData.runtimeData.verifiedControllerNames;
+    kantibotData.runtimeData.unverifiedControllerNames;
+  const verifiedControllerNames =
+    kantibotData.runtimeData.verifiedControllerNames;
   for (const i in unverifiedControllerNames) {
     const data = unverifiedControllerNames[i];
     if (
@@ -1421,9 +1408,9 @@ function injectAntibotSettings(target: {
     typeof window.React.createElement<KAntibotSettingPropsType>
   >[];
 }) {
-  const lastIndex = target.children.length - 1,
-    antibotIndex = lastIndex - 2,
-    lastItem = target.children[lastIndex];
+  const lastIndex = target.children.length - 1;
+  const antibotIndex = lastIndex - 2;
+  const lastItem = target.children[lastIndex];
   if (
     typeof lastItem.type === "function" &&
     lastItem.props?.text?.id ===
@@ -1437,150 +1424,148 @@ function injectAntibotSettings(target: {
     ) {
       return;
     }
-    const { createElement } = window.React,
-      settings = [
-        KAntibotSettingComponent({
-          title: "Block Fast Answers",
-          inputType: "checkbox",
-          id: "timeout",
-          description:
-            "Blocks answers sent before 0.5 seconds after the question starts",
-        }),
-        KAntibotSettingComponent({
-          title: "Block Random Names",
-          inputType: "checkbox",
-          id: "looksRandom",
-          description: "Blocks names that look random, such as 'rAnDOM naMe'",
-        }),
-        KAntibotSettingComponent({
-          title: "Block Format F[.,-]L",
-          inputType: "checkbox",
-          id: "blockformat1",
-          description:
-            "Blocks names using the format [First][random char][Last]",
-        }),
-        KAntibotSettingComponent({
-          title: "Additional Blocking Filters",
-          inputType: "checkbox",
-          id: "blockservice1",
-          description:
-            "Enables multiple additional blocking filters for some bot programs",
-        }),
-        KAntibotSettingComponent({
-          title: "Block Numbers",
-          inputType: "checkbox",
-          id: "blocknum",
-          description:
-            "Blocks names containing numbers, if multiple with numbers join within a short period of time",
-        }),
-        KAntibotSettingComponent({
-          title: "Force Alphanumeric Names",
-          inputType: "checkbox",
-          id: "forceascii",
-          description:
-            "Blocks names containing non-alphanumeric characters, if multiple join within a short period of time",
-        }),
-        KAntibotSettingComponent({
-          title: "Detect Patterns",
-          inputType: "checkbox",
-          id: "patterns",
-          description: "Blocks bots spammed using similar patterns",
-        }),
-        KAntibotSettingComponent({
-          title: "Additional Question Time",
-          inputType: "number",
-          id: "teamtimeout",
-          description:
-            "Adds extra seconds to a question. May cause issues with scoring.",
-          inputProps: {
-            step: 1,
-          },
-        }),
-        KAntibotSettingComponent({
-          title: "Two-Factor Auth Timer",
-          inputType: "number",
-          id: "twoFactorTime",
-          description: "Specify the number of seconds for the two-factor auth.",
-          inputProps: {
-            step: 1,
-            min: 1,
-          },
-        }),
-        KAntibotSettingComponent({
-          title: "Name Match Percent",
-          inputType: "number",
-          id: "percent",
-          description:
-            "Specify the percent of similarity between names to kick.",
-          inputProps: {
-            step: 0.1,
-          },
-        }),
-        KAntibotSettingComponent({
-          title: "Word Blacklist",
-          inputType: "textarea",
-          id: "wordblock",
-          description: "Specify the words to block, separated by a new line.",
-        }),
-        KAntibotSettingComponent({
-          title: "Auto-Lock Threshold",
-          inputType: "number",
-          id: "ddos",
-          description:
-            "Specify the number of bots to join per minute before locking the game. Set to 0 to disable.",
-          inputProps: {
-            step: 1,
-          },
-        }),
-        KAntibotSettingComponent({
-          title: "Lobby Auto-Start Time",
-          inputType: "number",
-          id: "start_lock",
-          description:
-            "Specify the number of seconds to wait before auto-starting the game after a player joins. Set to 0 to disable.",
-          inputProps: {
-            step: 1,
-          },
-        }),
-        KAntibotSettingComponent({
-          title: "Show Antibot Timers",
-          inputType: "checkbox",
-          id: "counters",
-          description:
-            "Display Antibot Counters/Timers (Lobby Auto-Start, Auto-Lock, etc)",
-        }),
-        KAntibotSettingComponent({
-          title: "Counter Kahoot! Cheats",
-          inputType: "checkbox",
-          id: "counterCheats",
-          description:
-            "Adds an additional 5 second question at the end to counter cheats.",
-        }),
-        KAntibotSettingComponent({
-          title: "Enable CAPTCHA",
-          inputType: "checkbox",
-          id: "enableCAPTCHA",
-          description:
-            "Adds a 30 second poll at the start of the quiz. If players don't answer it correctly, they get banned.",
-        }),
-        KAntibotSettingComponent({
-          title: "Reduce False Positives",
-          inputType: "checkbox",
-          id: "reduceFalsePositives",
-          description:
-            "Reduces false positives by making the antibot less strict.",
-        }),
-      ],
-      antibotSettingsContainer = createElement(
+    const { createElement } = window.React;
+    const settings = [
+      KAntibotSettingComponent({
+        title: "Block Fast Answers",
+        inputType: "checkbox",
+        id: "timeout",
+        description:
+          "Blocks answers sent before 0.5 seconds after the question starts",
+      }),
+      KAntibotSettingComponent({
+        title: "Block Random Names",
+        inputType: "checkbox",
+        id: "looksRandom",
+        description: "Blocks names that look random, such as 'rAnDOM naMe'",
+      }),
+      KAntibotSettingComponent({
+        title: "Block Format F[.,-]L",
+        inputType: "checkbox",
+        id: "blockformat1",
+        description: "Blocks names using the format [First][random char][Last]",
+      }),
+      KAntibotSettingComponent({
+        title: "Additional Blocking Filters",
+        inputType: "checkbox",
+        id: "blockservice1",
+        description:
+          "Enables multiple additional blocking filters for some bot programs",
+      }),
+      KAntibotSettingComponent({
+        title: "Block Numbers",
+        inputType: "checkbox",
+        id: "blocknum",
+        description:
+          "Blocks names containing numbers, if multiple with numbers join within a short period of time",
+      }),
+      KAntibotSettingComponent({
+        title: "Force Alphanumeric Names",
+        inputType: "checkbox",
+        id: "forceascii",
+        description:
+          "Blocks names containing non-alphanumeric characters, if multiple join within a short period of time",
+      }),
+      KAntibotSettingComponent({
+        title: "Detect Patterns",
+        inputType: "checkbox",
+        id: "patterns",
+        description: "Blocks bots spammed using similar patterns",
+      }),
+      KAntibotSettingComponent({
+        title: "Additional Question Time",
+        inputType: "number",
+        id: "teamtimeout",
+        description:
+          "Adds extra seconds to a question. May cause issues with scoring.",
+        inputProps: {
+          step: 1,
+        },
+      }),
+      KAntibotSettingComponent({
+        title: "Two-Factor Auth Timer",
+        inputType: "number",
+        id: "twoFactorTime",
+        description: "Specify the number of seconds for the two-factor auth.",
+        inputProps: {
+          step: 1,
+          min: 1,
+        },
+      }),
+      KAntibotSettingComponent({
+        title: "Name Match Percent",
+        inputType: "number",
+        id: "percent",
+        description: "Specify the percent of similarity between names to kick.",
+        inputProps: {
+          step: 0.1,
+        },
+      }),
+      KAntibotSettingComponent({
+        title: "Word Blacklist",
+        inputType: "textarea",
+        id: "wordblock",
+        description: "Specify the words to block, separated by a new line.",
+      }),
+      KAntibotSettingComponent({
+        title: "Auto-Lock Threshold",
+        inputType: "number",
+        id: "ddos",
+        description:
+          "Specify the number of bots to join per minute before locking the game. Set to 0 to disable.",
+        inputProps: {
+          step: 1,
+        },
+      }),
+      KAntibotSettingComponent({
+        title: "Lobby Auto-Start Time",
+        inputType: "number",
+        id: "start_lock",
+        description:
+          "Specify the number of seconds to wait before auto-starting the game after a player joins. Set to 0 to disable.",
+        inputProps: {
+          step: 1,
+        },
+      }),
+      KAntibotSettingComponent({
+        title: "Show Antibot Timers",
+        inputType: "checkbox",
+        id: "counters",
+        description:
+          "Display Antibot Counters/Timers (Lobby Auto-Start, Auto-Lock, etc)",
+      }),
+      KAntibotSettingComponent({
+        title: "Counter Kahoot! Cheats",
+        inputType: "checkbox",
+        id: "counterCheats",
+        description:
+          "Adds an additional 5 second question at the end to counter cheats.",
+      }),
+      KAntibotSettingComponent({
+        title: "Enable CAPTCHA",
+        inputType: "checkbox",
+        id: "enableCAPTCHA",
+        description:
+          "Adds a 30 second poll at the start of the quiz. If players don't answer it correctly, they get banned.",
+      }),
+      KAntibotSettingComponent({
+        title: "Reduce False Positives",
+        inputType: "checkbox",
+        id: "reduceFalsePositives",
+        description:
+          "Reduces false positives by making the antibot less strict.",
+      }),
+    ];
+    const antibotSettingsContainer = createElement(
+      "div",
+      { id: "kantibot-settings" },
+      createElement(
         "div",
-        { id: "kantibot-settings" },
-        createElement(
-          "div",
-          { className: "kantibot-settings-header" },
-          `KAntibot v${KANTIBOT_VERSION} by theusaf`
-        ),
-        ...settings
-      );
+        { className: "kantibot-settings-header" },
+        `KAntibot v${KANTIBOT_VERSION} by theusaf`
+      ),
+      ...settings
+    );
     // Inject the antibot settings
     target.children.splice(
       antibotIndex + 1,
@@ -1694,7 +1679,7 @@ function KAntibotSettingLabelComponent({
     createElement(
       "span",
       {
-        className: `kantibot-setting-description`,
+        className: "kantibot-setting-description",
         title: description,
       },
       "?"
@@ -1754,8 +1739,8 @@ function KAntibotSettingComponent({
 
 // Apply hooks
 
-let currentQuestionChanged = true,
-  quizRepairTimeout: number | null = null;
+let currentQuestionChanged = true;
+let quizRepairTimeout: number | null = null;
 
 const originalPush = Array.prototype.push;
 
@@ -1879,7 +1864,7 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
         kantibotData.kahootInternals.socketLib = socket;
         if (!socket.webSocket.oldSend) {
           socket.webSocket.oldSend = socket.webSocket.send;
-          socket.webSocket.send = function (data: string) {
+          socket.webSocket.send = function send(data: string) {
             try {
               websocketMessageSendHandler(socket, data);
             } catch (err) {
@@ -1928,19 +1913,19 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
     prop: "core",
     condition: (_, value) => typeof value === "function",
     callback: (target, value) => {
-      target.core = function (input: unknown, payload: KPayload) {
+      target.core = function core(input: unknown, payload: KPayload) {
         switch (payload.type) {
           case "player/answers/RECORD_CONTROLLER_ANSWERS": {
             for (let i = 0; i < payload.payload.answers.length; i++) {
-              const answerData = payload.payload.answers[i],
-                receivedTime = answerData.answerStats.receivedTime,
-                additionalTime =
-                  METHODS.getSetting<number>("teamtimeout") * 1000,
-                actualQuestiontime =
-                  kantibotData.runtimeData.currentQuestionActualTime,
-                actualTimeRemaining = receivedTime + additionalTime,
-                timeMultiplier =
-                  actualQuestiontime / (actualQuestiontime + additionalTime);
+              const answerData = payload.payload.answers[i];
+              const receivedTime = answerData.answerStats.receivedTime;
+              const additionalTime =
+                METHODS.getSetting<number>("teamtimeout") * 1000;
+              const actualQuestiontime =
+                kantibotData.runtimeData.currentQuestionActualTime;
+              const actualTimeRemaining = receivedTime + additionalTime;
+              const timeMultiplier =
+                actualQuestiontime / (actualQuestiontime + additionalTime);
               answerData.answerStats.receivedTime =
                 actualTimeRemaining * timeMultiplier;
             }
@@ -1948,7 +1933,7 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
           }
           case "services/rest/FETCH_USER_DATA": {
             const original = payload.payload.onSuccess;
-            payload.payload.onSuccess = function (data: unknown) {
+            payload.payload.onSuccess = function onSuccess(data: unknown) {
               kantibotData.kahootInternals.userData = data;
               return original(data);
             };
@@ -1963,8 +1948,8 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
           payload.type === "player/game/START_GAME" ||
           payload.type === "player/game/PLAY_AGAIN"
         ) {
-          const quiz: KQuiz = JSON.parse(JSON.stringify(result.quiz)),
-            originalQuestions: KQuestion[] = [...result.quiz.questions];
+          const quiz: KQuiz = JSON.parse(JSON.stringify(result.quiz));
+          const originalQuestions: KQuestion[] = [...result.quiz.questions];
 
           quiz.questions = [...result.quiz.questions];
           if (!METHODS.getSetting<boolean>("counterCheats")) {
