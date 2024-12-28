@@ -788,8 +788,7 @@ const RECV_CHECKS = [
           <span class="kantibot-count-desc">Until Unlock</span>`;
                 kantibotData.runtimeData.countersElement.append(ddosCounterElement);
                 const ddosCounterInterval = setInterval(() => {
-                    ddosCounterElement.querySelector(".kantibot-count-num").innerHTML =
-                        `${--timeLeft}`;
+                    ddosCounterElement.querySelector(".kantibot-count-num").innerHTML = `${--timeLeft}`;
                     if (timeLeft <= 0) {
                         clearInterval(ddosCounterInterval);
                         ddosCounterElement.remove();
@@ -1131,8 +1130,7 @@ const RECV_CHECKS = [
                         if (time < 0) {
                             time = "Please Wait...";
                         }
-                        container.querySelector(".kantibot-count-num").innerHTML =
-                            `${time}`;
+                        container.querySelector(".kantibot-count-num").innerHTML = `${time}`;
                     }, 1e3);
                     kantibotData.runtimeData.countersElement.append(container);
                     kantibotData.runtimeData.startLockElement = container;
@@ -1654,6 +1652,7 @@ const KANTIBOT_HOOKS = {
         condition: (_, value) => typeof value === "function",
         callback: (target, value) => {
             target.core = function core(input, payload) {
+                console.debug(payload.type);
                 switch (payload.type) {
                     case "player/answers/RECORD_CONTROLLER_ANSWERS": {
                         for (let i = 0; i < payload.payload.answers.length; i++) {
@@ -1665,6 +1664,13 @@ const KANTIBOT_HOOKS = {
                             const timeMultiplier = actualQuestiontime / (actualQuestiontime + additionalTime);
                             answerData.answerStats.receivedTime =
                                 actualTimeRemaining * timeMultiplier;
+                            if (!Number.isNaN(timeMultiplier)) {
+                                answerData.answerStats.receivedTime =
+                                    actualTimeRemaining * timeMultiplier;
+                            }
+                            else {
+                                log(`received: ${receivedTime}, additional: ${additionalTime}, questionTime: ${actualQuestiontime}, remaining: ${actualTimeRemaining}, mult: ${timeMultiplier}`);
+                            }
                         }
                         break;
                     }
@@ -1678,56 +1684,77 @@ const KANTIBOT_HOOKS = {
                     }
                 }
                 const result = value.call(target, input, payload);
+                console.debug(result, input, payload);
                 // Warning to future maintainer
                 // Adding questions here may seem to work, but will
                 // cause Kahoot! to crash.
-                if (payload.type === "player/game/START_GAME" ||
-                    payload.type === "player/game/PLAY_AGAIN") {
-                    const quiz = JSON.parse(JSON.stringify(result.quiz));
-                    const originalQuestions = [...result.quiz.questions];
-                    quiz.questions = [...result.quiz.questions];
-                    if (!METHODS.getSetting("counterCheats")) {
-                        const index = quiz.questions.findIndex((question) => question.isKAntibotQuestion &&
-                            question.kantibotQuestionType === "counterCheats");
-                        if (index !== -1) {
-                            log("Removing counterCheats question");
-                            quiz.questions.splice(index, 1);
+                switch (payload.type) {
+                    case "player/game/START_GAME":
+                    case "player/game/PLAY_AGAIN": {
+                        const quiz = JSON.parse(JSON.stringify(result.quiz));
+                        const originalQuestions = JSON.parse(JSON.stringify(result.quiz.questions));
+                        quiz.questions = [...result.quiz.questions];
+                        if (!METHODS.getSetting("counterCheats")) {
+                            const index = quiz.questions.findIndex((question) => question.isKAntibotQuestion &&
+                                question.kantibotQuestionType === "counterCheats");
+                            if (index !== -1) {
+                                log("Removing counterCheats question");
+                                quiz.questions.splice(index, 1);
+                            }
                         }
-                    }
-                    if (!METHODS.getSetting("enableCAPTCHA")) {
-                        const index = quiz.questions.findIndex((question) => question.isKAntibotQuestion &&
-                            question.kantibotQuestionType === "captcha");
-                        if (index !== -1) {
-                            log("Removing CAPTCHA question");
-                            quiz.questions.splice(index, 1);
+                        if (!METHODS.getSetting("enableCAPTCHA")) {
+                            const index = quiz.questions.findIndex((question) => question.isKAntibotQuestion &&
+                                question.kantibotQuestionType === "captcha");
+                            if (index !== -1) {
+                                log("Removing CAPTCHA question");
+                                quiz.questions.splice(index, 1);
+                            }
                         }
-                    }
-                    else {
-                        const index = quiz.questions.findIndex((question) => question.isKAntibotQuestion &&
-                            question.kantibotQuestionType === "captcha");
-                        if (index !== -1) {
-                            log("Updating CAPTCHA question");
-                            METHODS.applyCaptchaQuestion(quiz.questions[index]);
+                        else {
+                            const index = quiz.questions.findIndex((question) => question.isKAntibotQuestion &&
+                                question.kantibotQuestionType === "captcha");
+                            if (index !== -1) {
+                                log("Updating CAPTCHA question");
+                                METHODS.applyCaptchaQuestion(quiz.questions[index]);
+                            }
                         }
+                        // modify each question based on time setting
+                        const extraTime = METHODS.getSetting("teamtimeout") * 1000;
+                        for (const question of quiz.questions) {
+                            question.time += extraTime;
+                        }
+                        kantibotData.runtimeData.kantibotModifiedQuiz = quiz;
+                        result.quiz = quiz;
+                        log("Modified quiz data", quiz.questions);
+                        if (!quizRepairTimeout) {
+                            // To ensure that the quiz data is not modified
+                            // for the next game, we need to reset it
+                            quizRepairTimeout = setTimeout(() => {
+                                kantibotData.kahootInternals.gameCore.quiz.questions =
+                                    originalQuestions;
+                                quizRepairTimeout = null;
+                            }, 100);
+                        }
+                        break;
                     }
-                    kantibotData.runtimeData.kantibotModifiedQuiz = quiz;
-                    result.quiz = quiz;
-                    log("Modified quiz data", quiz.questions);
-                    if (!quizRepairTimeout) {
-                        // To ensure that the quiz data is not modified
-                        // for the next game, we need to reset it
-                        quizRepairTimeout = setTimeout(() => {
-                            kantibotData.kahootInternals.gameCore.quiz.questions =
-                                originalQuestions;
-                            quizRepairTimeout = null;
-                        }, 100);
+                    case "player/game/START_NEXT_QUESTION": {
+                        // new question timer method: time is updated at start, subtract extra to get real
+                        const questionIndex = payload.payload.index;
+                        const extraTime = METHODS.getSetting("teamtimeout") * 1000;
+                        const currentTime = kantibotData.runtimeData.kantibotModifiedQuiz.questions[questionIndex].time;
+                        kantibotData.runtimeData.currentQuestionActualTime =
+                            currentTime - extraTime;
+                        kantibotData.runtimeData.kantibotModifiedQuiz.questions[questionIndex].time = 10000;
+                        break;
                     }
-                }
-                if (payload.type === "player/game/SET_QUESTION_TIMER") {
-                    kantibotData.runtimeData.currentQuestionActualTime =
-                        result.currentQuestionTimer;
-                    const additionalTime = METHODS.getSetting("teamtimeout") * 1000;
-                    result.currentQuestionTimer += additionalTime;
+                    case "player/game/SET_QUESTION_TIMER": {
+                        // old question timer method
+                        kantibotData.runtimeData.currentQuestionActualTime =
+                            result.currentQuestionTimer;
+                        const additionalTime = METHODS.getSetting("teamtimeout") * 1000;
+                        result.currentQuestionTimer += additionalTime;
+                        break;
+                    }
                 }
                 return result;
             };
