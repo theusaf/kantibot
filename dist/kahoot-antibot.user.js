@@ -3,7 +3,7 @@
 // @name:ja        Kーアンチボット
 // @namespace      http://tampermonkey.net/
 // @homepage       https://theusaf.org
-// @version        4.2.7
+// @version        4.2.8
 // @icon           https://cdn.discordapp.com/icons/641133408205930506/31c023710d468520708d6defb32a89bc.png
 // @description    Remove all bots from a kahoot game.
 // @description:es eliminar todos los bots de un Kahoot! juego.
@@ -1701,7 +1701,6 @@ const KANTIBOT_HOOKS = {
                         }
                         // modify each question based on time setting
                         for (const question of quiz.questions) {
-                            // TODO: see if changing this to a getter works
                             let originalTime = question.time;
                             Object.defineProperty(question, "time", {
                                 set(v) {
@@ -1709,7 +1708,6 @@ const KANTIBOT_HOOKS = {
                                 },
                                 get() {
                                     const extraTime = METHODS.getSetting("teamtimeout") * 1000;
-                                    log("Querying time... muahaha");
                                     return originalTime + extraTime;
                                 },
                             });
