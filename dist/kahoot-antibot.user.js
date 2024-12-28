@@ -788,7 +788,8 @@ const RECV_CHECKS = [
           <span class="kantibot-count-desc">Until Unlock</span>`;
                 kantibotData.runtimeData.countersElement.append(ddosCounterElement);
                 const ddosCounterInterval = setInterval(() => {
-                    ddosCounterElement.querySelector(".kantibot-count-num").innerHTML = `${--timeLeft}`;
+                    ddosCounterElement.querySelector(".kantibot-count-num").innerHTML =
+                        `${--timeLeft}`;
                     if (timeLeft <= 0) {
                         clearInterval(ddosCounterInterval);
                         ddosCounterElement.remove();
@@ -1130,7 +1131,8 @@ const RECV_CHECKS = [
                         if (time < 0) {
                             time = "Please Wait...";
                         }
-                        container.querySelector(".kantibot-count-num").innerHTML = `${time}`;
+                        container.querySelector(".kantibot-count-num").innerHTML =
+                            `${time}`;
                     }, 1e3);
                     kantibotData.runtimeData.countersElement.append(container);
                     kantibotData.runtimeData.startLockElement = container;
@@ -1652,28 +1654,7 @@ const KANTIBOT_HOOKS = {
         condition: (_, value) => typeof value === "function",
         callback: (target, value) => {
             target.core = function core(input, payload) {
-                console.debug(payload.type);
                 switch (payload.type) {
-                    case "player/answers/RECORD_CONTROLLER_ANSWERS": {
-                        for (let i = 0; i < payload.payload.answers.length; i++) {
-                            const answerData = payload.payload.answers[i];
-                            const receivedTime = answerData.answerStats.receivedTime;
-                            const additionalTime = METHODS.getSetting("teamtimeout") * 1000;
-                            const actualQuestiontime = kantibotData.runtimeData.currentQuestionActualTime;
-                            const actualTimeRemaining = receivedTime + additionalTime;
-                            const timeMultiplier = actualQuestiontime / (actualQuestiontime + additionalTime);
-                            answerData.answerStats.receivedTime =
-                                actualTimeRemaining * timeMultiplier;
-                            if (!Number.isNaN(timeMultiplier)) {
-                                answerData.answerStats.receivedTime =
-                                    actualTimeRemaining * timeMultiplier;
-                            }
-                            else {
-                                log(`received: ${receivedTime}, additional: ${additionalTime}, questionTime: ${actualQuestiontime}, remaining: ${actualTimeRemaining}, mult: ${timeMultiplier}`);
-                            }
-                        }
-                        break;
-                    }
                     case "services/rest/FETCH_USER_DATA": {
                         const original = payload.payload.onSuccess;
                         payload.payload.onSuccess = function onSuccess(data) {
@@ -1684,13 +1665,13 @@ const KANTIBOT_HOOKS = {
                     }
                 }
                 const result = value.call(target, input, payload);
-                console.debug(result, input, payload);
                 // Warning to future maintainer
                 // Adding questions here may seem to work, but will
                 // cause Kahoot! to crash.
                 switch (payload.type) {
                     case "player/game/START_GAME":
-                    case "player/game/PLAY_AGAIN": {
+                    case "player/game/PLAY_AGAIN":
+                    case "player/game/RESET_GAME": {
                         const quiz = JSON.parse(JSON.stringify(result.quiz));
                         const originalQuestions = JSON.parse(JSON.stringify(result.quiz.questions));
                         quiz.questions = [...result.quiz.questions];
@@ -1719,9 +1700,19 @@ const KANTIBOT_HOOKS = {
                             }
                         }
                         // modify each question based on time setting
-                        const extraTime = METHODS.getSetting("teamtimeout") * 1000;
                         for (const question of quiz.questions) {
-                            question.time += extraTime;
+                            // TODO: see if changing this to a getter works
+                            let originalTime = question.time;
+                            Object.defineProperty(question, "time", {
+                                set(v) {
+                                    originalTime = v;
+                                },
+                                get() {
+                                    const extraTime = METHODS.getSetting("teamtimeout") * 1000;
+                                    log("Querying time... muahaha");
+                                    return originalTime + extraTime;
+                                },
+                            });
                         }
                         kantibotData.runtimeData.kantibotModifiedQuiz = quiz;
                         result.quiz = quiz;
@@ -1735,24 +1726,6 @@ const KANTIBOT_HOOKS = {
                                 quizRepairTimeout = null;
                             }, 100);
                         }
-                        break;
-                    }
-                    case "player/game/START_NEXT_QUESTION": {
-                        // new question timer method: time is updated at start, subtract extra to get real
-                        const questionIndex = payload.payload.index;
-                        const extraTime = METHODS.getSetting("teamtimeout") * 1000;
-                        const currentTime = kantibotData.runtimeData.kantibotModifiedQuiz.questions[questionIndex].time;
-                        kantibotData.runtimeData.currentQuestionActualTime =
-                            currentTime - extraTime;
-                        kantibotData.runtimeData.kantibotModifiedQuiz.questions[questionIndex].time = 10000;
-                        break;
-                    }
-                    case "player/game/SET_QUESTION_TIMER": {
-                        // old question timer method
-                        kantibotData.runtimeData.currentQuestionActualTime =
-                            result.currentQuestionTimer;
-                        const additionalTime = METHODS.getSetting("teamtimeout") * 1000;
-                        result.currentQuestionTimer += additionalTime;
                         break;
                     }
                 }

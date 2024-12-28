@@ -1918,30 +1918,6 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
 		callback: (target, value) => {
 			target.core = function core(input: unknown, payload: KPayload) {
 				switch (payload.type) {
-					case "player/answers/RECORD_CONTROLLER_ANSWERS": {
-						for (let i = 0; i < payload.payload.answers.length; i++) {
-							const answerData = payload.payload.answers[i];
-							const receivedTime = answerData.answerStats.receivedTime;
-							const additionalTime =
-								METHODS.getSetting<number>("teamtimeout") * 1000;
-							const actualQuestiontime =
-								kantibotData.runtimeData.currentQuestionActualTime;
-							const actualTimeRemaining = receivedTime + additionalTime;
-							const timeMultiplier =
-								actualQuestiontime / (actualQuestiontime + additionalTime);
-							answerData.answerStats.receivedTime =
-								actualTimeRemaining * timeMultiplier;
-							if (!Number.isNaN(timeMultiplier)) {
-								answerData.answerStats.receivedTime =
-									actualTimeRemaining * timeMultiplier;
-							} else {
-								log(
-									`received: ${receivedTime}, additional: ${additionalTime}, questionTime: ${actualQuestiontime}, remaining: ${actualTimeRemaining}, mult: ${timeMultiplier}`,
-								);
-							}
-						}
-						break;
-					}
 					case "services/rest/FETCH_USER_DATA": {
 						const original = payload.payload.onSuccess;
 						payload.payload.onSuccess = function onSuccess(data: unknown) {
@@ -1957,7 +1933,8 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
 				// cause Kahoot! to crash.
 				switch (payload.type) {
 					case "player/game/START_GAME":
-					case "player/game/PLAY_AGAIN": {
+					case "player/game/PLAY_AGAIN":
+					case "player/game/RESET_GAME": {
 						const quiz: KQuiz = JSON.parse(JSON.stringify(result.quiz));
 						const originalQuestions: KQuestion[] = JSON.parse(
 							JSON.stringify(result.quiz.questions),
@@ -1998,9 +1975,18 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
 						}
 
 						// modify each question based on time setting
-						const extraTime = METHODS.getSetting<number>("teamtimeout") * 1000;
 						for (const question of quiz.questions) {
-							question.time += extraTime;
+							let originalTime = question.time;
+							Object.defineProperty(question, "time", {
+								set(v) {
+									originalTime = v;
+								},
+								get() {
+									const extraTime =
+										METHODS.getSetting<number>("teamtimeout") * 1000;
+									return originalTime + extraTime;
+								},
+							});
 						}
 
 						kantibotData.runtimeData.kantibotModifiedQuiz = quiz;
@@ -2015,27 +2001,6 @@ const KANTIBOT_HOOKS: Record<string, KAntibotHook> = {
 								quizRepairTimeout = null;
 							}, 100);
 						}
-						break;
-					}
-					case "player/game/START_NEXT_QUESTION": {
-						// new question timer method: time is updated at start, subtract extra to get real
-						const questionIndex = payload.payload.index;
-						const extraTime = METHODS.getSetting<number>("teamtimeout") * 1000;
-						const currentTime =
-							kantibotData.runtimeData.kantibotModifiedQuiz.questions[
-								questionIndex
-							].time;
-						kantibotData.runtimeData.currentQuestionActualTime =
-							currentTime - extraTime;
-						break;
-					}
-					case "player/game/SET_QUESTION_TIMER": {
-						// old question timer method
-						kantibotData.runtimeData.currentQuestionActualTime =
-							result.currentQuestionTimer;
-						const additionalTime =
-							METHODS.getSetting<number>("teamtimeout") * 1000;
-						result.currentQuestionTimer += additionalTime;
 						break;
 					}
 				}
